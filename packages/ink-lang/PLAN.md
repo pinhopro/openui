@@ -453,7 +453,10 @@ Design:
   focuses on hover, with an inner box hugging the label so blank space in a stretched row is not a
   button. Tabs renders each trigger in its own box (click selects and focuses) inside a strip box
   (wheel steps). Select takes the row (click focuses and opens), each option row picks on click and
-  the wheel moves the cursor. Input focuses on click. All of it stays inert while streaming.
+  the wheel moves the cursor. Input focuses on click. Combobox mirrors Select over its filtered
+  list (a click picks the visible match, the wheel moves the highlight). Table's pager controls
+  press on click and the wheel over a paged table turns its pages. All of it stays inert while
+  streaming.
 - Tests: pure unit tests for the parser, hit test and dispatcher; `use-mouse.test.tsx` renders two
   boxes under a `MouseProvider` with `ink-testing-library`, writes synthetic reports to stdin and
   asserts the handler calls and the mode strings on stdout; each component suite gained a

@@ -1,9 +1,10 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, type DOMElement } from "ink";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { ComboboxSchema } from "../schemas/combobox-schema";
 import { useFieldRules } from "../use-field-rules";
 import { useStateField } from "../use-state-field";
@@ -21,14 +22,41 @@ const SELECTED_MARK = "●";
 const UNSELECTED_MARK = "○";
 const EMPTY_EDITOR: EditorState = { value: "", cursor: 0 };
 
+interface MatchRowProps {
+  option: SelectOption;
+  index: number;
+  isSelected: boolean;
+  isUnderCursor: boolean;
+  onPick: (index: number) => void;
+}
+
+/** One visible match: a mark for the stored value, inverse video under the cursor; a click picks it. */
+function MatchRow({ option, index, isSelected, isUnderCursor, onPick }: MatchRowProps) {
+  const rowRef = useRef<DOMElement | null>(null);
+  useMouse(rowRef, {
+    onClick: function handleClick() {
+      onPick(index);
+    },
+  });
+  return (
+    <Box ref={rowRef}>
+      <Text>
+        {"  " + (isSelected ? SELECTED_MARK : UNSELECTED_MARK) + " "}
+        <Text inverse={isUnderCursor}>{" " + option.label + " "}</Text>
+      </Text>
+    </Box>
+  );
+}
+
 interface FilteredListProps {
   options: SelectOption[];
   selectedValue: unknown;
   cursor: number;
+  onPick: (index: number) => void;
 }
 
-/** The visible slice of the matches: a mark for the stored value, inverse video under the cursor. */
-function FilteredList({ options, selectedValue, cursor }: FilteredListProps) {
+/** The visible slice of the matches, one `MatchRow` each. */
+function FilteredList({ options, selectedValue, cursor, onPick }: FilteredListProps) {
   if (options.length === 0) {
     return <Text dimColor>{"    no matches"}</Text>;
   }
@@ -36,12 +64,15 @@ function FilteredList({ options, selectedValue, cursor }: FilteredListProps) {
   const lines: ReactNode[] = [];
   for (let index = window.start; index < window.end; index += 1) {
     const option = options[index] as SelectOption;
-    const mark = option.value === selectedValue ? SELECTED_MARK : UNSELECTED_MARK;
     lines.push(
-      <Text key={option.value + ":" + String(index)}>
-        {"  " + mark + " "}
-        <Text inverse={index === cursor}>{" " + option.label + " "}</Text>
-      </Text>,
+      <MatchRow
+        key={option.value + ":" + String(index)}
+        option={option}
+        index={index}
+        isSelected={option.value === selectedValue}
+        isUnderCursor={index === cursor}
+        onPick={onPick}
+      />,
     );
   }
   if (window.hiddenAfter > 0) {
@@ -84,7 +115,8 @@ function FilterLine({ editor, fallback }: FilterLineProps) {
  * The model-facing `Combobox`: a Select with a filter line. Unfocused it shows
  * the picked label (or the placeholder); focused, typing narrows the option
  * list, Up and Down move the highlight, Enter stores the highlighted option's
- * value and Escape clears the filter.
+ * value and Escape clears the filter. With the mouse, a click opens it, a
+ * click on a match picks it and the wheel moves the highlight.
  */
 function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const isStreaming = useIsStreaming();
@@ -110,6 +142,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const highlightRef = useRef(cursor);
   highlightRef.current = cursor;
   const canUse = focusable.isFocused && !isStreaming;
+  const boxRef = useRef<DOMElement | null>(null);
 
   function resetFilter(): void {
     editorRef.current = EMPTY_EDITOR;
@@ -127,15 +160,29 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
     [isFocused],
   );
 
+  function moveHighlight(delta: number): void {
+    const matches = filterOptions(options, editorRef.current.value);
+    const next = stepIndex(highlightRef.current, matches.length, delta);
+    highlightRef.current = next;
+    setHighlight(next);
+  }
+
+  /** Stores the match at `index` of the current filter and clears the filter. */
+  function pick(index: number): void {
+    const matches = filterOptions(options, editorRef.current.value);
+    const picked = matches[clampIndex(index, matches.length)];
+    if (picked === undefined) return;
+    field.setValue(picked.value);
+    fieldRules.clearError();
+    resetFilter();
+  }
+
   useInput(
     function handleComboboxKey(input, key) {
       if (key.eventType === "release") return;
-      const matches = filterOptions(options, editorRef.current.value);
       const delta = verticalStep(key);
       if (delta !== 0) {
-        const next = stepIndex(highlightRef.current, matches.length, delta);
-        highlightRef.current = next;
-        setHighlight(next);
+        moveHighlight(delta);
         return;
       }
       if (key.escape) {
@@ -143,11 +190,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
         return;
       }
       if (key.return) {
-        const picked = matches[clampIndex(highlightRef.current, matches.length)];
-        if (picked === undefined) return;
-        field.setValue(picked.value);
-        fieldRules.clearError();
-        resetFilter();
+        pick(highlightRef.current);
         return;
       }
       const previous = editorRef.current;
@@ -161,6 +204,23 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
     },
     { isActive: canUse },
   );
+
+  useMouse(boxRef, {
+    onClick: function handleClick() {
+      if (!isStreaming) focusable.focus();
+    },
+    onWheel: function handleWheel(event) {
+      if (isStreaming) return;
+      focusable.focus();
+      moveHighlight(
+        event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
+      );
+    },
+  });
+
+  function pickWithMouse(index: number): void {
+    if (!isStreaming) pick(index);
+  }
 
   const selectedIndex = indexOfOption(options, field.value);
   const selected = options[selectedIndex];
@@ -176,17 +236,24 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
 
   if (!focusable.isFocused) {
     return (
-      <Text>
-        {"  ▾ "}
-        {summary}
-      </Text>
+      <Box ref={boxRef}>
+        <Text>
+          {"  ▾ "}
+          {summary}
+        </Text>
+      </Box>
     );
   }
 
   return (
-    <Box flexDirection="column">
+    <Box ref={boxRef} flexDirection="column">
       <FilterLine editor={editor} fallback={summary} />
-      <FilteredList options={filtered} selectedValue={field.value} cursor={cursor} />
+      <FilteredList
+        options={filtered}
+        selectedValue={field.value}
+        cursor={cursor}
+        onPick={pickWithMouse}
+      />
     </Box>
   );
 }

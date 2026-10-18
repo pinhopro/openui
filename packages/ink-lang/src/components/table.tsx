@@ -1,7 +1,9 @@
-import { Box, Text } from "ink";
-import { useState, type ReactNode } from "react";
+import { Box, Text, type DOMElement } from "ink";
+import { useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
+import { useIsStreaming } from "../context";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { TableSchema } from "../schemas/table-schema";
 import { cellText, tableLayout, type TableColumn } from "./table-layout";
 import { TablePager } from "./table-pager";
@@ -93,16 +95,16 @@ function DataRow({ columns, rowIndex, renderNode }: DataRowProps) {
 
 /**
  * Column-oriented table: bold header, a dim rule, then one line per row. A
- * table longer than a page shows one page at a time with a pager footer.
+ * table longer than a page shows one page at a time with a pager footer; the
+ * wheel over the table turns its pages too.
  */
 function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) {
   const layout = tableLayout(Array.isArray(props.columns) ? props.columns : []);
+  const isStreaming = useIsStreaming();
   const [page, setPage] = useState(0);
-  if (layout.columns.length === 0) return null;
-  // Clamped on every render: rows can still arrive or shrink while streaming.
-  const bounds = pageBounds(layout.rowCount, PAGE_SIZE, page);
-  const isPaged = layout.rowCount > PAGE_SIZE;
+  const boxRef = useRef<DOMElement | null>(null);
   const rowCount = layout.rowCount;
+  const isPaged = rowCount > PAGE_SIZE;
 
   // Several presses can arrive in one stdin chunk, so step from the latest page.
   function stepPage(delta: number): void {
@@ -111,6 +113,17 @@ function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) 
       return pageBounds(rowCount, PAGE_SIZE, current.page + delta).page;
     });
   }
+
+  useMouse(boxRef, {
+    onWheel: function handleWheel(event) {
+      if (!isPaged || isStreaming) return;
+      stepPage(event.direction === "up" || event.direction === "left" ? -1 : 1);
+    },
+  });
+
+  if (layout.columns.length === 0) return null;
+  // Clamped on every render: rows can still arrive or shrink while streaming.
+  const bounds = pageBounds(rowCount, PAGE_SIZE, page);
   const rows: ReactNode[] = [];
   for (let rowIndex = bounds.start; rowIndex < bounds.end; rowIndex += 1) {
     rows.push(
@@ -123,7 +136,7 @@ function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) 
     );
   }
   return (
-    <Box flexDirection="column" overflow="hidden">
+    <Box ref={boxRef} flexDirection="column" overflow="hidden">
       <HeaderRow columns={layout.columns} />
       <RuleRow columns={layout.columns} />
       {rows}

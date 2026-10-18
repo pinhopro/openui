@@ -143,12 +143,14 @@ While mounted, the renderer asks the terminal to report the mouse (xterm modes 1
 
 What the default components do with it:
 
-| Component | Click                                                | Hover                                            | Wheel                                      |
-| :-------- | :--------------------------------------------------- | :----------------------------------------------- | :----------------------------------------- |
-| `Button`  | Presses it, exactly like Enter (validation included) | Focuses it, so the focus ring is the hover style | -                                          |
-| `Tabs`    | Selects and focuses the tab under the pointer        | -                                                | Over the strip: previous or next tab       |
-| `Select`  | Opens it; a click on an option picks it              | -                                                | Moves the highlight (opens the list first) |
-| `Input`   | Focuses the field                                    | -                                                | -                                          |
+| Component  | Click                                                | Hover                                            | Wheel                                      |
+| :--------- | :--------------------------------------------------- | :----------------------------------------------- | :----------------------------------------- |
+| `Button`   | Presses it, exactly like Enter (validation included) | Focuses it, so the focus ring is the hover style | -                                          |
+| `Tabs`     | Selects and focuses the tab under the pointer        | -                                                | Over the strip: previous or next tab       |
+| `Select`   | Opens it; a click on an option picks it              | -                                                | Moves the highlight (opens the list first) |
+| `Input`    | Focuses the field                                    | -                                                | -                                          |
+| `Combobox` | Opens it; a click on a match picks it                | -                                                | Moves the highlight (opens the list first) |
+| `Table`    | `[ prev ]` and `[ next ]` turn the page              | -                                                | Over the table: previous or next page      |
 
 Everything stays inert while `isStreaming` is true, as with the keyboard.
 
