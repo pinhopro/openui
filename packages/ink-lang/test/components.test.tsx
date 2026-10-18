@@ -119,6 +119,21 @@ describe("TextContent", () => {
   });
 });
 
+describe("TextContent markdown", () => {
+  it("renders bold, code and bullet lists", async () => {
+    const program =
+      'root = Stack([TextContent("Deploy **now** with `kubectl`\\n- first\\n- second")])';
+    const rendered = await renderProgram(inkLibrary, program);
+    const plain = stripAnsi(rendered.frame());
+    expect(plain).toContain("Deploy now with kubectl");
+    expect(plain).toContain("• first");
+    expect(plain).toContain("• second");
+    expect(plain).not.toContain("**");
+    expect(rendered.frame()).toContain(BOLD_ON);
+    rendered.unmount();
+  });
+});
+
 describe("Buttons", () => {
   it("lays buttons out in a row by default and in a column on request", async () => {
     const row = await renderProgram(
