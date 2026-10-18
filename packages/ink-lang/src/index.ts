@@ -177,3 +177,14 @@ export { buttonTextStyle } from "./focus/focus-style";
 export type { ButtonTextStyle } from "./focus/focus-style";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
+
+// Mouse support
+export { mouseDisableSequence, mouseEnableSequence } from "./mouse/mouse-mode";
+export { parseMouseSequence, splitMouseSequences } from "./mouse/mouse-sequence";
+export type {
+  MouseButton,
+  MouseChunk,
+  MouseEvent,
+  MouseEventKind,
+  WheelDirection,
+} from "./mouse/mouse-sequence";
