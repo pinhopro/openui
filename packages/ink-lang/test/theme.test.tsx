@@ -12,6 +12,11 @@ describe("resolveTheme", () => {
     expect(resolveTheme(undefined)).toEqual(defaultTheme);
     expect(resolveTheme({ danger: "magenta" })).toEqual({ ...defaultTheme, danger: "magenta" });
   });
+
+  it("defaults success to green and warning to yellow", () => {
+    expect(defaultTheme.success).toBe("green");
+    expect(defaultTheme.warning).toBe("yellow");
+  });
 });
 
 describe("theme in the renderer", () => {

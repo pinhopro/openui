@@ -45,43 +45,64 @@ const SHARED = [
   "HorizontalBarChart",
   "RadarChart",
   "ScatterChart",
+  "MarkDownRenderer",
+  "Callout",
+  "TextCallout",
+  "Image",
+  "ImageBlock",
+  "ImageGallery",
+  "CodeBlock",
+  "InlineHeader",
+  "EditableTable",
+  "Accordion",
+  "AccordionItem",
+  "Steps",
+  "StepsItem",
+  "Carousel",
+  "Separator",
+  "TagBlock",
+  "Tag",
+  "Icon",
+  "EntityList",
+  "ListBlock",
+  "ListItem",
+  "TextArea",
+  "DatePicker",
+  "Slider",
+  "CheckBoxGroup",
+  "CheckBoxItem",
+  "RadioGroup",
+  "RadioItem",
+  "SwitchGroup",
+  "SwitchItem",
+  "Chips",
+  "ChipItem",
+  "OptionCards",
+  "OptionCard",
+  "IconButton",
+  "Modal",
+  "Text",
+  "BoldText",
+  "IconText",
+  "ImageText",
+  "ImageTextLarge",
+  "MetricIndicatorInline",
+  "MetricIndicatorWithStrikethrough",
+  "SnippetCardItem",
+  "SnippetCardBlock",
+  "OverviewCardItem",
+  "OverviewCardBlock",
+  "ContextCardItem",
+  "ContextCardBlock",
+  "CompositeCardItem",
+  "CompositeCardBlock",
+  "VisualCardItem",
+  "VisualCardBlock",
 ];
-
-/** The props whose union of child components is a deliberate subset in the terminal library. */
-const UNION_PROPS: Record<string, string[]> = {
-  Card: ["children"],
-  FormControl: ["input"],
-  TabItem: ["content"],
-};
 
 function loadSpec(): LibrarySpecFile {
   const raw = readFileSync(SPEC_PATH, "utf8");
   return JSON.parse(raw) as LibrarySpecFile;
-}
-
-/** Replaces the member list of a union prop so both sides compare equal around it. */
-function withNeutralUnions(name: string, definition: Record<string, unknown>): unknown {
-  const clone = JSON.parse(JSON.stringify(definition)) as Record<string, unknown>;
-  const unionProps = UNION_PROPS[name] ?? [];
-  const properties = clone["properties"] as Record<string, Record<string, unknown>> | undefined;
-  if (properties === undefined) return clone;
-  for (const propName of unionProps) {
-    const prop = properties[propName];
-    if (prop === undefined) continue;
-    if (prop["anyOf"] !== undefined) prop["anyOf"] = "<union>";
-    const items = prop["items"] as Record<string, unknown> | undefined;
-    if (items !== undefined && items["anyOf"] !== undefined) items["anyOf"] = "<union>";
-  }
-  return clone;
-}
-
-/** Replaces the union member list inside a prompt signature: `(A | B)[]` and `input: A | B,`. */
-function withNeutralSignatureUnions(name: string, signature: string): string {
-  if (name === "Card") return signature.replace(/children: \([^)]*\)\[\]/, "children: (<union>)[]");
-  if (name === "TabItem")
-    return signature.replace(/content: \([^)]*\)\[\]/, "content: (<union>)[]");
-  if (name === "FormControl") return signature.replace(/input: [^,]*,/, "input: <union>,");
-  return signature;
 }
 
 describe("schema parity with the React default library", () => {
@@ -99,18 +120,14 @@ describe("schema parity with the React default library", () => {
       const actual = inkSchema.$defs?.[name] as Record<string, unknown> | undefined;
       expect(expected).toBeDefined();
       expect(actual).toBeDefined();
-      expect(withNeutralUnions(name, actual ?? {})).toEqual(
-        withNeutralUnions(name, expected ?? {}),
-      );
+      expect(actual).toEqual(expected);
     });
 
     it(`${name} has the same prompt signature and description`, () => {
       const expected = spec.components[name];
       const actual = inkSpec.components[name];
       expect(actual).toBeDefined();
-      expect(withNeutralSignatureUnions(name, actual?.signature ?? "")).toBe(
-        withNeutralSignatureUnions(name, expected?.signature ?? ""),
-      );
+      expect(actual?.signature).toBe(expected?.signature);
       expect(actual?.description).toBe(expected?.description);
     });
   }
