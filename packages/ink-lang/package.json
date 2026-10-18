@@ -1,0 +1,79 @@
+{
+  "name": "@openuidev/ink-lang",
+  "version": "0.0.0",
+  "description": "Render streaming OpenUI Lang in the terminal with Ink - the terminal (TUI) runtime for OpenUI generative UI",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.mjs",
+  "types": "dist/index.d.mts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "watch": "tsdown --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint:check": "eslint ./src ./test ./examples",
+    "lint:fix": "eslint ./src ./test ./examples --fix",
+    "format:check": "prettier --check ./src ./test ./examples README.md AGENTS.md PLAN.md",
+    "format:fix": "prettier --write ./src ./test ./examples README.md AGENTS.md PLAN.md",
+    "check:publint": "publint",
+    "check:attw": "attw --pack . --profile esm-only",
+    "demo": "tsx examples/demo.tsx",
+    "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm run check:publint && pnpm run check:attw",
+    "ci": "pnpm run lint:check && pnpm run format:check && pnpm run test && tsc -p tsconfig.test.json --noEmit"
+  },
+  "keywords": [
+    "openui",
+    "generative-ui",
+    "ink",
+    "terminal",
+    "tui",
+    "cli",
+    "react",
+    "llm",
+    "streaming",
+    "renderer",
+    "openui-lang"
+  ],
+  "homepage": "https://openui.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thesysdev/openui.git",
+    "directory": "packages/ink-lang"
+  },
+  "bugs": {
+    "url": "https://github.com/thesysdev/openui/issues"
+  },
+  "dependencies": {
+    "@openuidev/lang-core": "workspace:^"
+  },
+  "peerDependencies": {
+    "ink": "^8.0.0",
+    "react": ">=19.3.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "^19.3.0",
+    "ink": "^8.0.0",
+    "ink-testing-library": "^4.0.0",
+    "react": "^19.3.1",
+    "tsx": "^4.23.1",
+    "vitest": "^4.1.0",
+    "zod": "catalog:"
+  }
+}
