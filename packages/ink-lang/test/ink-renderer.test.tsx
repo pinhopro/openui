@@ -1,5 +1,6 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { afterEach, describe, expect, it } from "vitest";
+import { mouseDisableSequence, mouseEnableSequence } from "../src/mouse/mouse-mode";
 import { DIM_ON, RED_ON, stripAnsi } from "./helpers/ansi";
 import {
   clicks,
@@ -167,5 +168,22 @@ describe("InkRenderer", () => {
     expect(events[0]?.type).toBe("continue_conversation");
     expect(events[0]?.humanFriendlyMessage).toBe("Explain");
     rendered.unmount();
+  });
+
+  it("turns mouse reporting on only when the mouse prop is set", async () => {
+    const program = 'root = Stack([Title("Hi")])';
+    const silent = await renderProgram(makeInkTestLibrary(), program);
+    expect(silent.instance.stdout.frames).not.toContain(mouseEnableSequence(true));
+    silent.unmount();
+
+    const full = await renderProgram(makeInkTestLibrary(), program, { mouse: true });
+    expect(full.instance.stdout.frames).toContain(mouseEnableSequence(true));
+    expect(full.frame()).toContain("Hi");
+    full.unmount();
+    expect(full.instance.stdout.frames).toContain(mouseDisableSequence(true));
+
+    const still = await renderProgram(makeInkTestLibrary(), program, { mouse: { motion: false } });
+    expect(still.instance.stdout.frames).toContain(mouseEnableSequence(false));
+    still.unmount();
   });
 });

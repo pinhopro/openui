@@ -179,7 +179,15 @@ export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
 
 // Mouse support
+export { measureTargets, targetsUnderCell } from "./mouse/hit-test";
+export type { CellRect, MeasuredTarget } from "./mouse/hit-test";
+export { createMouseDispatcher } from "./mouse/mouse-dispatcher";
+export type { MouseDispatcher } from "./mouse/mouse-dispatcher";
 export { mouseDisableSequence, mouseEnableSequence } from "./mouse/mouse-mode";
+export { resolveMouseOptions } from "./mouse/mouse-options";
+export type { MouseOptions } from "./mouse/mouse-options";
+export { MouseContext, MouseProvider } from "./mouse/mouse-provider";
+export type { MouseProviderProps, MouseRegistry } from "./mouse/mouse-provider";
 export { parseMouseSequence, splitMouseSequences } from "./mouse/mouse-sequence";
 export type {
   MouseButton,
@@ -188,3 +196,11 @@ export type {
   MouseEventKind,
   WheelDirection,
 } from "./mouse/mouse-sequence";
+export type {
+  MouseEventHandler,
+  MouseHandlers,
+  MouseTarget,
+  MouseWheelEvent,
+  MouseWheelHandler,
+} from "./mouse/mouse-target";
+export { useMouse } from "./mouse/use-mouse";

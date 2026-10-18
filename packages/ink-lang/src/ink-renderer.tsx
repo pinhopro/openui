@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
 import { ErrorFooter } from "./error-footer";
 import type { Library } from "./library";
+import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
+import { MouseProvider } from "./mouse/mouse-provider";
 import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
@@ -32,6 +34,13 @@ export interface InkRendererProps {
   onError?: (errors: OpenUIError[]) => void;
   /** Colors for borders, headings, destructive buttons and hints; slots left out use the defaults. */
   theme?: Partial<InkTheme>;
+  /**
+   * Turns terminal mouse reporting on: clicks, hover and the wheel reach the
+   * components. `true` reports every move; `{ motion: false }` reports presses
+   * and drags only. Render the app with `alternateScreen: true` so layout cells
+   * line up with the terminal's.
+   */
+  mouse?: boolean | Partial<MouseOptions>;
 }
 
 /** Renders a streaming OpenUI Lang program in the terminal. */
@@ -64,24 +73,38 @@ export function InkRenderer(props: InkRendererProps) {
     },
     [props.theme],
   );
+  const mouseOptions = useMemo(
+    function buildMouseOptions() {
+      return resolveMouseOptions(props.mouse);
+    },
+    [props.mouse],
+  );
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
+
+  const tree = (
+    <Box flexDirection="column">
+      {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
+      {showPlaceholder ? <Text dimColor>…</Text> : null}
+      {isStreaming ? <Text dimColor>streaming…</Text> : null}
+      <QueryStatus
+        isLoading={runtime.isQueryLoading}
+        hasErrors={runtime.queryErrors.length > 0}
+        isStreaming={isStreaming}
+        onRetry={runtime.retryQueries}
+      />
+      {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
+    </Box>
+  );
 
   return (
     <OpenUIContext.Provider value={runtime.contextValue}>
       <ThemeContext.Provider value={theme}>
-        <Box flexDirection="column">
-          {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
-          {showPlaceholder ? <Text dimColor>…</Text> : null}
-          {isStreaming ? <Text dimColor>streaming…</Text> : null}
-          <QueryStatus
-            isLoading={runtime.isQueryLoading}
-            hasErrors={runtime.queryErrors.length > 0}
-            isStreaming={isStreaming}
-            onRetry={runtime.retryQueries}
-          />
-          {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
-        </Box>
+        {mouseOptions === null ? (
+          tree
+        ) : (
+          <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
+        )}
       </ThemeContext.Provider>
     </OpenUIContext.Provider>
   );
