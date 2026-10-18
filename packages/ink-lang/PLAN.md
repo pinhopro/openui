@@ -132,6 +132,15 @@ packages/ink-lang/
 │   ├── focus/
 │   │   ├── use-focusable.ts         useFocus({ id, isActive }) with a stable id per statement
 │   │   └── focus-style.ts           pure: (isFocused, variant, disabled) → Text/Box props
+│   ├── mouse/                   opt-in mouse support (section 11)
+│   │   ├── mouse-sequence.ts        pure: SGR report → MouseEvent; split a stdin chunk
+│   │   ├── mouse-mode.ts            xterm 1000/1002/1003/1006 enable and disable strings
+│   │   ├── mouse-options.ts         the `mouse` prop resolved
+│   │   ├── mouse-target.ts          MouseTarget, MouseHandlers, MouseWheelEvent
+│   │   ├── hit-test.ts              measureTargets + pure targetsUnderCell (innermost first)
+│   │   ├── mouse-dispatcher.ts      pure: click, contextmenu, enter/leave, wheel coalescing
+│   │   ├── mouse-provider.tsx       enables reporting, reads stdin, dispatches
+│   │   └── use-mouse.ts             useMouse(ref, handlers)
 │   ├── schemas/                 verbatim copies of react-ui schemas (one per component)
 │   │   ├── flex-props-schema.ts, stack-schema.ts, card-schema.ts, card-header-schema.ts,
 │   │   ├── text-content-schema.ts, button-schema.ts, buttons-schema.ts, input-schema.ts,
@@ -400,7 +409,11 @@ TagBlock, Icon, IconButton, Image, ImageBlock, ImageGallery, CodeBlock, MarkDown
 InlineHeader, EntityList, ListBlock, EditableTable) and the card blocks with their building
 blocks (Text, BoldText, IconText, ImageText, ImageTextLarge, MetricIndicator*). Every schema,
 child unions included, is now byte-identical to react-ui's and the parity test no longer
-neutralizes any union. Only Combobox and table paging remain, listed in the README.
+neutralizes any union. The same batch added Combobox, client-side table
+paging, braille line/area/scatter charts and opt-in mouse support. Nothing from this list is
+open. Combobox has no react-ui counterpart, so it reuses Select's schema and is the one
+terminal-only component; table paging is client-side with a fixed page of ten rows and a
+focusable pager footer rather than `contentOffsetY`.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -410,3 +423,53 @@ neutralizes any union. Only Combobox and table paging remain, listed in the READ
 | Theming                                | A `ThemeContext` with named colors (accent, danger, dim) read by `focus-style.ts` and the components, defaulting to the terminal palette.                                                                                        |
 | Markdown in `TextContent`              | A small markdown-to-Ink transform (bold, italic, code, lists) kept in one file; plain text until then.                                                                                                                           |
 | Query loading indicator and retry slot | A `Static`-free footer line with a spinner (`useAnimation`) and a focusable "retry" when `queryErrors` is non-empty.                                                                                                             |
+
+## 11. Mouse support (opt-in)
+
+Shipped on `feat/ink-lang` after the third batch. Facts checked against Ink 8 before the design:
+Ink has no mouse API; `measureElement(ref)` returns the layout `x`, `y`, `width`, `height` of a
+`Box` after layout; the input parser drops a complete CSI sequence it cannot map to a key, so
+SGR mouse reports never reach `useInput`; `useStdin()` exposes the raw stream, and Node emits
+`data` for every chunk `read()` returns, so a parallel `data` listener sees exactly what Ink
+reads; `render({ alternateScreen: true })` makes the live region start at the top-left cell, so
+layout coordinates equal the terminal's 1-based coordinates minus one.
+
+Decision: write the escape handling ourselves and add no dependency. `@zenobius/ink-mouse`
+targets Ink 5, handles the left button only and bypasses Ink's stdin, which would make it
+untestable with `ink-testing-library`.
+
+Design:
+
+- `mouse-sequence.ts` decodes `ESC [ < b ; x ; y M` (press, motion, wheel) and `m` (release).
+  Bits of `b`: 0-2 button (3 = none), 4 shift, 8 alt, 16 ctrl, 32 motion, 64 wheel (64 up,
+  65 down, 66 left, 67 right). Coordinates are made 0-based. A chunk can hold several reports
+  mixed with keys; `splitMouseSequences` extracts them all and carries an unfinished tail over.
+- `MouseProvider`, mounted by `InkRenderer` when `mouse` is set, calls Ink's `setRawMode(true)`,
+  writes `?1000h ?1002h [?1003h] ?1006h` to stdout, listens to stdin `data`, and on unmount or
+  `process` exit writes the `l` counterparts. `motion` (default on) adds mode 1003 so hover works;
+  `{ motion: false }` reports presses and drags only. Nothing is written when raw mode is not
+  supported (piped stdin), so the modes are never sent to a non-terminal.
+- Targets are `{ ref, handlers }` registered by `useMouse`. On each report the provider measures
+  every target (post-render, so `measureElement` is valid), sorts the boxes under the cell
+  innermost first (depth, then area, then registration order) and hands the chain to the
+  dispatcher, which calls the nearest box that handles the event. Enter and leave are derived from
+  consecutive moves over the innermost box; click is a left press and release on the same innermost
+  box; contextmenu is a right release. Wheel ticks are accumulated per target, direction and
+  modifiers and flushed on a zero-delay timer, so a trackpad burst read in one turn becomes one
+  `onWheel` call with `ticks`.
+- Components: `useFocusable` gained `focus()` (via `useFocusManager`). Button presses on click and
+  focuses on hover, with an inner box hugging the label so blank space in a stretched row is not a
+  button. Tabs renders each trigger in its own box (click selects and focuses) inside a strip box
+  (wheel steps). Select takes the row (click focuses and opens), each option row picks on click and
+  the wheel moves the cursor. Input focuses on click. Combobox mirrors Select over its filtered
+  list (a click picks the visible match, the wheel moves the highlight). Table's pager controls
+  press on click and the wheel over a paged table turns its pages. All of it stays inert while
+  streaming.
+- Tests: pure unit tests for the parser, hit test and dispatcher; `use-mouse.test.tsx` renders two
+  boxes under a `MouseProvider` with `ink-testing-library`, writes synthetic reports to stdin and
+  asserts the handler calls and the mode strings on stdout; each component suite gained a
+  "with the mouse" block driven by `test/helpers/mouse.ts`.
+
+Known limits: hit testing assumes the alternate screen (no offset for `<Static>` output above the
+live region or for scrolled `contentOffsetY` containers); hover needs mode 1003, which some
+terminals rate-limit; text selection needs Shift (or Option) while reporting is on.

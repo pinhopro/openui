@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import { INVERSE_ON, inverseSegments, stripAnsi } from "./helpers/ansi";
 import { KEYS } from "./helpers/keys";
+import { MOUSE } from "./helpers/mouse";
 import { renderProgram } from "./helpers/render-program";
 import { settle } from "./helpers/settle";
 
@@ -28,10 +29,11 @@ interface Captured {
   events: ActionEvent[];
 }
 
-async function renderSelect(program: string, isStreaming = false) {
+async function renderSelect(program: string, isStreaming = false, mouse = false) {
   const captured: Captured = { snapshots: [], events: [] };
   const rendered = await renderProgram(inkLibrary, program, {
     isStreaming,
+    mouse,
     onStateUpdate: function onStateUpdate(state) {
       captured.snapshots.push(state);
     },
@@ -178,5 +180,42 @@ describe("Select", () => {
     expect(captured.snapshots).toEqual([]);
     expect(rendered.frame()).not.toContain(INVERSE_ON);
     rendered.unmount();
+  });
+
+  describe("with the mouse", () => {
+    // Row 0 is the "Region" label, row 1 the select line; focused, the options are rows 2 to 4.
+    it("opens on a click at the select line and picks the clicked option", async () => {
+      const { rendered, captured } = await renderSelect(formProgram, false, true);
+      rendered.instance.stdin.write(MOUSE.click(4, 1));
+      await settle();
+      expect(stripAnsi(rendered.frame())).toContain("EU West");
+      rendered.instance.stdin.write(MOUSE.click(6, 3));
+      await settle();
+      expect(captured.snapshots[captured.snapshots.length - 1]).toEqual({
+        deploy: { region: { value: "eu-west-1", componentType: undefined } },
+      });
+      expect(inverseSegments(rendered.frame())).toEqual([" EU West "]);
+      rendered.unmount();
+    });
+
+    it("moves the highlight with the wheel", async () => {
+      const { rendered } = await renderSelect(formProgram, false, true);
+      rendered.instance.stdin.write(MOUSE.wheelDown(4, 1, 2));
+      await settle();
+      expect(inverseSegments(rendered.frame())).toEqual([" Asia Pacific "]);
+      rendered.instance.stdin.write(MOUSE.wheelUp(4, 3));
+      await settle();
+      expect(inverseSegments(rendered.frame())).toEqual([" EU West "]);
+      rendered.unmount();
+    });
+
+    it("ignores the mouse while streaming", async () => {
+      const { rendered, captured } = await renderSelect(formProgram, true, true);
+      rendered.instance.stdin.write(MOUSE.click(4, 1));
+      await settle();
+      expect(stripAnsi(rendered.frame())).not.toContain("EU West");
+      expect(captured.snapshots).toEqual([]);
+      rendered.unmount();
+    });
   });
 });

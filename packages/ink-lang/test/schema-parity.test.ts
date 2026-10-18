@@ -105,6 +105,43 @@ function loadSpec(): LibrarySpecFile {
   return JSON.parse(raw) as LibrarySpecFile;
 }
 
+const COMBOBOX_REF = "#/$defs/Combobox";
+
+/**
+ * `FormControl.input` is the one union that lists a member react-ui lacks: the
+ * terminal-only Combobox. Dropping that member makes the rest comparable byte
+ * for byte.
+ */
+function withoutComboboxMember(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    const kept: unknown[] = [];
+    for (const entry of value) {
+      if (isComboboxRef(entry)) continue;
+      kept.push(withoutComboboxMember(entry));
+    }
+    return kept;
+  }
+  if (value !== null && typeof value === "object") {
+    const copy: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value)) {
+      copy[key] = withoutComboboxMember(entry);
+    }
+    return copy;
+  }
+  return value;
+}
+
+function isComboboxRef(value: unknown): boolean {
+  if (value === null || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return Object.keys(record).length === 1 && record["$ref"] === COMBOBOX_REF;
+}
+
+function withoutComboboxInSignature(signature: string | undefined): string | undefined {
+  if (signature === undefined) return undefined;
+  return signature.replace(" | Combobox", "");
+}
+
 describe("schema parity with the React default library", () => {
   const spec = loadSpec();
   const inkSchema = inkLibrary.toJSONSchema();
@@ -120,17 +157,24 @@ describe("schema parity with the React default library", () => {
       const actual = inkSchema.$defs?.[name] as Record<string, unknown> | undefined;
       expect(expected).toBeDefined();
       expect(actual).toBeDefined();
-      expect(actual).toEqual(expected);
+      expect(withoutComboboxMember(actual)).toEqual(expected);
     });
 
     it(`${name} has the same prompt signature and description`, () => {
       const expected = spec.components[name];
       const actual = inkSpec.components[name];
       expect(actual).toBeDefined();
-      expect(actual?.signature).toBe(expected?.signature);
+      expect(withoutComboboxInSignature(actual?.signature)).toBe(expected?.signature);
       expect(actual?.description).toBe(expected?.description);
     });
   }
+
+  it("gives the terminal-only Combobox exactly Select's JSON Schema", () => {
+    expect(spec.schema.$defs["Combobox"]).toBeUndefined();
+    const combobox = { ...(inkSchema.$defs?.["Combobox"] as Record<string, unknown>) };
+    delete combobox["description"];
+    expect(combobox).toEqual(inkSchema.$defs?.["Select"]);
+  });
 
   it("shares the ActionExpression definition used by Button.action", () => {
     expect(inkSchema.$defs?.["ActionExpression"]).toEqual(spec.schema.$defs["ActionExpression"]);

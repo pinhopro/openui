@@ -5,6 +5,8 @@ import { settle } from "./settle";
 
 type Instance = ReturnType<typeof render>;
 
+const MODE_SEQUENCES_ONLY = /^(\u001b\[\?\d+[hl])+$/;
+
 export interface RenderedProgram {
   instance: Instance;
   frame: () => string;
@@ -22,8 +24,14 @@ export async function renderProgram(
   const instance = render(<InkRenderer {...current} />);
   await settle();
 
+  // Mode toggles (mouse reporting) go straight to stdout between frames; skip them.
   function frame(): string {
-    return instance.lastFrame() ?? "";
+    const frames = instance.frames;
+    for (let index = frames.length - 1; index >= 0; index -= 1) {
+      const candidate = frames[index] ?? "";
+      if (!MODE_SEQUENCES_ONLY.test(candidate)) return candidate;
+    }
+    return "";
   }
 
   async function update(next: Partial<InkRendererProps>): Promise<void> {

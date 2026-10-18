@@ -33,6 +33,7 @@ describe("default library", () => {
       "Chips",
       "CodeBlock",
       "Col",
+      "Combobox",
       "CompositeCardBlock",
       "CompositeCardItem",
       "ContextCardBlock",

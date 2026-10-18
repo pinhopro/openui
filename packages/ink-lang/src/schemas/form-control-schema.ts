@@ -1,6 +1,7 @@
 import { z } from "zod/v4";
 import { CheckBoxGroup } from "../components/check-box-group";
 import { Chips } from "../components/chips";
+import { Combobox } from "../components/combobox";
 import { DatePicker } from "../components/date-picker";
 import { OptionCards } from "../components/option-cards";
 import { RadioGroup } from "../components/radio-group";
@@ -16,6 +17,7 @@ export const FormControlSchema = z.object({
     Input.ref,
     TextArea.ref,
     Select.ref,
+    Combobox.ref,
     DatePicker.ref,
     Slider.ref,
     CheckBoxGroup.ref,

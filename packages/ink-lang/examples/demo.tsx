@@ -8,6 +8,9 @@ import { chunkProgram, demoProgram } from "./demo-program";
 
 const CHUNK_SIZE = 6;
 const CHUNK_INTERVAL_MS = 40;
+// `--mouse` turns terminal mouse reporting on; the app then takes the alternate
+// screen so Ink's layout cells line up with the terminal's.
+const withMouse = process.argv.includes("--mouse");
 
 function describeEvent(event: ActionEvent): string {
   const params = JSON.stringify(event.params);
@@ -24,8 +27,12 @@ function describeErrors(errors: OpenUIError[]): string {
   return lines.join("; ");
 }
 
+interface DemoProps {
+  mouse: boolean;
+}
+
 /** Streams the mock response chunk by chunk into InkRenderer and logs what the host receives. */
-function Demo() {
+function Demo({ mouse }: DemoProps) {
   const [response, setResponse] = useState("");
   const [isStreaming, setIsStreaming] = useState(true);
   const [events, setEvents] = useState<string[]>([]);
@@ -85,11 +92,17 @@ function Demo() {
         onAction={onAction}
         onStateUpdate={setState}
         onError={onError}
+        mouse={mouse}
       />
       <Box flexDirection="column" marginTop={1} borderStyle="single" borderDimColor paddingX={1}>
         <Text dimColor>
           Tab / Shift+Tab move focus. Enter or Space presses a button or picks an option. Up / Down
           move through the select. Type into the field. Esc or Ctrl+C quits.
+        </Text>
+        <Text dimColor>
+          {mouse
+            ? "Mouse on: click buttons, tabs, options and fields; the wheel moves tabs and options. Hold Shift (or Option) to select text."
+            : "Run with --mouse to click and scroll."}
         </Text>
         <Text dimColor>onStateUpdate: {JSON.stringify(state)}</Text>
         <Text dimColor>onError: {errors}</Text>
@@ -99,4 +112,4 @@ function Demo() {
   );
 }
 
-render(<Demo />);
+render(<Demo mouse={withMouse} />, { alternateScreen: withMouse });

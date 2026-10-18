@@ -15,6 +15,7 @@ import { ChipItem } from "./components/chip-item";
 import { Chips } from "./components/chips";
 import { CodeBlock } from "./components/code-block";
 import { Col } from "./components/col";
+import { Combobox } from "./components/combobox";
 import { CompositeCardBlock } from "./components/composite-card-block";
 import { CompositeCardItem } from "./components/composite-card-item";
 import { ContextCardBlock } from "./components/context-card-block";
@@ -176,6 +177,7 @@ export const inkComponentGroups: ComponentGroup[] = [
       "Input",
       "TextArea",
       "Select",
+      "Combobox",
       "SelectItem",
       "DatePicker",
       "Slider",
@@ -201,6 +203,7 @@ export const inkComponentGroups: ComponentGroup[] = [
       "- Available rules: required, email, min, max, minLength, maxLength, pattern, url, numeric",
       "- The renderer shows error messages automatically - do NOT generate error text in the UI",
       '- DatePicker stores an ISO "YYYY-MM-DD" string (or { from, to } in range mode); Slider stores [value].',
+      "- Combobox takes the same arguments as Select and lets the user type to filter long option lists.",
     ],
   },
   {
@@ -297,6 +300,7 @@ export const inkLibrary: Library = createLibrary({
     Input,
     TextArea,
     Select,
+    Combobox,
     SelectItem,
     DatePicker,
     Slider,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import { INVERSE_ON, inverseSegments, stripAnsi } from "./helpers/ansi";
 import { KEYS } from "./helpers/keys";
+import { MOUSE } from "./helpers/mouse";
 import { renderProgram } from "./helpers/render-program";
 import { settle } from "./helpers/settle";
 
@@ -105,5 +106,41 @@ describe("Tabs", () => {
     await settle();
     expect(inverseSegments(rendered.frame())).toEqual(["[ Go ]"]);
     rendered.unmount();
+  });
+
+  describe("with the mouse", () => {
+    // The strip is row 0: " Overview " spans x 0..9 and " Logs " x 10..15.
+    it("selects and focuses the tab under a click", async () => {
+      const rendered = await renderProgram(inkLibrary, program, { mouse: true });
+      rendered.instance.stdin.write(MOUSE.click(12, 0));
+      await settle();
+      expect(inverseSegments(rendered.frame())).toEqual([" Logs "]);
+      expect(stripAnsi(rendered.frame())).toContain("No logs yet");
+      rendered.instance.stdin.write(MOUSE.click(1, 0));
+      await settle();
+      expect(inverseSegments(rendered.frame())).toEqual([" Overview "]);
+      expect(stripAnsi(rendered.frame())).toContain("Everything is fine");
+      rendered.unmount();
+    });
+
+    it("moves to the next tab on wheel down over the strip and back on wheel up", async () => {
+      const rendered = await renderProgram(inkLibrary, program, { mouse: true });
+      rendered.instance.stdin.write(MOUSE.wheelDown(3, 0, 4));
+      await settle();
+      expect(stripAnsi(rendered.frame())).toContain("No logs yet");
+      rendered.instance.stdin.write(MOUSE.wheelUp(3, 0));
+      await settle();
+      expect(stripAnsi(rendered.frame())).toContain("Everything is fine");
+      rendered.unmount();
+    });
+
+    it("ignores a click on the tab content", async () => {
+      const rendered = await renderProgram(inkLibrary, program, { mouse: true });
+      rendered.instance.stdin.write(MOUSE.click(2, 1));
+      await settle();
+      expect(stripAnsi(rendered.frame())).toContain("Everything is fine");
+      expect(rendered.frame()).not.toContain(INVERSE_ON);
+      rendered.unmount();
+    });
   });
 });

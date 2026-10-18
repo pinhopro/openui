@@ -100,6 +100,7 @@ export { ChipItem } from "./components/chip-item";
 export { Chips } from "./components/chips";
 export { CodeBlock } from "./components/code-block";
 export { Col } from "./components/col";
+export { Combobox } from "./components/combobox";
 export { CompositeCardBlock } from "./components/composite-card-block";
 export { CompositeCardItem } from "./components/composite-card-item";
 export { ContextCardBlock } from "./components/context-card-block";
@@ -189,6 +190,7 @@ export { ChipItemSchema } from "./schemas/chip-item-schema";
 export { ChipsSchema } from "./schemas/chips-schema";
 export { CodeBlockSchema } from "./schemas/code-block-schema";
 export { ColSchema } from "./schemas/col-schema";
+export { ComboboxSchema } from "./schemas/combobox-schema";
 export { CompositeCardBlockSchema } from "./schemas/composite-card-block-schema";
 export {
   CompositeCardBodyItemSchema,
@@ -267,6 +269,18 @@ export { VisualCardItemSchema } from "./schemas/visual-card-item-schema";
 
 // Building blocks for custom terminal components
 export { horizontalStep, verticalStep } from "./components/arrow-keys";
+export {
+  createBrailleCanvas,
+  dotColumns,
+  dotRows,
+  fillBelow,
+  plot,
+  plotArea,
+  plotLine,
+  projectValue,
+  toLines,
+} from "./components/braille-canvas";
+export type { BrailleCanvas } from "./components/braille-canvas";
 export { buildSeriesRows, buildSlices, seriesNames } from "./components/chart-data";
 export type { ChartSlice, SeriesRow } from "./components/chart-data";
 export {
@@ -276,6 +290,8 @@ export {
   proportionSegments,
   sparkline,
 } from "./components/chart-text";
+export { filterOptions, listWindow } from "./components/combobox-options";
+export type { ListWindow } from "./components/combobox-options";
 export {
   cellLabel,
   editableColumnWidths,
@@ -301,6 +317,8 @@ export type { MarkdownLine, MarkdownLineKind, MarkdownSegment } from "./componen
 export { applyKeyToMultilineEditor, cursorAt, linePosition } from "./components/multiline-editing";
 export type { LinePosition } from "./components/multiline-editing";
 export { displayText, padEnd, padStart, widestText } from "./components/pad";
+export { readScatterDatasets } from "./components/scatter-data";
+export type { ScatterDataset, ScatterPoint } from "./components/scatter-data";
 export { indexOfOption, selectOptions } from "./components/select-options";
 export type { SelectOption } from "./components/select-options";
 export {
@@ -315,6 +333,8 @@ export { sliderTrack, sliderValue, stepSliderValue } from "./components/slider-t
 export { clampIndex, stepIndex } from "./components/step-index";
 export { cellText, tableLayout } from "./components/table-layout";
 export type { TableAlign, TableColumn, TableLayout } from "./components/table-layout";
+export { pageBounds, pageSummary } from "./components/table-paging";
+export type { PageBounds } from "./components/table-paging";
 export { textContentStyle } from "./components/text-content-style";
 export type { TextContentStyle } from "./components/text-content-style";
 export { applyKeyToEditor, maskValue, splitForCursor } from "./components/text-editing";
@@ -322,7 +342,34 @@ export type { CursorSplit, EditorState } from "./components/text-editing";
 export { useOptionGroup } from "./components/use-option-group";
 export type { OptionGroup, OptionGroupOptions } from "./components/use-option-group";
 export { variantColor } from "./components/variant-color";
-export { buttonTextStyle } from "./focus/focus-style";
+export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
 export type { ButtonTextStyle } from "./focus/focus-style";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
+
+// Mouse support
+export { measureTargets, targetsUnderCell } from "./mouse/hit-test";
+export type { CellRect, MeasuredTarget } from "./mouse/hit-test";
+export { createMouseDispatcher } from "./mouse/mouse-dispatcher";
+export type { MouseDispatcher } from "./mouse/mouse-dispatcher";
+export { mouseDisableSequence, mouseEnableSequence } from "./mouse/mouse-mode";
+export { resolveMouseOptions } from "./mouse/mouse-options";
+export type { MouseOptions } from "./mouse/mouse-options";
+export { MouseContext, MouseProvider } from "./mouse/mouse-provider";
+export type { MouseProviderProps, MouseRegistry } from "./mouse/mouse-provider";
+export { parseMouseSequence, splitMouseSequences } from "./mouse/mouse-sequence";
+export type {
+  MouseButton,
+  MouseChunk,
+  MouseEvent,
+  MouseEventKind,
+  WheelDirection,
+} from "./mouse/mouse-sequence";
+export type {
+  MouseEventHandler,
+  MouseHandlers,
+  MouseTarget,
+  MouseWheelEvent,
+  MouseWheelHandler,
+} from "./mouse/mouse-target";
+export { useMouse } from "./mouse/use-mouse";

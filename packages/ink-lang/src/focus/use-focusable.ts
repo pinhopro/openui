@@ -1,5 +1,5 @@
-import { useFocus } from "ink";
-import { useId } from "react";
+import { useFocus, useFocusManager } from "ink";
+import { useCallback, useId } from "react";
 
 export interface FocusableOptions {
   /** False takes the component out of the Tab cycle (for example while streaming). */
@@ -8,6 +8,8 @@ export interface FocusableOptions {
 
 export interface Focusable {
   isFocused: boolean;
+  /** Moves Ink's focus to this component (a no-op while it is inactive). */
+  focus: () => void;
 }
 
 /**
@@ -18,5 +20,12 @@ export interface Focusable {
 export function useFocusable(options: FocusableOptions): Focusable {
   const id = useId();
   const focus = useFocus({ id, isActive: options.isActive });
-  return { isFocused: focus.isFocused };
+  const manager = useFocusManager();
+  const focusSelf = useCallback(
+    function focusSelf() {
+      manager.focus(id);
+    },
+    [id, manager],
+  );
+  return { isFocused: focus.isFocused, focus: focusSelf };
 }

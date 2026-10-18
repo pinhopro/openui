@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buttonTextStyle } from "../../src/focus/focus-style";
+import { buttonTextStyle, pagerTextStyle } from "../../src/focus/focus-style";
 
 describe("buttonTextStyle", () => {
   it("renders an idle primary button bold and plain", () => {
@@ -30,5 +30,25 @@ describe("buttonTextStyle", () => {
   it("colors a destructive button red", () => {
     expect(buttonTextStyle(false, false, "primary", "destructive").color).toBe("red");
     expect(buttonTextStyle(false, false, "primary", "normal").color).toBeUndefined();
+  });
+});
+
+describe("pagerTextStyle", () => {
+  it("renders an idle enabled control plain", () => {
+    expect(pagerTextStyle(false, false)).toEqual({
+      inverse: false,
+      bold: false,
+      dimColor: false,
+      color: undefined,
+    });
+  });
+
+  it("inverts the focused control", () => {
+    expect(pagerTextStyle(true, false).inverse).toBe(true);
+  });
+
+  it("dims a disabled control but keeps the focus ring so Tab stays visible", () => {
+    expect(pagerTextStyle(true, true)).toMatchObject({ inverse: true, dimColor: true });
+    expect(pagerTextStyle(false, true)).toMatchObject({ inverse: false, dimColor: true });
   });
 });
