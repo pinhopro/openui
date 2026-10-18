@@ -45,6 +45,27 @@ const SHARED = [
   "HorizontalBarChart",
   "RadarChart",
   "ScatterChart",
+  "MarkDownRenderer",
+  "Callout",
+  "TextCallout",
+  "Image",
+  "ImageBlock",
+  "ImageGallery",
+  "CodeBlock",
+  "InlineHeader",
+  "EditableTable",
+  "Accordion",
+  "AccordionItem",
+  "Steps",
+  "StepsItem",
+  "Carousel",
+  "Separator",
+  "TagBlock",
+  "Tag",
+  "Icon",
+  "EntityList",
+  "ListBlock",
+  "ListItem",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */
@@ -52,11 +73,20 @@ const UNION_PROPS: Record<string, string[]> = {
   Card: ["children"],
   FormControl: ["input"],
   TabItem: ["content"],
+  AccordionItem: ["content"],
+  Carousel: ["children"],
 };
 
 function loadSpec(): LibrarySpecFile {
   const raw = readFileSync(SPEC_PATH, "utf8");
   return JSON.parse(raw) as LibrarySpecFile;
+}
+
+/** Replaces an `anyOf` list on the schema node or on its (nested) array items. */
+function neutralizeUnion(node: Record<string, unknown>): void {
+  if (node["anyOf"] !== undefined) node["anyOf"] = "<union>";
+  const items = node["items"] as Record<string, unknown> | undefined;
+  if (items !== undefined) neutralizeUnion(items);
 }
 
 /** Replaces the member list of a union prop so both sides compare equal around it. */
@@ -68,20 +98,23 @@ function withNeutralUnions(name: string, definition: Record<string, unknown>): u
   for (const propName of unionProps) {
     const prop = properties[propName];
     if (prop === undefined) continue;
-    if (prop["anyOf"] !== undefined) prop["anyOf"] = "<union>";
-    const items = prop["items"] as Record<string, unknown> | undefined;
-    if (items !== undefined && items["anyOf"] !== undefined) items["anyOf"] = "<union>";
+    neutralizeUnion(prop);
   }
   return clone;
 }
 
-/** Replaces the union member list inside a prompt signature: `(A | B)[]` and `input: A | B,`. */
+/** Replaces the union member list inside a prompt signature: `prop: (A | B)[]` and `input: A | B,`. */
 function withNeutralSignatureUnions(name: string, signature: string): string {
-  if (name === "Card") return signature.replace(/children: \([^)]*\)\[\]/, "children: (<union>)[]");
-  if (name === "TabItem")
-    return signature.replace(/content: \([^)]*\)\[\]/, "content: (<union>)[]");
-  if (name === "FormControl") return signature.replace(/input: [^,]*,/, "input: <union>,");
-  return signature;
+  let result = signature;
+  for (const propName of UNION_PROPS[name] ?? []) {
+    if (name === "FormControl") {
+      result = result.replace(/input: [^,]*,/, "input: <union>,");
+      continue;
+    }
+    const pattern = new RegExp(`${propName}: \\([^)]*\\)(\\[\\])+`);
+    result = result.replace(pattern, `${propName}: (<union>)`);
+  }
+  return result;
 }
 
 describe("schema parity with the React default library", () => {
