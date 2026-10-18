@@ -21,6 +21,7 @@ export type {
 export { reactive } from "./reactive";
 
 // Context hooks for component authors
+export { buttonNeedsValidation } from "./components/button-validation";
 export {
   OpenUIContext,
   useGetFieldValue,
@@ -34,6 +35,12 @@ export {
 export type { GetFieldValue, OpenUIContextValue, SetFieldValue, TriggerAction } from "./context";
 export { isElementValue } from "./element-node";
 export { FormNameContext, useFormName } from "./form-name-context";
+export {
+  FormValidationContext,
+  useCreateFormValidation,
+  useFormValidation,
+} from "./form-validation-context";
+export type { FormValidationContextValue } from "./form-validation-context";
 export { renderValue } from "./render-value";
 export { useStateField } from "./use-state-field";
 

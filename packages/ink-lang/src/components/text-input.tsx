@@ -1,8 +1,10 @@
+import { parseStructuredRules } from "@openuidev/lang-core";
 import { Text, useInput } from "ink";
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
+import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { InputSchema } from "../schemas/input-schema";
 import { useStateField } from "../use-state-field";
@@ -27,9 +29,51 @@ function fieldText(value: unknown): string {
 /** The model-facing `Input`: a focusable single-line editor bound to the store. */
 function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
   const isStreaming = useIsStreaming();
+  const formValidation = useFormValidation();
   const field = useStateField<unknown>(props.name, props.value);
   const focusable = useFocusable({ isActive: !isStreaming });
   const value = fieldText(field.value);
+  const rules = useMemo(
+    function parseRules() {
+      return parseStructuredRules(props.rules);
+    },
+    [props.rules],
+  );
+  const hasRules = rules.length > 0;
+  const fieldName = field.name;
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
+  // Register with the form so a primary button can validate every field.
+  useEffect(
+    function registerWithForm() {
+      if (isStreaming || !hasRules || formValidation === null) return undefined;
+      formValidation.registerField(fieldName, rules, function readValue() {
+        return valueRef.current;
+      });
+      return function unregister() {
+        formValidation.unregisterField(fieldName);
+      };
+    },
+    [fieldName, formValidation, hasRules, isStreaming, rules],
+  );
+
+  // Validate when focus leaves the field; clear the error when it comes back.
+  const wasFocusedRef = useRef(focusable.isFocused);
+  useEffect(
+    function validateOnBlur() {
+      const wasFocused = wasFocusedRef.current;
+      wasFocusedRef.current = focusable.isFocused;
+      if (formValidation === null || !hasRules) return;
+      if (wasFocused && !focusable.isFocused) {
+        formValidation.validateField(fieldName, valueRef.current, rules);
+      }
+      if (!wasFocused && focusable.isFocused) {
+        formValidation.clearFieldError(fieldName);
+      }
+    },
+    [fieldName, focusable.isFocused, formValidation, hasRules, rules],
+  );
   const [editor, setEditor] = useState<EditorState>({ value, cursor: countGraphemes(value) });
   // A value the editor did not produce (declared default, initialState, @Set, @Reset)
   // moves the cursor to the end.
@@ -47,7 +91,10 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
       const next = applyKeyToEditor(previous, input, key);
       editorRef.current = next;
       setEditor(next);
-      if (next.value !== previous.value) field.setValue(next.value);
+      if (next.value !== previous.value) {
+        field.setValue(next.value);
+        if (hasRules) formValidation?.clearFieldError(fieldName);
+      }
     },
     { isActive: canType },
   );
