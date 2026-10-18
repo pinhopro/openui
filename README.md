@@ -100,6 +100,7 @@ Try it yourself in the [Playground](https://www.openui.com/playground): generate
 | [`@openuidev/vue-lang`](./packages/vue-lang)                                                               | Vue integrations                                 | Vue 3 bindings for defining model-renderable components and rendering streamed OpenUI Lang                   |
 | [`@openuidev/svelte-lang`](./packages/svelte-lang)                                                         | Svelte integrations                              | Svelte 5 bindings for defining model-renderable components and rendering streamed OpenUI Lang                |
 | [`@openuidev/angular-lang`](./packages/angular-lang)                                                       | Angular integrations                             | Angular bindings for defining component libraries and rendering streamed OpenUI Lang                         |
+| [`@openuidev/ink-lang`](./packages/ink-lang)                                                               | Terminal and CLI rendering with Ink              | Ink (React for CLIs) renderer that reuses the React component schemas so one prompt serves web and terminal  |
 | [`@openuidev/browser-bundle`](./packages/browser-bundle)                                                   | CDN, iframe, and no-build embeds                 | Prebuilt browser bundle that ships the renderer, UI library, React, and styles as script + stylesheet assets |
 | [`@openuidev/a2ui`](./packages/a2ui)                                                                       | A2UI with OpenUI Lang component payloads         | Framework-agnostic A2UI v1.0 protocol client with an optional React renderer                                 |
 | [`@openuidev/server`](./packages/server)                                                                   | Server side utilities                            | Server utilities for OpenUI and OpenUI Gateway                                                               |
@@ -123,6 +124,9 @@ npm install @openuidev/langchain @langchain/langgraph
 npm install @openuidev/vue-lang
 npm install @openuidev/svelte-lang
 npm install @openuidev/angular-lang
+
+# Terminal / CLI runtime built on Ink
+npm install @openuidev/ink-lang ink react
 
 # A2UI protocol with OpenUI Lang component payloads
 npm install @openuidev/a2ui zod
@@ -173,6 +177,7 @@ openui/
 │   ├── vue-lang/         # Vue runtime bindings for OpenUI Lang
 │   ├── svelte-lang/      # Svelte runtime bindings for OpenUI Lang
 │   ├── angular-lang/     # Angular runtime bindings for OpenUI Lang
+│   ├── ink-lang/         # Ink (terminal) runtime bindings for OpenUI Lang
 │   ├── browser-bundle/   # Script-tag bundle for CDN / iframe / no-build embeds
 │   ├── a2ui/             # A2UI protocol with OpenUI Lang component payloads
 │   ├── server/           # Server utilities for OpenUI & OpenUI Gateway
