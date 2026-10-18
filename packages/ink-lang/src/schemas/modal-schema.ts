@@ -2,8 +2,7 @@ import { z } from "zod/v4";
 import { reactive } from "../reactive";
 import { ContentChildUnion } from "./content-child-union";
 
-// Copy of packages/react-ui/src/genui-lib/Modal/schema.ts; the children union lists the
-// components this library ships.
+// Verbatim copy of packages/react-ui/src/genui-lib/Modal/schema.ts.
 export const ModalSchema = z.object({
   title: z.string(),
   open: reactive(z.boolean().optional()),

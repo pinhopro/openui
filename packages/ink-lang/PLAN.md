@@ -392,8 +392,15 @@ Verification before pushing: `pnpm -r build`, `pnpm -r test`, and for `ink-lang`
 ## 10. Out of scope for this pass (next batch)
 
 Status: every item below shipped in later commits on `feat/ink-lang` (Table/Tabs/Select in
-batch 2; charts, validation, theming, markdown and the query spinner/retry in batch 3).
-Only Combobox and table paging remain, listed in the README.
+batch 2; charts, validation, theming, markdown and the query spinner/retry in batch 3). Batch 4
+added the rest of the React default library: the form inputs (TextArea, CheckBoxGroup,
+RadioGroup, SwitchGroup, Slider, DatePicker), the selection fields (Chips, OptionCards), the
+content components (Accordion, Steps, Carousel, Separator, Modal, Callout, TextCallout, Tag,
+TagBlock, Icon, IconButton, Image, ImageBlock, ImageGallery, CodeBlock, MarkDownRenderer,
+InlineHeader, EntityList, ListBlock, EditableTable) and the card blocks with their building
+blocks (Text, BoldText, IconText, ImageText, ImageTextLarge, MetricIndicator*). Every schema,
+child unions included, is now byte-identical to react-ui's and the parity test no longer
+neutralizes any union. Only Combobox and table paging remain, listed in the README.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

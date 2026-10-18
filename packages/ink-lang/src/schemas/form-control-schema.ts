@@ -9,8 +9,7 @@ import { Slider } from "../components/slider";
 import { TextArea } from "../components/text-area";
 import { Input } from "../components/text-input";
 
-// Copy of packages/react-ui/src/genui-lib/FormControl/schema.ts with the input union listing
-// the components this library ships (the one deliberate difference from react-ui).
+// Verbatim copy of packages/react-ui/src/genui-lib/FormControl/schema.ts.
 export const FormControlSchema = z.object({
   label: z.string(),
   input: z.union([

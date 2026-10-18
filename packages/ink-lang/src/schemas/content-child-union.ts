@@ -33,8 +33,8 @@ import { TextCallout } from "../components/text-callout";
 import { TextContent } from "../components/text-content";
 import { VisualCardBlock } from "../components/visual-card-block";
 
-// Copy of ContentChildUnion in packages/react-ui/src/genui-lib/unions.ts, in the same
-// order (react-ui's condensed chart variants are the AreaChart, BarChart and LineChart
+// Verbatim copy of ContentChildUnion in packages/react-ui/src/genui-lib/unions.ts
+// (react-ui's condensed chart variants are the AreaChart, BarChart and LineChart
 // components here). Card.children, TabItem.content, AccordionItem.content,
 // Carousel.children and Modal.children are built from it like in react-ui.
 export const ContentChildUnion = z.union([
