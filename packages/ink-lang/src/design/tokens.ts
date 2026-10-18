@@ -212,7 +212,7 @@ export const defaultTokens: DesignTokens = {
       icon: { default: "", hover: "", pressed: "", disabled: "dim" },
     },
   },
-  spacing: { xs: 0, sm: 1, md: 1, lg: 2, xl: 3 },
+  spacing: { xs: 0, sm: 1, md: 1, lg: 2, xl: 2 },
   grid: { columns: 1, margin: 0, gutter: 1, containerMaxWidth: 0 },
   typography: {
     display: type("bold", { underline: true }),

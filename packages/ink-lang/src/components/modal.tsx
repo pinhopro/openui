@@ -1,6 +1,8 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useFocusManager, useInput } from "ink";
+import { useContext, useEffect, useId } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
+import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ModalSchema } from "../schemas/modal-schema";
@@ -55,6 +57,25 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   const field = useStateField<unknown>("open", props.open);
   const isOpen = field.value === true || field.value === "true";
   const setValue = field.setValue;
+  const layerId = useId();
+  const layers = useContext(ModalLayerContext);
+  const manager = useFocusManager();
+  const openLayer = layers.open;
+  const focusNext = manager.focusNext;
+
+  // While shown, the dialog is the only active layer; focus moves into it.
+  useEffect(
+    function holdLayer() {
+      if (!isOpen) return undefined;
+      const closeLayer = openLayer(layerId);
+      const timer = setTimeout(focusNext, 0);
+      return function release() {
+        clearTimeout(timer);
+        closeLayer();
+      };
+    },
+    [focusNext, isOpen, layerId, openLayer],
+  );
 
   function close(): void {
     setValue(false);
@@ -62,13 +83,15 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
 
   if (!isOpen) return null;
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={theme.accent} paddingX={1}>
-      <Box flexDirection="row" justifyContent="space-between" gap={2}>
-        <Text bold>{displayText(props.title)}</Text>
-        <CloseButton onClose={close} />
+    <LayerIdContext.Provider value={layerId}>
+      <Box flexDirection="column" borderStyle="round" borderColor={theme.accent} paddingX={1}>
+        <Box flexDirection="row" justifyContent="space-between" gap={2}>
+          <Text bold>{displayText(props.title)}</Text>
+          <CloseButton onClose={close} />
+        </Box>
+        <Box flexDirection="column">{renderNode(props.children)}</Box>
       </Box>
-      <Box flexDirection="column">{renderNode(props.children)}</Box>
-    </Box>
+    </LayerIdContext.Provider>
   );
 }
 

@@ -2,13 +2,12 @@ import type { ActionPlan } from "@openuidev/lang-core";
 import { Box, Text, useInput } from "ink";
 import type { z } from "zod/v4";
 import { useIsStreaming, useTriggerAction } from "../context";
-import { buttonTextStyle } from "../focus/focus-style";
+import { useComponentStyle } from "../design/design-system-context";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
 import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ButtonSchema } from "../schemas/button-schema";
-import { useTheme } from "../theme";
 import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { buttonNeedsValidation } from "./button-validation";
@@ -20,7 +19,6 @@ function ButtonRenderer({ props }: ComponentRenderProps<ButtonProps>) {
   const formName = useFormName();
   const formValidation = useFormValidation();
   const isStreaming = useIsStreaming();
-  const theme = useTheme();
   const label = props.label === null || props.label === undefined ? "" : String(props.label);
   const variant = props.variant ?? "primary";
   // A click presses the button like Enter; hovering focuses it, so the focus
@@ -53,14 +51,18 @@ function ButtonRenderer({ props }: ComponentRenderProps<ButtonProps>) {
     { isActive: canPress },
   );
 
-  const style = textProps(
-    buttonTextStyle(focusable.isFocused, isStreaming, props.variant, props.type, theme.button),
-  );
+  const states: string[] = [];
+  if (focusable.isFocused) states.push("focus");
+  if (focusable.isHovered) states.push("hover");
+  if (focusable.isPressed) states.push("pressed");
+  if (isStreaming) states.push("disabled");
+  const computed = useComponentStyle([variant, props.type ?? "normal"], states);
+  const style = textProps(computed.text);
   // The outer box follows the parent's alignment; the inner one hugs the
   // label so a click on blank space to its right does not press the button.
   return (
     <Box>
-      <Box ref={focusable.ref}>
+      <Box ref={focusable.ref} backgroundColor={computed.box.background}>
         <Text {...style}>[ {label} ]</Text>
       </Box>
     </Box>

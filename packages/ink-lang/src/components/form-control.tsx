@@ -1,10 +1,11 @@
 import { Box, Text } from "ink";
 import type { z } from "zod/v4";
+import { useComponentStyle } from "../design/design-system-context";
+import { transformText } from "../design/layout-props";
 import { isElementValue } from "../element-node";
 import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { FormControlSchema } from "../schemas/form-control-schema";
-import { useTheme } from "../theme";
 import { textProps } from "../theme-styles";
 
 type FormControlProps = z.infer<typeof FormControlSchema>;
@@ -26,24 +27,29 @@ function readInputFacts(input: unknown): InputFacts {
   return { fieldName: typeof name === "string" ? name : undefined, isRequired };
 }
 
+/** A label, the input and a hint or the validation error; `.label`, `.helper` and `.error` in the stylesheet. */
 function FormControlRenderer({ props, renderNode }: ComponentRenderProps<FormControlProps>) {
   const formValidation = useFormValidation();
-  const theme = useTheme();
+  const labelStyle = useComponentStyle(["label"]);
+  const helperStyle = useComponentStyle(["helper"]);
+  const errorStyle = useComponentStyle(["error"]);
   const label = props.label === null || props.label === undefined ? "" : String(props.label);
   const facts = readInputFacts(props.input);
   const error = facts.fieldName === undefined ? undefined : formValidation?.errors[facts.fieldName];
   const hasHint = props.hint !== undefined && props.hint !== null;
   return (
     <Box flexDirection="column">
-      <Text bold>
-        {label}
+      <Text {...textProps(labelStyle.text)}>
+        {transformText(label, labelStyle.transform)}
         {facts.isRequired ? " *" : ""}
       </Text>
       {renderNode(props.input)}
       {error !== undefined ? (
-        <Text color={theme.danger}>{error}</Text>
+        <Text {...textProps(errorStyle.text)}>{error}</Text>
       ) : hasHint ? (
-        <Text {...textProps(theme.subtext)}>{String(props.hint)}</Text>
+        <Text {...textProps(helperStyle.text)}>
+          {transformText(String(props.hint), helperStyle.transform)}
+        </Text>
       ) : null}
     </Box>
   );

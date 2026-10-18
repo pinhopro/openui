@@ -38,11 +38,13 @@ describe("parseMarkdown", () => {
     expect(parseMarkdown("# Title\n## Sub")).toEqual([
       {
         kind: "heading",
+        level: 1,
         indent: 0,
         segments: [{ text: "Title", bold: true, italic: false, code: false }],
       },
       {
         kind: "heading",
+        level: 2,
         indent: 0,
         segments: [{ text: "Sub", bold: true, italic: false, code: false }],
       },

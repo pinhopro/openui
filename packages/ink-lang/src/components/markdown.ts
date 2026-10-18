@@ -15,6 +15,8 @@ export interface MarkdownLine {
   indent: number;
   /** The list marker drawn before a bullet line. */
   marker?: string;
+  /** The heading level (number of `#`) of a heading line. */
+  level?: number;
   segments: MarkdownSegment[];
 }
 
@@ -115,7 +117,7 @@ export function parseInline(text: string): MarkdownSegment[] {
   return segments;
 }
 
-const HEADING_PATTERN = /^#{1,6}\s+(.*)$/;
+const HEADING_PATTERN = /^(#{1,6})\s+(.*)$/;
 const BULLET_PATTERN = /^(\s*)[-*]\s+(.*)$/;
 const NUMBERED_PATTERN = /^(\s*)(\d+)\.\s+(.*)$/;
 
@@ -134,7 +136,12 @@ function indentLevel(spaces: string): number {
 function parseLine(line: string): MarkdownLine {
   const heading = HEADING_PATTERN.exec(line);
   if (heading !== null) {
-    return { kind: "heading", indent: 0, segments: boldAll(parseInline(heading[1] ?? "")) };
+    return {
+      kind: "heading",
+      indent: 0,
+      level: (heading[1] ?? "#").length,
+      segments: boldAll(parseInline(heading[2] ?? "")),
+    };
   }
   const numbered = NUMBERED_PATTERN.exec(line);
   if (numbered !== null) {

@@ -15,6 +15,8 @@ export interface DesignSystemInput {
   css?: string;
   /** `light`, `dark` or `system` (the terminal's background); overrides `tokens.mode`. */
   mode?: ColorModeInput;
+  /** Rules appended after `css` (the renderer puts the `theme` slots here). */
+  themeCss?: string;
 }
 
 /** A resolved design system: the tokens, their CSS variables, the cascade and the theme slots. */
@@ -107,11 +109,16 @@ export function createDesignSystem(
   const variables = tokensToCssVariables(tokens);
   const base = parseStylesheet(defaultStylesheet(tokens));
   const host = parseStylesheet(input.css ?? "");
+  const themed = parseStylesheet(input.themeCss ?? "");
   const rules: StyleRule[] = base.rules.slice();
   for (const hostRule of host.rules) {
     rules.push({ ...hostRule, order: hostRule.order + base.rules.length });
   }
-  const errors = resolved.errors.concat(base.errors, host.errors);
+  const offset = base.rules.length + host.rules.length;
+  for (const themeRule of themed.rules) {
+    rules.push({ ...themeRule, order: themeRule.order + offset });
+  }
+  const errors = resolved.errors.concat(base.errors, host.errors, themed.errors);
 
   function style(target: StyleQuery): ComputedStyle {
     return computeStyle(rules, target, variables);

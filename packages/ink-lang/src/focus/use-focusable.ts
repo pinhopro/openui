@@ -1,5 +1,5 @@
 import { useFocus, useFocusManager, type DOMElement } from "ink";
-import { useCallback, useContext, useEffect, useId, useRef, type RefObject } from "react";
+import { useCallback, useContext, useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useElementType } from "../element-type-context";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers, MouseWheelEvent } from "../mouse/mouse-target";
@@ -7,6 +7,7 @@ import { useMouse } from "../mouse/use-mouse";
 import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
 import type { ArrowClaims } from "./focus-navigation";
 import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
+import { useLayerIsActive } from "./modal-layer";
 
 export interface FocusableOptions {
   /** False takes the component out of the Tab cycle (for example while streaming). */
@@ -25,6 +26,10 @@ export interface Focusable {
   /** Put this on the component's outer `Box`: it is what the mouse hits and the arrows measure. */
   ref: RefObject<DOMElement | null>;
   isFocused: boolean;
+  /** The pointer is over the box (with `mouse` on and motion reporting). */
+  isHovered: boolean;
+  /** The left button is held down on the box. */
+  isPressed: boolean;
   /** Moves Ink's focus to this component (a no-op while it is inactive). */
   focus: () => void;
 }
@@ -40,8 +45,12 @@ const NO_HANDLERS: MouseHandlers = {};
  */
 export function useFocusable(options: FocusableOptions): Focusable {
   const id = useId();
-  const isActive = options.isActive;
+  // A modal open above this component takes it out of the Tab cycle and off the mouse.
+  const layerActive = useLayerIsActive();
+  const isActive = options.isActive && layerActive;
   const focus = useFocus({ id, isActive });
+  const [isHovered, setHovered] = useState(false);
+  const [isPressed, setPressed] = useState(false);
   const manager = useFocusManager();
   const ref = useRef<DOMElement | null>(null);
   const component = useElementType();
@@ -107,11 +116,13 @@ export function useFocusable(options: FocusableOptions): Focusable {
   const handlers: MouseHandlers = {
     onMouseDown: function handleMouseDown(event) {
       report("mousedown", event);
+      if (event.button === "left") setPressed(true);
       if (isActive && event.button === "left") focusSelf();
       mouse.onMouseDown?.(event);
     },
     onMouseUp: function handleMouseUp(event) {
       report("mouseup", event);
+      setPressed(false);
       mouse.onMouseUp?.(event);
     },
     onClick: function handleClick(event) {
@@ -128,11 +139,14 @@ export function useFocusable(options: FocusableOptions): Focusable {
     },
     onMouseEnter: function handleMouseEnter(event) {
       report("mouseenter", event);
+      setHovered(true);
       if (hoverFocus && isActive) focusSelf();
       mouse.onMouseEnter?.(event);
     },
     onMouseLeave: function handleMouseLeave(event) {
       report("mouseleave", event);
+      setHovered(false);
+      setPressed(false);
       mouse.onMouseLeave?.(event);
     },
     onMouseMove: function handleMouseMove(event) {
@@ -162,5 +176,5 @@ export function useFocusable(options: FocusableOptions): Focusable {
   }
   useMouse(ref, handlers);
 
-  return { ref, isFocused: focus.isFocused, focus: focusSelf };
+  return { ref, isFocused: focus.isFocused, isHovered, isPressed, focus: focusSelf };
 }

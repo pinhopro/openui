@@ -2,12 +2,11 @@ import type { ActionPlan } from "@openuidev/lang-core";
 import { Box, Text, useInput } from "ink";
 import type { z } from "zod/v4";
 import { useIsStreaming, useTriggerAction } from "../context";
-import { buttonTextStyle } from "../focus/focus-style";
+import { useComponentStyle } from "../design/design-system-context";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { IconButtonSchema } from "../schemas/icon-button-schema";
-import { useTheme } from "../theme";
 import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { iconText } from "./icon";
@@ -20,7 +19,6 @@ function IconButtonRenderer({ props }: ComponentRenderProps<IconButtonProps>) {
   const triggerAction = useTriggerAction();
   const formName = useFormName();
   const isStreaming = useIsStreaming();
-  const theme = useTheme();
   const name = displayText(props.name);
 
   function press(): void {
@@ -45,14 +43,18 @@ function IconButtonRenderer({ props }: ComponentRenderProps<IconButtonProps>) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
-  const style = textProps(
-    buttonTextStyle(focusable.isFocused, isStreaming, props.variant, undefined, theme.button),
-  );
+  const states: string[] = [];
+  if (focusable.isFocused) states.push("focus");
+  if (focusable.isHovered) states.push("hover");
+  if (focusable.isPressed) states.push("pressed");
+  if (isStreaming) states.push("disabled");
+  const computed = useComponentStyle([props.variant ?? "primary"], states);
+  const style = textProps(computed.text);
   const icon = iconText(props.icon);
   const label = icon === "" ? name : icon + " " + name;
   return (
     <Box>
-      <Box ref={focusable.ref}>
+      <Box ref={focusable.ref} backgroundColor={computed.box.background}>
         <Text {...style}>[ {label} ]</Text>
       </Box>
     </Box>

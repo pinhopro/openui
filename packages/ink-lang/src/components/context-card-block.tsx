@@ -1,6 +1,7 @@
 import type { ElementNode } from "@openuidev/lang-core";
 import { Box, Text } from "ink";
 import type { z } from "zod/v4";
+import { useComponentStyle } from "../design/design-system-context";
 import { isElementValue } from "../element-node";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ContextCardBlockSchema } from "../schemas/context-card-block-schema";
@@ -9,7 +10,6 @@ import { elementStringProp } from "./card-item-action";
 import { ImagePlaceholder } from "./image-placeholder";
 import { MarkdownText } from "./markdown-text";
 import { displayText } from "./pad";
-import { textContentStyle } from "./text-content-style";
 
 type ContextCardBlockProps = z.infer<typeof ContextCardBlockSchema>;
 
@@ -18,6 +18,7 @@ function ContextCardBlockRenderer({
   props,
   renderNode,
 }: ComponentRenderProps<ContextCardBlockProps>) {
+  const bodyStyle = useComponentStyle(["body"]);
   const elements = cardBlockItems(props.items);
   const items: CardBlockItem[] = [];
   for (let index = 0; index < elements.length; index += 1) {
@@ -41,7 +42,7 @@ function ContextCardBlockRenderer({
             <ImagePlaceholder alt={element.props["bgImageAlt"]} src={imageSrc} />
           )}
           {isElementValue(title) ? renderNode(title) : <Text bold>{displayText(title)}</Text>}
-          {body === "" ? null : <MarkdownText text={body} style={textContentStyle(undefined)} />}
+          {body === "" ? null : <MarkdownText text={body} base={bodyStyle} />}
         </Box>
       ),
     });

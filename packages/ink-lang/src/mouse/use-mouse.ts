@@ -1,5 +1,6 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useRef, type RefObject } from "react";
+import { useLayerIsActive } from "../focus/modal-layer";
 import { MouseContext } from "./mouse-provider";
 import type { MouseHandlers, MouseTarget } from "./mouse-target";
 
@@ -10,9 +11,11 @@ import type { MouseHandlers, MouseTarget } from "./mouse-target";
  */
 export function useMouse(ref: RefObject<DOMElement | null>, handlers: MouseHandlers): void {
   const registry = useContext(MouseContext);
+  // While a modal is open above it, a box takes no events (they fall through to its ancestors).
+  const layerActive = useLayerIsActive();
   const targetRef = useRef<MouseTarget>({ ref, handlers });
   targetRef.current.ref = ref;
-  targetRef.current.handlers = handlers;
+  targetRef.current.handlers = layerActive ? handlers : {};
 
   useEffect(
     function registerTarget() {

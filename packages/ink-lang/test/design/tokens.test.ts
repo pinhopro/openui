@@ -25,7 +25,7 @@ describe("defaultTokens", () => {
       "icon",
     ]);
     expect(defaultTokens.color.semantic.text.placeholder).toBe("dim");
-    expect(defaultTokens.spacing).toEqual({ xs: 0, sm: 1, md: 1, lg: 2, xl: 3 });
+    expect(defaultTokens.spacing).toEqual({ xs: 0, sm: 1, md: 1, lg: 2, xl: 2 });
     expect(defaultTokens.grid).toEqual({ columns: 1, margin: 0, gutter: 1, containerMaxWidth: 0 });
     expect(defaultTokens.typography.h1.weight).toBe("bold");
     expect(defaultTokens.shape).toEqual({ fieldBorder: "none", cardBorder: "round" });

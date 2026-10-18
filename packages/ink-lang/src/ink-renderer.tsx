@@ -1,6 +1,6 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { Box, Text } from "ink";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OpenUIContext } from "./context";
 import {
   createDesignSystem,
@@ -8,10 +8,12 @@ import {
   type DesignSystemInput,
 } from "./design/design-system";
 import { DesignSystemContext } from "./design/design-system-context";
+import { themeToCss } from "./design/theme-to-css";
 import { ErrorFooter } from "./error-footer";
 import { ArrowNavigator } from "./focus/arrow-navigator";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
+import { LayerIdContext, ModalLayerContext, type ModalLayers } from "./focus/modal-layer";
 import type { Library } from "./library";
 import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
@@ -19,7 +21,7 @@ import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
-import { mergeTheme, ThemeContext, type InkThemeOverrides } from "./theme";
+import { ThemeContext, type InkThemeOverrides } from "./theme";
 import { UiEventContext, type UiEvent } from "./ui-events";
 import { useOpenUIRuntime } from "./use-openui-runtime";
 
@@ -106,25 +108,48 @@ export function InkRenderer(props: InkRendererProps) {
     [runtime.parseResult],
   );
 
+  // The theme slots join the cascade as palette tokens plus rules appended
+  // after the host stylesheet, so one cascade decides every style.
   const designSystem = useMemo(
     function buildDesignSystem() {
       const paletteTokens = paletteTokensOf(props.theme);
-      if (props.designSystem === undefined && paletteTokens === null) return defaultDesignSystem;
+      const themeCss = themeToCss(props.theme);
+      if (props.designSystem === undefined && paletteTokens === null && themeCss === "") {
+        return defaultDesignSystem;
+      }
       const input = props.designSystem ?? {};
-      if (paletteTokens === null) return createDesignSystem(input);
       return createDesignSystem({
         ...input,
-        tokens: { ...(input.tokens ?? {}), ...paletteTokens },
+        tokens: { ...(input.tokens ?? {}), ...(paletteTokens ?? {}) },
+        themeCss,
       });
     },
     [props.designSystem, props.theme],
   );
-  const theme = useMemo(
-    function buildTheme() {
-      return mergeTheme(designSystem.theme, props.theme);
+  const theme = designSystem.theme;
+  const [layers, setLayers] = useState<string[]>([]);
+  const openLayer = useCallback(function openLayer(id: string) {
+    setLayers(function push(previous) {
+      return previous.concat(id);
+    });
+    return function closeLayer() {
+      setLayers(function drop(previous) {
+        return previous.filter(function keep(layer) {
+          return layer !== id;
+        });
+      });
+    };
+  }, []);
+  const modalLayers = useMemo<ModalLayers>(
+    function buildLayers() {
+      return {
+        activeLayer: layers.length === 0 ? null : (layers[layers.length - 1] as string),
+        open: openLayer,
+      };
     },
-    [designSystem, props.theme],
+    [layers, openLayer],
   );
+  const grid = designSystem.tokens.grid;
   const mouseOptions = useMemo(
     function buildMouseOptions() {
       return resolveMouseOptions(props.mouse);
@@ -141,7 +166,11 @@ export function InkRenderer(props: InkRendererProps) {
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
   const tree = (
-    <Box flexDirection="column">
+    <Box
+      flexDirection="column"
+      marginX={grid.margin}
+      maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
+    >
       <ArrowNavigator />
       <KeyReporter />
       {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
@@ -161,15 +190,19 @@ export function InkRenderer(props: InkRendererProps) {
     <OpenUIContext.Provider value={runtime.contextValue}>
       <ThemeContext.Provider value={theme}>
         <DesignSystemContext.Provider value={designSystem}>
-          <UiEventContext.Provider value={emitUiEvent}>
-            <FocusRegistryContext.Provider value={focusRegistry}>
-              {mouseOptions === null ? (
-                tree
-              ) : (
-                <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
-              )}
-            </FocusRegistryContext.Provider>
-          </UiEventContext.Provider>
+          <ModalLayerContext.Provider value={modalLayers}>
+            <LayerIdContext.Provider value={null}>
+              <UiEventContext.Provider value={emitUiEvent}>
+                <FocusRegistryContext.Provider value={focusRegistry}>
+                  {mouseOptions === null ? (
+                    tree
+                  ) : (
+                    <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
+                  )}
+                </FocusRegistryContext.Provider>
+              </UiEventContext.Provider>
+            </LayerIdContext.Provider>
+          </ModalLayerContext.Provider>
         </DesignSystemContext.Provider>
       </ThemeContext.Provider>
     </OpenUIContext.Provider>

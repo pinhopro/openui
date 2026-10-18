@@ -1,28 +1,25 @@
 import { Box } from "ink";
 import type { z } from "zod/v4";
+import { useComponentStyle, useDesignSystem } from "../design/design-system-context";
+import { layoutBoxProps } from "../design/layout-props";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { CardSchema } from "../schemas/card-schema";
-import { useTheme, type InkTheme } from "../theme";
-import { boxProps, type BoxStyle } from "../theme-styles";
+import { boxProps } from "../theme-styles";
 import { flexBoxProps } from "./flex-box-props";
 
 type CardProps = z.infer<typeof CardSchema>;
 
-/** The theme slot of a Card variant: card (default), sunk or clear. */
-function cardStyle(variant: string | undefined, theme: InkTheme): BoxStyle {
-  if (variant === "clear") return theme.card.clear;
-  if (variant === "sunk") return theme.card.sunk;
-  return theme.card.card;
-}
-
+/** A bordered container; the variant is a class the stylesheet addresses (`Card.sunk`). */
 function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
-  const theme = useTheme();
-  const box = flexBoxProps(props);
-  const style = boxProps(cardStyle(props.variant, theme));
+  const system = useDesignSystem();
+  const variant = typeof props.variant === "string" ? props.variant : "card";
+  const computed = useComponentStyle([variant]);
+  const box = flexBoxProps(props, system.tokens.spacing);
+  const style = boxProps(computed.box);
   return (
     <Box
       flexDirection={box.flexDirection}
-      gap={box.gap}
+      gap={computed.gap ?? box.gap}
       alignItems={box.alignItems}
       justifyContent={box.justifyContent}
       flexWrap={box.flexWrap}
@@ -32,6 +29,7 @@ function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
       backgroundColor={style.backgroundColor}
       paddingX={style.paddingX}
       paddingY={style.paddingY}
+      {...layoutBoxProps(computed)}
     >
       {renderNode(props.children)}
     </Box>

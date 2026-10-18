@@ -60,7 +60,8 @@
     "url": "https://github.com/thesysdev/openui/issues"
   },
   "dependencies": {
-    "@openuidev/lang-core": "workspace:^"
+    "@openuidev/lang-core": "workspace:^",
+    "qrcode-generator": "2.0.4"
   },
   "peerDependencies": {
     "ink": "^8.0.0",

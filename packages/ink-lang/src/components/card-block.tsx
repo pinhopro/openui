@@ -2,6 +2,7 @@ import type { ElementNode } from "@openuidev/lang-core";
 import { Box, useInput } from "ink";
 import type { ReactNode } from "react";
 import { useIsStreaming, useTriggerAction } from "../context";
+import { useDesignSystem } from "../design/design-system-context";
 import { isElementValue } from "../element-node";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
@@ -84,6 +85,7 @@ function PressableCard({ item, action }: PressableCardProps) {
  * item, stacked in a column. With an action every card is a focus stop.
  */
 export function CardBlock({ action, items }: CardBlockProps) {
+  const grid = useDesignSystem().tokens.grid;
   const hasAction = action !== undefined && action !== null;
   const cards: ReactNode[] = [];
   for (let index = 0; index < items.length; index += 1) {
@@ -99,5 +101,24 @@ export function CardBlock({ action, items }: CardBlockProps) {
     );
   }
   if (cards.length === 0) return null;
-  return <Box flexDirection="column">{cards}</Box>;
+  const columns = Math.max(1, Math.floor(grid.columns));
+  if (columns === 1) return <Box flexDirection="column">{cards}</Box>;
+  // Grid layouts put `grid.columns` cards side by side, `grid.gutter` cells apart.
+  const rows: ReactNode[] = [];
+  for (let start = 0; start < cards.length; start += columns) {
+    const cells: ReactNode[] = [];
+    for (let index = start; index < Math.min(cards.length, start + columns); index += 1) {
+      cells.push(
+        <Box key={index} flexGrow={1} flexBasis={0} flexDirection="column">
+          {cards[index]}
+        </Box>,
+      );
+    }
+    rows.push(
+      <Box key={start} flexDirection="row" gap={grid.gutter}>
+        {cells}
+      </Box>,
+    );
+  }
+  return <Box flexDirection="column">{rows}</Box>;
 }
