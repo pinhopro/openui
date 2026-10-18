@@ -73,7 +73,11 @@ A host that targets both renderers generates the prompt from the full React libr
 pnpm --filter @openuidev/ink-lang demo
 ```
 
-`examples/demo.tsx` streams a mock response chunk by chunk, logs every `onAction` event and the `onStateUpdate` snapshots under the rendered program. Tab and Shift+Tab move focus, Enter or Space presses a button, typing edits the field, Up and Down move through a Select, Esc quits.
+`examples/demo.tsx` streams a mock response chunk by chunk, logs every `onAction` event and the `onStateUpdate` snapshots under the rendered program. Tab and Shift+Tab move focus, Enter or Space presses a button, typing edits the field, Up and Down move through a Select, Esc quits. Add `--mouse` to click and scroll:
+
+```bash
+pnpm --filter @openuidev/ink-lang demo -- --mouse
+```
 
 ## `InkRenderer` props
 
@@ -89,6 +93,7 @@ pnpm --filter @openuidev/ink-lang demo
 | `toolProvider`  | `Record<string, (args) => Promise<unknown>> \| McpClientLike` | Serves `Query()` and `Mutation()` calls once streaming ends                                                                  |
 | `onError`       | `(errors: OpenUIError[]) => void`                             | Structured errors once streaming ends, `[]` when a new stream starts. Without it, errors are drawn as a red footer in the UI |
 | `theme`         | `Partial<InkTheme>`                                           | Colors for borders, headings, destructive buttons and error lines: `accent`, `danger`, `muted` (defaults: cyan, red, gray)   |
+| `mouse`         | `boolean \| { motion?: boolean }`                             | Turns terminal mouse reporting on (see [Mouse](#mouse)); `{ motion: false }` skips hover tracking                            |
 
 While `isStreaming` is true and the root has not appeared yet, a dim `…` placeholder is drawn; a dim `streaming…` line sits under the tree until the stream ends, and `loading…` while a query is in flight.
 
@@ -121,7 +126,58 @@ Every component keeps the name, positional argument order, Zod schema and descri
 
 `Card.children`, `TabItem.content` and `FormControl.input` accept the components of this library only; everything else about the schemas is identical to react-ui.
 
-Keyboard: Tab and Shift+Tab move focus between buttons, inputs, selects and tab strips (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor; Enter inside an input does nothing in this version. While a query is loading a spinner line shows under the program, and a failed query leaves a focusable `[ retry ]` that re-runs it. In a focused Select, Up and Down move the cursor and Enter or Space picks. In a focused Tabs strip, Left and Right switch tabs.
+Keyboard: Tab and Shift+Tab move focus between buttons, inputs, selects and tab strips (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor; Enter inside an input does nothing in this version. While a query is loading a spinner line shows under the program, and a failed query leaves a focusable `[ retry ]` that re-runs it. In a focused Select, Up and Down move the cursor and Enter or Space picks. In a focused Tabs strip, Left and Right switch tabs. With `mouse` on, clicks, hover and the wheel work as well (see [Mouse](#mouse)).
+
+## Mouse
+
+Mouse support is off by default. Pass `mouse: true` to `InkRenderer` and render your app on the alternate screen, so Ink's layout cells line up with the terminal's:
+
+```tsx
+render(<App />, { alternateScreen: true });
+// inside App:
+<InkRenderer response={response} library={inkLibrary} mouse />;
+```
+
+While mounted, the renderer asks the terminal to report the mouse (xterm modes 1000, 1002, 1003 and SGR 1006) and turns the reporting off again when it unmounts or the process exits. Nothing else changes: the keyboard keeps working, and a program rendered without `mouse` never sees a mouse event.
+
+What the default components do with it:
+
+| Component | Click                                                | Hover                                            | Wheel                                      |
+| :-------- | :--------------------------------------------------- | :----------------------------------------------- | :----------------------------------------- |
+| `Button`  | Presses it, exactly like Enter (validation included) | Focuses it, so the focus ring is the hover style | -                                          |
+| `Tabs`    | Selects and focuses the tab under the pointer        | -                                                | Over the strip: previous or next tab       |
+| `Select`  | Opens it; a click on an option picks it              | -                                                | Moves the highlight (opens the list first) |
+| `Input`   | Focuses the field                                    | -                                                | -                                          |
+
+Everything stays inert while `isStreaming` is true, as with the keyboard.
+
+Custom components get the same events through `useMouse(ref, handlers)`, where `ref` points at a `Box`:
+
+```tsx
+import { Box, Text, type DOMElement } from "ink";
+import { useRef, useState } from "react";
+import { useMouse } from "@openuidev/ink-lang";
+
+function Counter() {
+  const ref = useRef<DOMElement | null>(null);
+  const [count, setCount] = useState(0);
+  useMouse(ref, {
+    onClick: () => setCount(count + 1),
+    onWheel: (event) => setCount(count + (event.direction === "up" ? event.ticks : -event.ticks)),
+  });
+  return (
+    <Box ref={ref}>
+      <Text>{count}</Text>
+    </Box>
+  );
+}
+```
+
+Handlers: `onMouseDown`, `onMouseUp`, `onClick` (left press and release on the same box), `onContextMenu` (right release), `onMouseMove`, `onMouseEnter` and `onMouseLeave` (derived from consecutive moves; need `motion`), and `onWheel`. Each event carries the 0-based cell (`x`, `y`), the button and the `shift`, `alt` and `ctrl` flags. `onWheel` gets `direction` (`up`, `down`, `left`, `right`) and `ticks`: the wheel ticks that arrived in the same event-loop turn are coalesced into one call, so a trackpad fling does not cause a render per tick. An event goes to the innermost box under the pointer; if that box has no handler for it, the nearest enclosing box that has one gets it, so a tab trigger can take clicks while the strip around it takes the wheel. Enter and leave track the innermost box only.
+
+Terminal support: iTerm2, kitty, WezTerm, Ghostty, Alacritty and Windows Terminal all speak SGR mouse reporting. Under tmux, `set -g mouse on` is required, or tmux keeps the events for itself. The VS Code terminal and most others based on xterm.js work too.
+
+Text selection: while mouse reporting is on, the terminal hands clicks and drags to the app instead of selecting text. Hold Shift (Option on some macOS terminals) while dragging to select text the usual way, or run without `mouse`.
 
 ## Defining your own components
 
