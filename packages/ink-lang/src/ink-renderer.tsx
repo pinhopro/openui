@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
 import { ErrorFooter } from "./error-footer";
 import type { Library } from "./library";
+import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
@@ -73,7 +74,12 @@ export function InkRenderer(props: InkRendererProps) {
           {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
           {showPlaceholder ? <Text dimColor>…</Text> : null}
           {isStreaming ? <Text dimColor>streaming…</Text> : null}
-          {runtime.isQueryLoading ? <Text dimColor>loading…</Text> : null}
+          <QueryStatus
+            isLoading={runtime.isQueryLoading}
+            hasErrors={runtime.queryErrors.length > 0}
+            isStreaming={isStreaming}
+            onRetry={runtime.retryQueries}
+          />
           {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
         </Box>
       </ThemeContext.Provider>

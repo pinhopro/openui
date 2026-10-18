@@ -43,6 +43,10 @@ export interface OpenUIRuntime {
   parseResult: ParseResult | null;
   contextValue: OpenUIContextValue;
   isQueryLoading: boolean;
+  /** Failed queries whose defaults are showing instead of fresh data. */
+  queryErrors: OpenUIError[];
+  /** Re-runs every failed query. */
+  retryQueries: () => void;
   /** The current error list; also delivered through onError when it changes. */
   errors: OpenUIError[];
 }
@@ -291,6 +295,26 @@ export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
   );
 
   const isQueryLoading = querySnapshot.__openui_loading.length > 0;
+  const queryErrors = useMemo(
+    function listQueryErrors() {
+      const failed: OpenUIError[] = [];
+      for (const error of querySnapshot.__openui_errors) {
+        if (error.source === "query") failed.push(error);
+      }
+      return failed;
+    },
+    [querySnapshot],
+  );
+  const retryQueries = useCallback(
+    function retryQueries() {
+      const statementIds: string[] = [];
+      for (const error of queryErrors) {
+        if (error.statementId !== undefined) statementIds.push(error.statementId);
+      }
+      if (statementIds.length > 0) queryManager.invalidate(statementIds);
+    },
+    [queryErrors, queryManager],
+  );
 
   const readField = useCallback(
     function readField(formName: string | undefined, name: string) {
@@ -377,6 +401,8 @@ export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
     parseResult,
     contextValue,
     isQueryLoading,
+    queryErrors,
+    retryQueries,
     errors,
   };
 }
