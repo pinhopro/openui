@@ -160,10 +160,14 @@ export { MarkDownRenderer } from "./components/mark-down-renderer";
 export { MetricIndicatorInline } from "./components/metric-indicator-inline";
 export { MetricIndicatorWithStrikethrough } from "./components/metric-indicator-with-strikethrough";
 export { Modal } from "./components/modal";
+export { ModalDialog } from "./components/modal-dialog";
 export { OptionCard } from "./components/option-card";
 export { OptionCards } from "./components/option-cards";
 export { OverviewCardBlock } from "./components/overview-card-block";
 export { OverviewCardItem } from "./components/overview-card-item";
+export { QrCode } from "./components/qr-code";
+export { qrBlockLines, qrMatrix } from "./components/qr-matrix";
+export type { QrBlockSize } from "./components/qr-matrix";
 export { RadioGroup } from "./components/radio-group";
 export { RadioItem } from "./components/radio-item";
 export { Select } from "./components/select";
@@ -187,6 +191,8 @@ export { TextArea } from "./components/text-area";
 export { TextCallout } from "./components/text-callout";
 export { TextContent } from "./components/text-content";
 export { Input } from "./components/text-input";
+export { Theme } from "./components/theme";
+export { Tooltip } from "./components/tooltip";
 export { VisualCardBlock } from "./components/visual-card-block";
 export { VisualCardItem } from "./components/visual-card-item";
 export { inkComponentGroups, inkLibrary } from "./default-library";
@@ -261,6 +267,7 @@ export {
   MetricIndicatorTrendSchema,
   MetricIndicatorWithStrikethroughSchema,
 } from "./schemas/metric-indicator-schema";
+export { ModalDialogSchema } from "./schemas/modal-dialog-schema";
 export { ModalSchema } from "./schemas/modal-schema";
 export { OptionCardSchema } from "./schemas/option-card-schema";
 export { OptionCardsSchema } from "./schemas/option-cards-schema";
@@ -268,6 +275,7 @@ export { OverviewCardBlockSchema } from "./schemas/overview-card-block-schema";
 export { OverviewCardItemSchema } from "./schemas/overview-card-item-schema";
 export { PieChartSchema } from "./schemas/pie-chart-schema";
 export { PointSchema } from "./schemas/point-schema";
+export { QrCodeSchema } from "./schemas/qr-code-schema";
 export { RadarChartSchema } from "./schemas/radar-chart-schema";
 export { RadialChartSchema } from "./schemas/radial-chart-schema";
 export { RadioGroupSchema } from "./schemas/radio-group-schema";
@@ -298,6 +306,8 @@ export { TextAreaSchema } from "./schemas/text-area-schema";
 export { TextCalloutSchema } from "./schemas/text-callout-schema";
 export { TextContentSchema } from "./schemas/text-content-schema";
 export { TextSchema } from "./schemas/text-schema";
+export { ThemeSchema } from "./schemas/theme-schema";
+export { TooltipSchema } from "./schemas/tooltip-schema";
 export { VisualCardBlockSchema } from "./schemas/visual-card-block-schema";
 export { VisualCardItemSchema } from "./schemas/visual-card-item-schema";
 
@@ -394,6 +404,43 @@ export type { UiEvent, UiEventListener, UiEventType } from "./ui-events";
 export { useInputEvent } from "./use-input-event";
 
 // Mouse support
+export { computeStyle, emptyStyle } from "./design/cascade";
+export { colorScale, darken, lighten } from "./design/color-scale";
+export type { ColorScale } from "./design/color-scale";
+export { detectColorScheme } from "./design/color-scheme";
+export { tokensToCssVariables } from "./design/css-variables";
+export { applyDeclaration, parseFontScale, parseLength, resolveValue } from "./design/declarations";
+export type { ComputedStyle, CssVariables, TextAlign } from "./design/declarations";
+export { defaultStylesheet, typographyDeclarations } from "./design/default-stylesheet";
+export { createDesignSystem, defaultDesignSystem } from "./design/design-system";
+export type { DesignSystem, DesignSystemInput } from "./design/design-system";
+export {
+  DesignSystemContext,
+  useComponentStyle,
+  useDesignSystem,
+  useStyleAs,
+} from "./design/design-system-context";
+export { layoutBoxProps, transformText } from "./design/layout-props";
+export { matches, parseSelector, specificity } from "./design/selector";
+export type { Compound, Selector, StyleQuery } from "./design/selector";
+export { parseStylesheet } from "./design/stylesheet-parser";
+export type { Declaration, ParsedStylesheet, StyleRule } from "./design/stylesheet-parser";
+export { themeToCss } from "./design/theme-to-css";
+export { defaultTokens, resolveTokens } from "./design/tokens";
+export type {
+  ColorMode,
+  ColorModeInput,
+  DesignTokens,
+  Grid,
+  ResolvedTokens,
+  SemanticColors,
+  Spacing,
+  TokenInput,
+  TypeStyle,
+  Typography,
+} from "./design/tokens";
+export { LayerIdContext, ModalLayerContext, useLayerIsActive } from "./focus/modal-layer";
+export type { ModalLayers } from "./focus/modal-layer";
 export { measureTargets, targetsUnderCell } from "./mouse/hit-test";
 export type { CellRect, MeasuredTarget } from "./mouse/hit-test";
 export { createMouseDispatcher } from "./mouse/mouse-dispatcher";

@@ -43,12 +43,14 @@ import { MarkDownRenderer } from "./components/mark-down-renderer";
 import { MetricIndicatorInline } from "./components/metric-indicator-inline";
 import { MetricIndicatorWithStrikethrough } from "./components/metric-indicator-with-strikethrough";
 import { Modal } from "./components/modal";
+import { ModalDialog } from "./components/modal-dialog";
 import { OptionCard } from "./components/option-card";
 import { OptionCards } from "./components/option-cards";
 import { OverviewCardBlock } from "./components/overview-card-block";
 import { OverviewCardItem } from "./components/overview-card-item";
 import { PieChart } from "./components/pie-chart";
 import { Point } from "./components/point";
+import { QrCode } from "./components/qr-code";
 import { RadarChart } from "./components/radar-chart";
 import { RadialChart } from "./components/radial-chart";
 import { RadioGroup } from "./components/radio-group";
@@ -79,6 +81,8 @@ import { TextArea } from "./components/text-area";
 import { TextCallout } from "./components/text-callout";
 import { TextContent } from "./components/text-content";
 import { Input } from "./components/text-input";
+import { Theme } from "./components/theme";
+import { Tooltip } from "./components/tooltip";
 import { VisualCardBlock } from "./components/visual-card-block";
 import { VisualCardItem } from "./components/visual-card-item";
 import { createLibrary, type ComponentGroup, type Library } from "./library";
@@ -254,6 +258,16 @@ export const inkComponentGroups: ComponentGroup[] = [
       "- Text / BoldText / IconText / ImageText / ImageTextLarge / MetricIndicator* are the inline building blocks used INSIDE card items; do not place them directly in the root Card.",
     ],
   },
+  {
+    name: "Terminal extras",
+    components: ["Theme", "Tooltip", "QrCode", "ModalDialog"],
+    notes: [
+      '- Theme(tokens, css, children) applies a design system to its children: tokens like {"color.primary": "#2563eb", "shape.fieldBorder": "round", mode: "dark"} and a stylesheet of the CSS subset.',
+      "- Tooltip(trigger, text, placement?, variant?) shows text beside its trigger while focused or hovered.",
+      "- QrCode(data, size?) draws a scannable QR code with block characters.",
+      "- ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?) blocks everything behind it; use a $boolean binding as open and a Button with @Set($open, true) to show it.",
+    ],
+  },
 ];
 
 /**
@@ -280,6 +294,10 @@ export const inkLibrary: Library = createLibrary({
     Table,
     Col,
     EditableTable,
+    Theme,
+    Tooltip,
+    QrCode,
+    ModalDialog,
     Tabs,
     TabItem,
     Accordion,
