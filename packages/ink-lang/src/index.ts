@@ -376,7 +376,7 @@ export type { CursorSplit, EditorState } from "./components/text-editing";
 export { useOptionGroup } from "./components/use-option-group";
 export type { OptionGroup, OptionGroupOptions } from "./components/use-option-group";
 export { variantColor } from "./components/variant-color";
-export { ElementTypeContext, useElementType } from "./element-type-context";
+export { ElementPathContext, useElementPath, useElementType } from "./element-type-context";
 export { ArrowNavigator } from "./focus/arrow-navigator";
 export { elementRect } from "./focus/element-rect";
 export type { CellRect as ElementRect } from "./focus/element-rect";

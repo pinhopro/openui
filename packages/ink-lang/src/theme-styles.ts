@@ -12,6 +12,9 @@ export interface BoxStyle {
   paddingY?: number;
 }
 
+/** How an underline is drawn where the terminal supports styled underlines (kitty, WezTerm, iTerm2, Ghostty). */
+export type UnderlineStyle = "single" | "double" | "curly" | "dotted" | "dashed";
+
 /** The CSS-like text part of a style slot. */
 export interface TextStyle {
   color?: string;
@@ -22,6 +25,8 @@ export interface TextStyle {
   underline?: boolean;
   inverse?: boolean;
   strikethrough?: boolean;
+  underlineStyle?: UnderlineStyle;
+  underlineColor?: string;
 }
 
 /** What `boxProps` hands to an Ink `Box`. */
@@ -71,6 +76,8 @@ export function mergeTextStyle(base: TextStyle, over: TextStyle | undefined): Te
   if (over.underline !== undefined) merged.underline = over.underline;
   if (over.inverse !== undefined) merged.inverse = over.inverse;
   if (over.strikethrough !== undefined) merged.strikethrough = over.strikethrough;
+  if (over.underlineStyle !== undefined) merged.underlineStyle = over.underlineStyle;
+  if (over.underlineColor !== undefined) merged.underlineColor = over.underlineColor;
   return merged;
 }
 

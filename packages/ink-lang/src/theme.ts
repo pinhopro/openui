@@ -160,7 +160,19 @@ export function resolveTheme(overrides: InkThemeOverrides | undefined): InkTheme
     success: overrides.success ?? defaultPalette.success,
     warning: overrides.warning ?? defaultPalette.warning,
   };
-  const base = defaultStyles(palette);
+  return mergeTheme(defaultStyles(palette), overrides);
+}
+
+/** `base` with every slot of `overrides` merged field by field over it. */
+export function mergeTheme(base: InkTheme, overrides: InkThemeOverrides | undefined): InkTheme {
+  if (overrides === undefined) return base;
+  const palette: InkPalette = {
+    accent: overrides.accent ?? base.accent,
+    danger: overrides.danger ?? base.danger,
+    muted: overrides.muted ?? base.muted,
+    success: overrides.success ?? base.success,
+    warning: overrides.warning ?? base.warning,
+  };
   const field = overrides.field ?? {};
   const focused = field.focused ?? {};
   const button = overrides.button ?? {};

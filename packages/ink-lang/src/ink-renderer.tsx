@@ -2,6 +2,12 @@ import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core
 import { Box, Text } from "ink";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
+import {
+  createDesignSystem,
+  defaultDesignSystem,
+  type DesignSystemInput,
+} from "./design/design-system";
+import { DesignSystemContext } from "./design/design-system-context";
 import { ErrorFooter } from "./error-footer";
 import { ArrowNavigator } from "./focus/arrow-navigator";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
@@ -13,7 +19,7 @@ import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
-import { resolveTheme, ThemeContext, type InkThemeOverrides } from "./theme";
+import { mergeTheme, ThemeContext, type InkThemeOverrides } from "./theme";
 import { UiEventContext, type UiEvent } from "./ui-events";
 import { useOpenUIRuntime } from "./use-openui-runtime";
 
@@ -43,6 +49,12 @@ export interface InkRendererProps {
    */
   theme?: InkThemeOverrides;
   /**
+   * A design system: tokens (primitive and semantic colors, spacing, grid,
+   * typography, shape, light or dark mode) plus a stylesheet of the CSS
+   * subset. The theme slots derive from it; `theme` merges over them.
+   */
+  designSystem?: DesignSystemInput;
+  /**
    * Turns terminal mouse reporting on: clicks, hover and the wheel reach the
    * components. `true` reports every move; `{ motion: false }` reports presses
    * and drags only. Render the app with `alternateScreen: true` so layout cells
@@ -56,6 +68,18 @@ export interface InkRendererProps {
    * wheel) when `mouse` is on.
    */
   onUiEvent?: (event: UiEvent) => void;
+}
+
+/** The palette colors of a theme as primitive tokens, so the cascade derives every slot from them. */
+function paletteTokensOf(theme: InkThemeOverrides | undefined): Record<string, unknown> | null {
+  if (theme === undefined) return null;
+  const tokens: Record<string, unknown> = {};
+  if (theme.accent !== undefined) tokens["color.primary"] = theme.accent;
+  if (theme.danger !== undefined) tokens["color.error"] = theme.danger;
+  if (theme.muted !== undefined) tokens["color.neutral"] = theme.muted;
+  if (theme.success !== undefined) tokens["color.success"] = theme.success;
+  if (theme.warning !== undefined) tokens["color.warning"] = theme.warning;
+  return Object.keys(tokens).length === 0 ? null : tokens;
 }
 
 /** Renders a streaming OpenUI Lang program in the terminal. */
@@ -82,11 +106,24 @@ export function InkRenderer(props: InkRendererProps) {
     [runtime.parseResult],
   );
 
+  const designSystem = useMemo(
+    function buildDesignSystem() {
+      const paletteTokens = paletteTokensOf(props.theme);
+      if (props.designSystem === undefined && paletteTokens === null) return defaultDesignSystem;
+      const input = props.designSystem ?? {};
+      if (paletteTokens === null) return createDesignSystem(input);
+      return createDesignSystem({
+        ...input,
+        tokens: { ...(input.tokens ?? {}), ...paletteTokens },
+      });
+    },
+    [props.designSystem, props.theme],
+  );
   const theme = useMemo(
     function buildTheme() {
-      return resolveTheme(props.theme);
+      return mergeTheme(designSystem.theme, props.theme);
     },
-    [props.theme],
+    [designSystem, props.theme],
   );
   const mouseOptions = useMemo(
     function buildMouseOptions() {
@@ -123,15 +160,17 @@ export function InkRenderer(props: InkRendererProps) {
   return (
     <OpenUIContext.Provider value={runtime.contextValue}>
       <ThemeContext.Provider value={theme}>
-        <UiEventContext.Provider value={emitUiEvent}>
-          <FocusRegistryContext.Provider value={focusRegistry}>
-            {mouseOptions === null ? (
-              tree
-            ) : (
-              <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
-            )}
-          </FocusRegistryContext.Provider>
-        </UiEventContext.Provider>
+        <DesignSystemContext.Provider value={designSystem}>
+          <UiEventContext.Provider value={emitUiEvent}>
+            <FocusRegistryContext.Provider value={focusRegistry}>
+              {mouseOptions === null ? (
+                tree
+              ) : (
+                <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
+              )}
+            </FocusRegistryContext.Provider>
+          </UiEventContext.Provider>
+        </DesignSystemContext.Provider>
       </ThemeContext.Provider>
     </OpenUIContext.Provider>
   );
