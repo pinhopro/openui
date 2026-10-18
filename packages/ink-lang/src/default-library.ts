@@ -8,8 +8,11 @@ import { Callout } from "./components/callout";
 import { Card } from "./components/card";
 import { CardHeader } from "./components/card-header";
 import { Carousel } from "./components/carousel";
+import { CheckBoxGroup } from "./components/check-box-group";
+import { CheckBoxItem } from "./components/check-box-item";
 import { CodeBlock } from "./components/code-block";
 import { Col } from "./components/col";
+import { DatePicker } from "./components/date-picker";
 import { EditableTable } from "./components/editable-table";
 import { EntityList } from "./components/entity-list";
 import { Form } from "./components/form";
@@ -29,6 +32,8 @@ import { PieChart } from "./components/pie-chart";
 import { Point } from "./components/point";
 import { RadarChart } from "./components/radar-chart";
 import { RadialChart } from "./components/radial-chart";
+import { RadioGroup } from "./components/radio-group";
+import { RadioItem } from "./components/radio-item";
 import { ScatterChart } from "./components/scatter-chart";
 import { ScatterSeries } from "./components/scatter-series";
 import { Select } from "./components/select";
@@ -37,14 +42,18 @@ import { Separator } from "./components/separator";
 import { Series } from "./components/series";
 import { SingleStackedBarChart } from "./components/single-stacked-bar-chart";
 import { Slice } from "./components/slice";
+import { Slider } from "./components/slider";
 import { Stack } from "./components/stack";
 import { Steps } from "./components/steps";
 import { StepsItem } from "./components/steps-item";
+import { SwitchGroup } from "./components/switch-group";
+import { SwitchItem } from "./components/switch-item";
 import { TabItem } from "./components/tab-item";
 import { Table } from "./components/table";
 import { Tabs } from "./components/tabs";
 import { Tag } from "./components/tag";
 import { TagBlock } from "./components/tag-block";
+import { TextArea } from "./components/text-area";
 import { TextCallout } from "./components/text-callout";
 import { TextContent } from "./components/text-content";
 import { Input } from "./components/text-input";
@@ -135,12 +144,32 @@ export const inkComponentGroups: ComponentGroup[] = [
   },
   {
     name: "Forms",
-    components: ["Form", "FormControl", "Label", "Input", "Select", "SelectItem"],
+    components: [
+      "Form",
+      "FormControl",
+      "Label",
+      "Input",
+      "TextArea",
+      "Select",
+      "SelectItem",
+      "DatePicker",
+      "Slider",
+      "CheckBoxGroup",
+      "CheckBoxItem",
+      "RadioGroup",
+      "RadioItem",
+      "SwitchGroup",
+      "SwitchItem",
+    ],
     notes: [
       "- Define EACH FormControl as its own reference - do NOT inline all controls in one array.",
       "- NEVER nest Form inside Form.",
       "- Form requires explicit buttons. Always pass a Buttons(...) reference as the second Form argument: Form(name, buttons, fields).",
       "- Select takes SelectItem(value, label) options; bind its value with a $variable to read it elsewhere.",
+      "- rules is an optional object: {required: true, email: true, minLength: 8, maxLength: 100}",
+      "- Available rules: required, email, min, max, minLength, maxLength, pattern, url, numeric",
+      "- The renderer shows error messages automatically - do NOT generate error text in the UI",
+      '- DatePicker stores an ISO "YYYY-MM-DD" string (or { from, to } in range mode); Slider stores [value].',
     ],
   },
   {
@@ -201,8 +230,17 @@ export const inkLibrary: Library = createLibrary({
     FormControl,
     Label,
     Input,
+    TextArea,
     Select,
     SelectItem,
+    DatePicker,
+    Slider,
+    CheckBoxGroup,
+    CheckBoxItem,
+    RadioGroup,
+    RadioItem,
+    SwitchGroup,
+    SwitchItem,
     Button,
     Buttons,
     BarChart,

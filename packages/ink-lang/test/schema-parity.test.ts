@@ -66,6 +66,15 @@ const SHARED = [
   "EntityList",
   "ListBlock",
   "ListItem",
+  "TextArea",
+  "DatePicker",
+  "Slider",
+  "CheckBoxGroup",
+  "CheckBoxItem",
+  "RadioGroup",
+  "RadioItem",
+  "SwitchGroup",
+  "SwitchItem",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */
