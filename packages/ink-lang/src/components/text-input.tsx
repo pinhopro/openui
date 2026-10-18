@@ -1,11 +1,12 @@
 import { parseStructuredRules } from "@openuidev/lang-core";
-import { Text, useInput } from "ink";
+import { Box, Text, useInput, type DOMElement } from "ink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { InputSchema } from "../schemas/input-schema";
 import { useStateField } from "../use-state-field";
 import {
@@ -99,10 +100,24 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
     { isActive: canType },
   );
 
+  // A click on the line focuses the field, like Tab.
+  const boxRef = useRef<DOMElement | null>(null);
+  useMouse(boxRef, {
+    onClick: function handleClick() {
+      if (!isStreaming) focusable.focus();
+    },
+  });
+
   const shown = props.type === "password" ? maskValue(value, PASSWORD_MASK) : value;
   const placeholder = props.placeholder ?? "";
+  return (
+    <Box ref={boxRef}>{inputLine(focusable.isFocused, shown, placeholder, current.cursor)}</Box>
+  );
+}
 
-  if (!focusable.isFocused) {
+/** The one line of the editor: placeholder or value, with a block cursor while focused. */
+function inputLine(isFocused: boolean, shown: string, placeholder: string, cursor: number) {
+  if (!isFocused) {
     if (shown === "") {
       return (
         <Text>
@@ -124,7 +139,7 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
     );
   }
 
-  const split = splitForCursor(shown, current.cursor);
+  const split = splitForCursor(shown, cursor);
   return (
     <Text>
       {"> " + split.before}

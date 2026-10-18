@@ -1,9 +1,10 @@
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput, type DOMElement } from "ink";
 import { useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { SelectSchema } from "../schemas/select-schema";
 import { useStateField } from "../use-state-field";
 import { verticalStep } from "./arrow-keys";
@@ -17,32 +18,62 @@ const DEFAULT_PLACEHOLDER = "Select...";
 const SELECTED_MARK = "●";
 const UNSELECTED_MARK = "○";
 
+interface OptionRowProps {
+  option: SelectOption;
+  index: number;
+  isSelected: boolean;
+  isUnderCursor: boolean;
+  onPick: (index: number) => void;
+}
+
+/** One option line: a filled mark for the stored value, inverse video under the cursor; a click picks it. */
+function OptionRow({ option, index, isSelected, isUnderCursor, onPick }: OptionRowProps) {
+  const rowRef = useRef<DOMElement | null>(null);
+  useMouse(rowRef, {
+    onClick: function handleClick() {
+      onPick(index);
+    },
+  });
+  return (
+    <Box ref={rowRef}>
+      <Text>
+        {"  " + (isSelected ? SELECTED_MARK : UNSELECTED_MARK) + " "}
+        <Text inverse={isUnderCursor}>{" " + option.label + " "}</Text>
+      </Text>
+    </Box>
+  );
+}
+
 interface OptionListProps {
   options: SelectOption[];
   selectedIndex: number;
   cursor: number;
+  onPick: (index: number) => void;
 }
 
-/** One line per option: a filled mark for the stored value, inverse video under the cursor. */
-function OptionList({ options, selectedIndex, cursor }: OptionListProps) {
-  const lines: ReactNode[] = [];
+function OptionList({ options, selectedIndex, cursor, onPick }: OptionListProps) {
+  const rows: ReactNode[] = [];
   for (let index = 0; index < options.length; index += 1) {
-    const option = options[index] as SelectOption;
-    const mark = index === selectedIndex ? SELECTED_MARK : UNSELECTED_MARK;
-    lines.push(
-      <Text key={index}>
-        {"  " + mark + " "}
-        <Text inverse={index === cursor}>{" " + option.label + " "}</Text>
-      </Text>,
+    rows.push(
+      <OptionRow
+        key={index}
+        option={options[index] as SelectOption}
+        index={index}
+        isSelected={index === selectedIndex}
+        isUnderCursor={index === cursor}
+        onPick={onPick}
+      />,
     );
   }
-  return <Box flexDirection="column">{lines}</Box>;
+  return <Box flexDirection="column">{rows}</Box>;
 }
 
 /**
  * The model-facing `Select`: a focusable list bound to the store. Unfocused it
  * shows the picked label (or the placeholder); focused it opens the list, Up
- * and Down move the cursor and Enter or Space store the option's value.
+ * and Down move the cursor and Enter or Space store the option's value. With
+ * the mouse, a click opens it, a click on an option picks it and the wheel
+ * moves the cursor.
  */
 function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   const isStreaming = useIsStreaming();
@@ -58,22 +89,50 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
   const canUse = focusable.isFocused && !isStreaming;
+  const boxRef = useRef<DOMElement | null>(null);
+
+  function moveCursor(delta: number): void {
+    const next = stepIndex(cursorRef.current, options.length, delta);
+    cursorRef.current = next;
+    setMovedCursor(next);
+  }
+
+  function pick(index: number): void {
+    const picked = options[index];
+    if (picked === undefined) return;
+    cursorRef.current = index;
+    setMovedCursor(index);
+    field.setValue(picked.value);
+  }
 
   useInput(
     function handleSelectKey(input, key) {
       const delta = verticalStep(key);
       if (delta !== 0) {
-        const next = stepIndex(cursorRef.current, options.length, delta);
-        cursorRef.current = next;
-        setMovedCursor(next);
+        moveCursor(delta);
         return;
       }
-      if (!isPressKey(input, key)) return;
-      const picked = options[cursorRef.current];
-      if (picked !== undefined) field.setValue(picked.value);
+      if (isPressKey(input, key)) pick(cursorRef.current);
     },
     { isActive: canUse },
   );
+
+  useMouse(boxRef, {
+    onClick: function handleClick() {
+      if (!isStreaming) focusable.focus();
+    },
+    onWheel: function handleWheel(event) {
+      if (isStreaming) return;
+      focusable.focus();
+      moveCursor(
+        event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
+      );
+    },
+  });
+
+  function pickWithMouse(index: number): void {
+    if (!isStreaming) pick(index);
+  }
 
   const selected = options[selectedIndex];
   const placeholder = props.placeholder ?? DEFAULT_PLACEHOLDER;
@@ -86,13 +145,18 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
     );
 
   return (
-    <Box flexDirection="column">
+    <Box ref={boxRef} flexDirection="column">
       <Text>
         {prefix + "▾ "}
         {summary}
       </Text>
       {focusable.isFocused ? (
-        <OptionList options={options} selectedIndex={selectedIndex} cursor={cursor} />
+        <OptionList
+          options={options}
+          selectedIndex={selectedIndex}
+          cursor={cursor}
+          onPick={pickWithMouse}
+        />
       ) : null}
     </Box>
   );

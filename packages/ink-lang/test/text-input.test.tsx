@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import { stripAnsi } from "./helpers/ansi";
 import { KEYS } from "./helpers/keys";
+import { MOUSE } from "./helpers/mouse";
 import { renderProgram } from "./helpers/render-program";
 import { settle } from "./helpers/settle";
 
@@ -18,10 +19,11 @@ interface Captured {
   events: ActionEvent[];
 }
 
-async function renderForm(program: string, isStreaming = false) {
+async function renderForm(program: string, isStreaming = false, mouse = false) {
   const captured: Captured = { snapshots: [], events: [] };
   const rendered = await renderProgram(inkLibrary, program, {
     isStreaming,
+    mouse,
     onStateUpdate: function onStateUpdate(state) {
       captured.snapshots.push(state);
     },
@@ -223,5 +225,29 @@ describe("Input", () => {
     const last = captured.snapshots[captured.snapshots.length - 1];
     expect(last).toEqual({ signup: { email: { value: "ab", componentType: undefined } } });
     rendered.unmount();
+  });
+
+  describe("with the mouse", () => {
+    // Row 0 is the "Email" label, row 1 the input line.
+    it("focuses the input on a click at its line", async () => {
+      const { rendered, captured } = await renderForm(formProgram, false, true);
+      rendered.instance.stdin.write(MOUSE.click(5, 1));
+      await settle();
+      expect(stripAnsi(rendered.frame())).toContain("> ");
+      rendered.instance.stdin.write("hi");
+      await settle();
+      expect(captured.snapshots[captured.snapshots.length - 1]).toEqual({
+        signup: { email: { value: "hi", componentType: undefined } },
+      });
+      rendered.unmount();
+    });
+
+    it("ignores a click while streaming", async () => {
+      const { rendered } = await renderForm(formProgram, true, true);
+      rendered.instance.stdin.write(MOUSE.click(5, 1));
+      await settle();
+      expect(stripAnsi(rendered.frame())).not.toContain("> ");
+      rendered.unmount();
+    });
   });
 });

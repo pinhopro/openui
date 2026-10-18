@@ -1,11 +1,12 @@
 import type { ElementNode } from "@openuidev/lang-core";
-import { Box, Text, useInput } from "ink";
-import { useState, type ReactNode } from "react";
+import { Box, Text, useInput, type DOMElement } from "ink";
+import { useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { isElementValue } from "../element-node";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { TabsSchema } from "../schemas/tabs-schema";
 import { horizontalStep } from "./arrow-keys";
 import { clampIndex, stepIndex } from "./step-index";
@@ -30,21 +31,53 @@ function triggerText(item: ElementNode): string {
   return String(trigger);
 }
 
+interface TabTriggerProps {
+  item: ElementNode;
+  index: number;
+  isActive: boolean;
+  isFocused: boolean;
+  onSelect: (index: number) => void;
+}
+
+/** One trigger of the strip; a click on it selects its tab. */
+function TabTrigger({ item, index, isActive, isFocused, onSelect }: TabTriggerProps) {
+  const boxRef = useRef<DOMElement | null>(null);
+  useMouse(boxRef, {
+    onClick: function handleClick() {
+      onSelect(index);
+    },
+  });
+  return (
+    <Box ref={boxRef}>
+      <Text
+        inverse={isActive && isFocused}
+        bold={isActive}
+        underline={isActive}
+        dimColor={!isActive}
+      >
+        {" " + triggerText(item) + " "}
+      </Text>
+    </Box>
+  );
+}
+
 interface TabStripProps {
   items: ElementNode[];
   activeIndex: number;
   onStep: (delta: number) => void;
+  onSelect: (index: number) => void;
 }
 
 /**
  * The focusable line of triggers: the active one bold and underlined, inverted
  * while focused. It owns the focus hook and is rendered before the content so
  * Ink's focus order (effect order) visits the strip before any button inside
- * the active tab.
+ * the active tab. A click selects a trigger; the wheel over the strip steps.
  */
-function TabStrip({ items, activeIndex, onStep }: TabStripProps) {
+function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
   const isStreaming = useIsStreaming();
   const focusable = useFocusable({ isActive: !isStreaming });
+  const stripRef = useRef<DOMElement | null>(null);
 
   useInput(
     function handleTabsKey(_input, key) {
@@ -54,23 +87,37 @@ function TabStrip({ items, activeIndex, onStep }: TabStripProps) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
-  const segments: ReactNode[] = [];
+  function select(index: number): void {
+    if (isStreaming) return;
+    focusable.focus();
+    onSelect(index);
+  }
+
+  useMouse(stripRef, {
+    onWheel: function handleWheel(event) {
+      if (isStreaming) return;
+      onStep(event.direction === "up" || event.direction === "left" ? -1 : 1);
+    },
+  });
+
+  const triggers: ReactNode[] = [];
   for (let index = 0; index < items.length; index += 1) {
-    const item = items[index] as ElementNode;
-    const isActive = index === activeIndex;
-    segments.push(
-      <Text
+    triggers.push(
+      <TabTrigger
         key={index}
-        inverse={isActive && focusable.isFocused}
-        bold={isActive}
-        underline={isActive}
-        dimColor={!isActive}
-      >
-        {" " + triggerText(item) + " "}
-      </Text>,
+        item={items[index] as ElementNode}
+        index={index}
+        isActive={index === activeIndex}
+        isFocused={focusable.isFocused}
+        onSelect={select}
+      />,
     );
   }
-  return <Text>{segments}</Text>;
+  return (
+    <Box ref={stripRef} flexDirection="row">
+      {triggers}
+    </Box>
+  );
 }
 
 /** A tab strip over its items; only the active tab's content is mounted. */
@@ -86,11 +133,15 @@ function TabsRenderer({ props, renderNode }: ComponentRenderProps<TabsProps>) {
     });
   }
 
+  function select(index: number): void {
+    setActiveIndex(clampIndex(index, items.length));
+  }
+
   if (items.length === 0) return null;
   const active = items[current] as ElementNode;
   return (
     <Box flexDirection="column">
-      <TabStrip items={items} activeIndex={current} onStep={step} />
+      <TabStrip items={items} activeIndex={current} onStep={step} onSelect={select} />
       <Box flexDirection="column">{renderNode(active.props["content"])}</Box>
     </Box>
   );
