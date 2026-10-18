@@ -6,6 +6,9 @@ import { inkLibrary } from "../../src/default-library";
 import { InkRenderer } from "../../src/ink-renderer";
 import { MouseProvider } from "../../src/mouse/mouse-provider";
 import { useMouse } from "../../src/mouse/use-mouse";
+import type { UiEvent } from "../../src/ui-events";
+import { describeUiEvent } from "./event-line";
+import { EventLog } from "./event-log";
 import { describeAction, describeErrors, describeState } from "./host-log";
 import type { ShowcasePage } from "./pages";
 import type { ShowcaseTools } from "./showcase-tools";
@@ -26,6 +29,8 @@ export interface ShowcaseAppProps {
 const SIDEBAR_WIDTH = 20;
 const WHEEL_ROWS = 3;
 const ACCENT = "cyan";
+const LOG_ROWS = 6;
+const MAX_EVENTS = 300;
 
 interface PaneHeights {
   viewport: number;
@@ -49,34 +54,43 @@ function clamp(value: number, min: number, max: number): number {
   return value;
 }
 
+interface PagePaneProps {
+  pageId: string;
+  response: string;
+  isStreaming: boolean;
+  tools: ShowcaseTools;
+  onAction: (event: ActionEvent) => void;
+  onStateUpdate: (state: Record<string, unknown>) => void;
+  onError: (errors: OpenUIError[]) => void;
+  onUiEvent: (event: UiEvent) => void;
+}
+
 /**
- * The full-screen showcase: a sidebar of pages on the left, the active page
- * streaming into InkRenderer on the right, and a status bar with the key
- * help and the last thing the host received.
+ * The scrollable pane the page streams into. It is its own component, mounted
+ * inside the mouse scope, so its wheel handler can register with the provider.
  */
-export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
-  const { columns, rows } = useWindowSize();
-  const app = useApp();
-  const [activeIndex, setActiveIndex] = useState(0);
-  const page = pages[activeIndex];
-  const program = page === undefined ? "" : page.program;
-  const streamed = useStreamedProgram(program, stream);
-  const [lastAction, setLastAction] = useState("none yet");
-  const [state, setState] = useState<Record<string, unknown>>({});
-  const [errors, setErrors] = useState<OpenUIError[]>([]);
+function PagePane({
+  pageId,
+  response,
+  isStreaming,
+  tools,
+  onAction,
+  onStateUpdate,
+  onError,
+  onUiEvent,
+}: PagePaneProps) {
   const [scroll, setScroll] = useState(0);
   const [heights, setHeights] = useState<PaneHeights>({ viewport: 0, content: 0 });
   const viewportRef = useRef<DOMElement | null>(null);
   const contentRef = useRef<DOMElement | null>(null);
 
-  function selectPage(index: number): void {
-    const next = clamp(index, 0, pages.length - 1);
-    if (next === activeIndex) return;
-    setActiveIndex(next);
-    setScroll(0);
-    setState({});
-    setErrors([]);
-  }
+  // Back to the top whenever another page comes in.
+  useEffect(
+    function resetScroll() {
+      setScroll(0);
+    },
+    [pageId],
+  );
 
   // Measured after every render: the page grows while it streams.
   useEffect(function measurePane() {
@@ -102,11 +116,8 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
     });
   }
 
-  useInput(function handleGlobalKey(input, key) {
+  useInput(function handleScrollKey(_input, key) {
     if (key.eventType === "release") return;
-    if (key.ctrl && input === "n") selectPage(activeIndex + 1);
-    if (key.ctrl && input === "p") selectPage(activeIndex - 1);
-    if (key.ctrl && input === "q") app.exit();
     if (key.pageDown) scrollBy(pageStep);
     if (key.pageUp) scrollBy(-pageStep);
   });
@@ -118,11 +129,76 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
     },
   });
 
+  return (
+    <Box
+      ref={viewportRef}
+      flexDirection="column"
+      flexGrow={1}
+      borderStyle="round"
+      borderColor={ACCENT}
+      paddingX={1}
+      overflowY="hidden"
+      contentOffsetY={clamp(scroll, 0, maxScroll)}
+    >
+      <Box ref={contentRef} flexDirection="column" flexShrink={0}>
+        <InkRenderer
+          response={response}
+          library={inkLibrary}
+          isStreaming={isStreaming}
+          onAction={onAction}
+          onStateUpdate={onStateUpdate}
+          onError={onError}
+          onUiEvent={onUiEvent}
+          toolProvider={tools}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+/**
+ * The full-screen showcase: a sidebar of pages on the left, the active page
+ * streaming into InkRenderer on the right, and a status bar with the key
+ * help and the last thing the host received.
+ */
+export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
+  const { columns, rows } = useWindowSize();
+  const app = useApp();
+  const [activeIndex, setActiveIndex] = useState(0);
+  const page = pages[activeIndex];
+  const program = page === undefined ? "" : page.program;
+  const streamed = useStreamedProgram(program, stream);
+  const [lastAction, setLastAction] = useState("none yet");
+  const [state, setState] = useState<Record<string, unknown>>({});
+  const [errors, setErrors] = useState<OpenUIError[]>([]);
+  const [events, setEvents] = useState<string[]>([]);
+
+  function onUiEvent(event: UiEvent): void {
+    setEvents(function append(previous) {
+      const next = previous.concat(describeUiEvent(event));
+      if (next.length <= MAX_EVENTS) return next;
+      return next.slice(next.length - MAX_EVENTS);
+    });
+  }
+
+  function selectPage(index: number): void {
+    const next = clamp(index, 0, pages.length - 1);
+    if (next === activeIndex) return;
+    setActiveIndex(next);
+    setState({});
+    setErrors([]);
+  }
+
+  useInput(function handleGlobalKey(input, key) {
+    if (key.eventType === "release") return;
+    if (key.ctrl && input === "n") selectPage(activeIndex + 1);
+    if (key.ctrl && input === "p") selectPage(activeIndex - 1);
+    if (key.ctrl && input === "q") app.exit();
+  });
+
   function onAction(event: ActionEvent): void {
     setLastAction(describeAction(event));
   }
-
-  const safeScroll = clamp(scroll, 0, maxScroll);
 
   return (
     <MouseScope enabled={mouse}>
@@ -136,27 +212,18 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
               width={SIDEBAR_WIDTH - 2}
             />
           </Box>
-          <Box
-            ref={viewportRef}
-            flexDirection="column"
-            flexGrow={1}
-            borderStyle="round"
-            borderColor={ACCENT}
-            paddingX={1}
-            overflowY="hidden"
-            contentOffsetY={safeScroll}
-          >
-            <Box ref={contentRef} flexDirection="column" flexShrink={0}>
-              <InkRenderer
-                response={streamed.response}
-                library={inkLibrary}
-                isStreaming={streamed.isStreaming}
-                onAction={onAction}
-                onStateUpdate={setState}
-                onError={setErrors}
-                toolProvider={tools}
-              />
-            </Box>
+          <Box flexDirection="column" flexGrow={1} minWidth={0}>
+            <PagePane
+              pageId={page === undefined ? "" : page.id}
+              response={streamed.response}
+              isStreaming={streamed.isStreaming}
+              tools={tools}
+              onAction={onAction}
+              onStateUpdate={setState}
+              onError={setErrors}
+              onUiEvent={onUiEvent}
+            />
+            <EventLog entries={events} height={LOG_ROWS} columns={columns - SIDEBAR_WIDTH} />
           </Box>
         </Box>
         <StatusBar

@@ -5,6 +5,7 @@ import { ShowcaseApp } from "../../examples/showcase/showcase-app";
 import { createShowcaseTools } from "../../examples/showcase/showcase-tools";
 import { stripAnsi } from "../helpers/ansi";
 import { KEYS } from "../helpers/keys";
+import { MOUSE } from "../helpers/mouse";
 import { settle } from "../helpers/settle";
 
 const CTRL_N = "\u000e";
@@ -84,6 +85,57 @@ describe("ShowcaseApp", () => {
     instance.stdin.write(KEYS.ENTER);
     await settle();
     expect(lastFrame(instance.frames)).toContain('continue_conversation "Ping"');
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp with the mouse", () => {
+  it("scrolls the page pane with the wheel", async () => {
+    const longPage: ShowcasePage = {
+      id: "long",
+      title: "Long",
+      program: [
+        'root = Stack([CardHeader("Long"), ' +
+          Array.from({ length: 40 }, (_, index) => `TextContent("line ${index}")`).join(", ") +
+          "])",
+      ].join("\n"),
+    };
+    const instance = render(
+      <ShowcaseApp
+        pages={[longPage]}
+        tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+        mouse={true}
+        stream={{ chunkSize: 5000, intervalMs: 1 }}
+      />,
+    );
+    await settle(40);
+    const before = lastFrame(instance.frames);
+    expect(before).toContain("line 0");
+    // Well inside the page pane, right of the sidebar.
+    instance.stdin.write(MOUSE.wheelDown(50, 10, 3));
+    await settle(10);
+    const after = lastFrame(instance.frames);
+    expect(after).not.toContain("line 0");
+    expect(after).toContain("line 6");
+    instance.stdin.write(MOUSE.wheelUp(50, 10, 3));
+    await settle(10);
+    expect(lastFrame(instance.frames)).toContain("line 0");
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp event log", () => {
+  it("lists the UI events of the page as they happen", async () => {
+    const instance = mount();
+    await settle(40);
+    instance.stdin.write(CTRL_N);
+    await settle(40);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    const frame = lastFrame(instance.frames);
+    expect(frame).toContain("Events (");
+    expect(frame).toContain('focus Button "Ping"');
+    expect(frame).toContain("keydown");
     instance.unmount();
   });
 });
