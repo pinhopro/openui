@@ -29,7 +29,16 @@ export interface EditableCellProps {
 function SelectCell({ name, column, value, width, onChange }: EditableCellProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
-  const focusable = useFocusable({ isActive: !isStreaming, name, arrows: { vertical: true } });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name,
+    // Up and Down move through the options while there is one in that direction.
+    arrows: function claims(direction) {
+      if (direction === "up") return nextOptionValue(column, value, -1) !== undefined;
+      if (direction === "down") return nextOptionValue(column, value, 1) !== undefined;
+      return false;
+    },
+  });
 
   useInput(
     function handleSelectCellKey(input, key) {
@@ -56,14 +65,25 @@ function SelectCell({ name, column, value, width, onChange }: EditableCellProps)
 /** A text cell: the single-line editor of Input, padded to the column width. */
 function TextCell({ name, column, value, width, onChange }: EditableCellProps) {
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming, name, arrows: { horizontal: true } });
-  const reportInput = useInputEvent(name);
   const text = cellLabel(column, value);
   const [editor, setEditor] = useState<EditorState>({ value: text, cursor: countGraphemes(text) });
   const current: EditorState =
     editor.value === text ? editor : { value: text, cursor: countGraphemes(text) };
   const editorRef = useRef<EditorState>(current);
   editorRef.current = current;
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name,
+    // Left and Right move the cursor while it can move; at the ends they move focus.
+    arrows: function claims(direction) {
+      if (direction === "left") return editorRef.current.cursor > 0;
+      if (direction === "right") {
+        return editorRef.current.cursor < countGraphemes(editorRef.current.value);
+      }
+      return false;
+    },
+  });
+  const reportInput = useInputEvent(name);
 
   useInput(
     function handleTextCellKey(input, key) {

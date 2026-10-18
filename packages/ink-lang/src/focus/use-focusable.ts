@@ -5,7 +5,7 @@ import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers, MouseWheelEvent } from "../mouse/mouse-target";
 import { useMouse } from "../mouse/use-mouse";
 import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
-import type { ArrowClaims } from "./focus-navigation";
+import type { ArrowClaims, ArrowClaimsInput } from "./focus-navigation";
 import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
 import { useLayerIsActive } from "./modal-layer";
 
@@ -14,12 +14,20 @@ export interface FocusableOptions {
   isActive: boolean;
   /** What identifies this instance in UI events: a field name, a label, a trigger. */
   name?: string;
-  /** The arrow axes the component uses itself; the other arrows move focus instead. */
-  arrows?: ArrowClaims;
+  /** The component type reported in UI events; defaults to the element being rendered. */
+  component?: string;
+  /**
+   * The arrows the component uses itself: fixed axes, or a function asked at
+   * key time that returns false once the component has nowhere further to go
+   * in that direction, so the arrow moves focus to a neighbour instead.
+   */
+  arrows?: ArrowClaimsInput;
   /** Handlers on the focusable box besides focusing it: press on click, drag... */
   mouse?: MouseHandlers;
   /** Focus as soon as the pointer enters, the way a button highlights on hover. */
   hoverFocus?: boolean;
+  /** Take focus when mounted (one stop per app at most). */
+  autoFocus?: boolean;
 }
 
 export interface Focusable {
@@ -48,12 +56,13 @@ export function useFocusable(options: FocusableOptions): Focusable {
   // A modal open above this component takes it out of the Tab cycle and off the mouse.
   const layerActive = useLayerIsActive();
   const isActive = options.isActive && layerActive;
-  const focus = useFocus({ id, isActive });
+  const focus = useFocus({ id, isActive, autoFocus: options.autoFocus === true });
   const [isHovered, setHovered] = useState(false);
   const [isPressed, setPressed] = useState(false);
   const manager = useFocusManager();
   const ref = useRef<DOMElement | null>(null);
-  const component = useElementType();
+  const elementType = useElementType();
+  const component = options.component ?? elementType;
   const name = options.name ?? "";
   const emit = useUiEvents();
   const registry = useContext(FocusRegistryContext);

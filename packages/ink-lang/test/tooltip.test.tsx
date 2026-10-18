@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
-import { stripAnsi } from "./helpers/ansi";
+import { inverseSegments, stripAnsi } from "./helpers/ansi";
 import { findCell } from "./helpers/find-cell";
 import { KEYS } from "./helpers/keys";
 import { MOUSE } from "./helpers/mouse";
@@ -23,6 +23,45 @@ describe("Tooltip", () => {
     rendered.instance.stdin.write(KEYS.TAB);
     await settle();
     expect(stripAnsi(rendered.frame())).not.toContain("View certificate details");
+    rendered.unmount();
+  });
+
+  it("adds no stop of its own around a focusable trigger: Tab goes trigger to trigger", async () => {
+    const program =
+      'root = Stack([Button("Prev", @ToAssistant("Prev")), Tooltip(Button("Deploy", @ToAssistant("Deploy")), "Ships the build", "right"), Button("Next", @ToAssistant("Next"))])';
+    const rendered = await renderProgram(inkLibrary, program);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Prev ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Deploy ]"]);
+    expect(stripAnsi(rendered.frame())).toContain("Ships the build");
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Next ]"]);
+    expect(stripAnsi(rendered.frame())).not.toContain("Ships the build");
+    rendered.unmount();
+  });
+
+  it("keeps a focused trigger mounted when the bubble is laid out before it (top, left)", async () => {
+    const program =
+      'root = Stack([Tooltip(Button("Save", @ToAssistant("Save")), "Keeps a copy", "top"), Tooltip(Button("Back", @ToAssistant("Back")), "Previous build", "left"), Button("Next", @ToAssistant("Next"))])';
+    const rendered = await renderProgram(inkLibrary, program);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    let plain = stripAnsi(rendered.frame());
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Save ]"]);
+    expect(findCell(plain, "Keeps a copy").y).toBeLessThan(findCell(plain, "[ Save ]").y);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    plain = stripAnsi(rendered.frame());
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Back ]"]);
+    expect(plain).toContain("Previous build ▸ [ Back ]");
+    expect(plain).not.toContain("Keeps a copy");
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Next ]"]);
     rendered.unmount();
   });
 

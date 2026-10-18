@@ -80,7 +80,17 @@ function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { horizontal: true, vertical: true },
+    // The arrows move the cursor while it can move; at the ends of the text
+    // or on the first and last line they move focus instead.
+    arrows: function claims(direction) {
+      const state = editorRef.current;
+      if (direction === "left") return state.cursor > 0;
+      if (direction === "right") return state.cursor < countGraphemes(state.value);
+      const position = linePosition(state.value, state.cursor);
+      const lineCount = state.value.split("\n").length;
+      if (direction === "up") return position.line > 0;
+      return position.line < lineCount - 1;
+    },
   });
   const reportInput = useInputEvent(field.name);
   const styles = useFieldStyles(focusable.isFocused);

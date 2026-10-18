@@ -1,6 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { Box, Text, useFocus, useInput, type DOMElement } from "ink";
+import { Box, Text, useInput, type DOMElement } from "ink";
 import { useRef, useState, type ReactNode } from "react";
+import { useFocusable } from "../../src/focus/use-focusable";
 import { useMouse } from "../../src/mouse/use-mouse";
 import { fitLine } from "./host-log";
 import type { ShowcaseTheme } from "./showcase-themes";
@@ -39,16 +40,34 @@ function OptionRow({ theme, index, isActive, isCursor, onPick }: OptionRowProps)
   );
 }
 
+/** How many themes the open list shows at once; it scrolls to keep the cursor in view. */
+const VISIBLE_ROWS = 8;
+
+interface ListWindow {
+  start: number;
+  end: number;
+}
+
+/** The slice of the list that keeps `cursor` visible, moving only when the cursor leaves it. */
+export function listWindow(count: number, cursor: number, previousStart: number): ListWindow {
+  const size = Math.min(VISIBLE_ROWS, count);
+  let start = previousStart;
+  if (cursor < start) start = cursor;
+  if (cursor >= start + size) start = cursor - size + 1;
+  start = Math.max(0, Math.min(start, count - size));
+  return { start, end: start + size };
+}
+
 /**
  * The theme select under the page list: a focus stop that shows the active
  * theme; Enter, Space or a click opens the list, Up and Down move, Enter
- * picks, Escape closes; the wheel cycles the themes while closed.
+ * picks, Escape closes; the wheel cycles the themes while closed. The open
+ * list shows a window of the themes with "more" hints at the clipped ends.
  */
 export function ThemeSelect({ themes, activeIndex, onSelect, width }: ThemeSelectProps) {
-  const focus = useFocus({ id: "showcase-theme" });
   const [isOpen, setOpen] = useState(false);
   const [cursor, setCursor] = useState(activeIndex);
-  const boxRef = useRef<DOMElement | null>(null);
+  const windowStartRef = useRef(0);
   const active = themes[activeIndex];
 
   function pick(index: number): void {
@@ -62,6 +81,30 @@ export function ThemeSelect({ themes, activeIndex, onSelect, width }: ThemeSelec
     const count = themes.length;
     pick((activeIndex + delta + count) % count);
   }
+
+  // The arrows are ours only while the list is open and the cursor can still move.
+  const focus = useFocusable({
+    isActive: true,
+    component: "ThemeSelect",
+    name: "theme",
+    arrows: function claims(direction) {
+      if (!isOpen) return false;
+      if (direction === "up") return cursor > 0;
+      if (direction === "down") return cursor < themes.length - 1;
+      return false;
+    },
+    mouse: {
+      onClick: function handleClick() {
+        if (isOpen) return;
+        setCursor(activeIndex);
+        setOpen(true);
+      },
+      onWheel: function handleWheel(event) {
+        if (isOpen) return;
+        cycle(event.direction === "up" || event.direction === "left" ? -1 : 1);
+      },
+    },
+  });
 
   useInput(
     function handleKey(input, key) {
@@ -84,21 +127,18 @@ export function ThemeSelect({ themes, activeIndex, onSelect, width }: ThemeSelec
     { isActive: focus.isFocused },
   );
 
-  useMouse(boxRef, {
-    onClick: function handleClick() {
-      if (isOpen) return;
-      setCursor(activeIndex);
-      setOpen(true);
-    },
-    onWheel: function handleWheel(event) {
-      if (isOpen) return;
-      cycle(event.direction === "up" || event.direction === "left" ? -1 : 1);
-    },
-  });
-
   const rows: ReactNode[] = [];
   if (isOpen) {
-    for (let index = 0; index < themes.length; index += 1) {
+    const window = listWindow(themes.length, cursor, windowStartRef.current);
+    windowStartRef.current = window.start;
+    if (window.start > 0) {
+      rows.push(
+        <Text key="above" dimColor>
+          {`   ▴ ${window.start} more`}
+        </Text>,
+      );
+    }
+    for (let index = window.start; index < window.end; index += 1) {
       const theme = themes[index] as ShowcaseTheme;
       rows.push(
         <OptionRow
@@ -111,9 +151,16 @@ export function ThemeSelect({ themes, activeIndex, onSelect, width }: ThemeSelec
         />,
       );
     }
+    if (window.end < themes.length) {
+      rows.push(
+        <Text key="below" dimColor>
+          {`   ▾ ${themes.length - window.end} more`}
+        </Text>,
+      );
+    }
   }
   return (
-    <Box ref={boxRef} flexDirection="column" marginTop={1}>
+    <Box ref={focus.ref} flexDirection="column" marginTop={1}>
       <Text dimColor>Theme</Text>
       <Text dimColor={!focus.isFocused} inverse={focus.isFocused && !isOpen}>
         {fitLine(`${active === undefined ? "" : active.name} ${isOpen ? "▴" : "▾"}`, width)}

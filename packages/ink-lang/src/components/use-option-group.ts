@@ -43,16 +43,24 @@ export function useOptionGroup({
 }: OptionGroupOptions): OptionGroup {
   const isStreaming = useIsStreaming();
   const isVertical = orientation === "vertical";
-  const focusable = useFocusable({
-    isActive: !isStreaming,
-    name,
-    arrows: { horizontal: !isVertical, vertical: isVertical },
-  });
   const [storedCursor, setStoredCursor] = useState(0);
   const cursor = clampIndex(storedCursor, count);
   // Several keys can arrive in one stdin chunk before React re-renders.
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name,
+    // The group keeps an arrow while the cursor can still move that way; at
+    // the first or last option the arrow moves focus out of the group.
+    arrows: function claims(direction) {
+      const backwards = direction === (isVertical ? "up" : "left");
+      const forwards = direction === (isVertical ? "down" : "right");
+      if (backwards) return cursorRef.current > 0;
+      if (forwards) return cursorRef.current < count - 1;
+      return false;
+    },
+  });
 
   useInput(
     function handleGroupKey(input, key) {

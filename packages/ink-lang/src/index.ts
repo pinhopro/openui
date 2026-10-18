@@ -391,9 +391,19 @@ export { ArrowNavigator } from "./focus/arrow-navigator";
 export { elementRect } from "./focus/element-rect";
 export type { CellRect as ElementRect } from "./focus/element-rect";
 export { arrowDirection, claimsDirection, nextInDirection } from "./focus/focus-navigation";
-export type { ArrowClaims, ArrowDirection, NavigationCandidate } from "./focus/focus-navigation";
+export type {
+  ArrowClaimFn,
+  ArrowClaims,
+  ArrowClaimsInput,
+  ArrowDirection,
+  NavigationCandidate,
+} from "./focus/focus-navigation";
+export { focusOrder, nextInOrder } from "./focus/focus-order";
+export type { ArrowMap, FocusStop } from "./focus/focus-order";
 export { FocusRegistryContext, createFocusRegistry } from "./focus/focus-registry";
 export type { FocusEntry, FocusRegistry } from "./focus/focus-registry";
+export { FocusScope } from "./focus/focus-scope";
+export type { FocusScopeProps } from "./focus/focus-scope";
 export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
 export { keyName } from "./focus/key-name";
 export { KeyReporter } from "./focus/key-reporter";

@@ -73,7 +73,12 @@ function DatePickerRenderer({ props }: ComponentRenderProps<DatePickerProps>) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { horizontal: true, vertical: true },
+    // Left and Right pick a segment until the first or last; Up and Down always change it.
+    arrows: function claims(direction) {
+      if (direction === "left") return segmentRef.current > 0;
+      if (direction === "right") return segmentRef.current < segmentCount - 1;
+      return true;
+    },
   });
   const styles = useFieldStyles(focusable.isFocused);
   const isRange = props.mode === "range";

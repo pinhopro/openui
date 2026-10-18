@@ -16,7 +16,7 @@ import { filterOptions, listWindow } from "./combobox-options";
 import { FieldFrame } from "./field-frame";
 import { indexOfOption, selectOptions, type SelectOption } from "./select-options";
 import { clampIndex, stepIndex } from "./step-index";
-import { applyKeyToEditor, splitForCursor, type EditorState } from "./text-editing";
+import { applyKeyToEditor, countGraphemes, splitForCursor, type EditorState } from "./text-editing";
 
 type ComboboxProps = z.infer<typeof ComboboxSchema>;
 
@@ -131,7 +131,14 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { horizontal: true, vertical: true },
+    // Up and Down move the highlight, Left and Right the filter cursor, while
+    // they can; at the ends the arrow moves focus instead.
+    arrows: function claims(direction) {
+      if (direction === "up") return highlightRef.current > 0;
+      if (direction === "down") return highlightRef.current < filtered.length - 1;
+      if (direction === "left") return editorRef.current.cursor > 0;
+      return editorRef.current.cursor < countGraphemes(editorRef.current.value);
+    },
     mouse: {
       onWheel: function handleWheel(event) {
         if (isStreaming) return;

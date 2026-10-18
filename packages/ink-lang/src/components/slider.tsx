@@ -59,7 +59,12 @@ function SliderRenderer({ props }: ComponentRenderProps<SliderProps>) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { horizontal: true },
+    // Left and Right step the value until min or max; there they move focus.
+    arrows: function claims(direction) {
+      if (direction === "left") return valueRef.current > min;
+      if (direction === "right") return valueRef.current < max;
+      return false;
+    },
     mouse: {
       onMouseDown: function handleMouseDown(event) {
         if (event.button === "left") moveKnobTo(event);

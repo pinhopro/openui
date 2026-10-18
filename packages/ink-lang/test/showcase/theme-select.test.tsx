@@ -78,4 +78,30 @@ describe("ThemeSelect", () => {
     expect(onSelect).toHaveBeenLastCalledWith(4);
     instance.unmount();
   });
+
+  it("shows a window of the list and scrolls it with the cursor", async () => {
+    const onSelect = vi.fn();
+    const instance = render(<Harness onSelect={onSelect} />);
+    await settle();
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    instance.stdin.write(KEYS.ENTER);
+    await settle();
+    let frame = lastFrame(instance.frames);
+    const last = showcaseThemes[showcaseThemes.length - 1];
+    expect(frame).toContain("Default");
+    expect(frame).not.toContain(last?.name ?? "");
+    expect(frame).toContain("more");
+    for (let step = 0; step < showcaseThemes.length - 1; step += 1) {
+      instance.stdin.write(KEYS.DOWN);
+      await settle(5);
+    }
+    frame = lastFrame(instance.frames);
+    expect(frame).toContain(last?.name ?? "");
+    expect(frame).not.toContain("Bordered");
+    instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(onSelect).toHaveBeenLastCalledWith(showcaseThemes.length - 1);
+    instance.unmount();
+  });
 });

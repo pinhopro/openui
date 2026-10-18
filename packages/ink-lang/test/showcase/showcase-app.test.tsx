@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ShowcasePage } from "../../examples/showcase/pages";
 import { ShowcaseApp } from "../../examples/showcase/showcase-app";
 import { createShowcaseTools } from "../../examples/showcase/showcase-tools";
-import { stripAnsi } from "../helpers/ansi";
+import { inverseSegments, stripAnsi } from "../helpers/ansi";
 import { KEYS } from "../helpers/keys";
 import { MOUSE } from "../helpers/mouse";
 import { settle } from "../helpers/settle";
@@ -58,6 +58,29 @@ describe("ShowcaseApp", () => {
     instance.unmount();
   });
 
+  it("moves focus from the page back into the sidebar with Left and on with Down", async () => {
+    const instance = mount();
+    await settle(40);
+    instance.stdin.write(CTRL_N);
+    await settle(40);
+    // The sidebar owns focus at start; Tab walks the document order: theme select, then the page.
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["▸ Beta"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toContain("[ Ping ]");
+    // The button uses no arrow: Left crosses into the sidebar beside it.
+    instance.stdin.write(KEYS.LEFT);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["▸ Beta"]);
+    // Down on the last page has nowhere to go inside the list: it reaches the theme select.
+    instance.stdin.write(KEYS.DOWN);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")[0]).toContain("Default ▾");
+    instance.unmount();
+  });
+
   it("switches pages with Ctrl+N and Ctrl+P", async () => {
     const instance = mount();
     await settle(40);
@@ -88,6 +111,41 @@ describe("ShowcaseApp", () => {
     instance.stdin.write(KEYS.ENTER);
     await settle();
     expect(lastFrame(instance.frames)).toContain('continue_conversation "Ping"');
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp keeps the focused stop in view", () => {
+  it("scrolls the page pane so a focused button below the fold shows", async () => {
+    const longPage: ShowcasePage = {
+      id: "long",
+      title: "Long",
+      program:
+        'root = Stack([CardHeader("Long"), ' +
+        Array.from({ length: 40 }, (_, index) => `TextContent("line ${index}")`).join(", ") +
+        ', Button("Bottom", @ToAssistant("Bottom"))])',
+    };
+    const instance = render(
+      <ShowcaseApp
+        pages={[longPage]}
+        tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+        mouse={false}
+        stream={{ chunkSize: 5000, intervalMs: 1 }}
+      />,
+    );
+    await settle(40);
+    expect(lastFrame(instance.frames)).not.toContain("[ Bottom ]");
+    // The sidebar starts focused: Tab reaches the theme select, then the page's only stop.
+    instance.stdin.write(KEYS.TAB);
+    await settle(10);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["[ Bottom ]"]);
+    expect(lastFrame(instance.frames)).not.toContain("line 0");
+    // Back to the sidebar: the page stays where it is.
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(lastFrame(instance.frames)).toContain("[ Bottom ]");
     instance.unmount();
   });
 });
@@ -140,6 +198,7 @@ describe("ShowcaseApp event log", () => {
     const frame = lastFrame(instance.frames);
     expect(frame).toContain("Events (");
     expect(frame).toContain('focus Button "Ping"');
+    expect(frame).toContain('blur ThemeSelect "theme"');
     expect(frame).toContain("keydown");
     instance.unmount();
   });

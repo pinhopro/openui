@@ -1,6 +1,7 @@
 /** @jsxRuntime automatic @jsxImportSource react */
-import { Box, Text, useFocus, useInput, type DOMElement } from "ink";
+import { Box, Text, useInput, type DOMElement } from "ink";
 import { useRef, type ReactNode } from "react";
+import { useFocusable } from "../../src/focus/use-focusable";
 import { useMouse } from "../../src/mouse/use-mouse";
 
 export interface SidebarEntry {
@@ -47,17 +48,32 @@ function SidebarRow({ page, index, isActive, isFocused, onSelect }: SidebarRowPr
 
 /**
  * The page list on the left: one focus stop where Up and Down change the
- * page; a click picks a page and the wheel moves through them.
+ * page (and leave the list at its ends, so the arrows reach the panels
+ * around it); a click picks a page and the wheel moves through them.
  */
 export function Sidebar({ pages, activeIndex, onSelect, width }: SidebarProps) {
-  const focus = useFocus({ autoFocus: true, id: "showcase-sidebar" });
-  const boxRef = useRef<DOMElement | null>(null);
-
   function move(delta: number): void {
     const next = activeIndex + delta;
     if (next < 0 || next >= pages.length || next === activeIndex) return;
     onSelect(next);
   }
+
+  const focus = useFocusable({
+    isActive: true,
+    autoFocus: true,
+    component: "Sidebar",
+    name: "pages",
+    arrows: function claims(direction) {
+      if (direction === "up") return activeIndex > 0;
+      if (direction === "down") return activeIndex < pages.length - 1;
+      return false;
+    },
+    mouse: {
+      onWheel: function handleWheel(event) {
+        move(event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks);
+      },
+    },
+  });
 
   useInput(
     function handleSidebarKey(_input, key) {
@@ -67,12 +83,6 @@ export function Sidebar({ pages, activeIndex, onSelect, width }: SidebarProps) {
     },
     { isActive: focus.isFocused },
   );
-
-  useMouse(boxRef, {
-    onWheel: function handleWheel(event) {
-      move(event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks);
-    },
-  });
 
   const rows: ReactNode[] = [];
   for (let index = 0; index < pages.length; index += 1) {
@@ -90,7 +100,7 @@ export function Sidebar({ pages, activeIndex, onSelect, width }: SidebarProps) {
   }
 
   return (
-    <Box ref={boxRef} flexDirection="column" width={width} paddingX={1}>
+    <Box ref={focus.ref} flexDirection="column" width={width} paddingX={1}>
       <Text bold color={ACCENT}>
         OpenUI Ink
       </Text>

@@ -15,6 +15,15 @@ export interface ArrowClaims {
   vertical?: boolean;
 }
 
+/**
+ * Asked at key time: true when the component still has somewhere to go in
+ * that direction (a cursor not at the end, an option below the current one),
+ * false when the arrow should move focus to a neighbour instead.
+ */
+export type ArrowClaimFn = (direction: ArrowDirection) => boolean;
+
+export type ArrowClaimsInput = ArrowClaims | ArrowClaimFn;
+
 interface Scored {
   id: string;
   along: number;
@@ -31,8 +40,9 @@ export function arrowDirection(key: Key): ArrowDirection | null {
   return null;
 }
 
-/** True when the focused component handles arrows of that direction itself. */
-export function claimsDirection(claims: ArrowClaims, direction: ArrowDirection): boolean {
+/** True when the focused component handles arrows of that direction itself, right now. */
+export function claimsDirection(claims: ArrowClaimsInput, direction: ArrowDirection): boolean {
+  if (typeof claims === "function") return claims(direction);
   if (direction === "left" || direction === "right") return claims.horizontal === true;
   return claims.vertical === true;
 }
@@ -99,8 +109,9 @@ function compareScore(a: Scored, b: Scored): number {
 
 /**
  * The candidate focus moves to for an arrow key: the nearest one in that
- * direction. Left and Right only consider candidates on the current row;
- * Up and Down prefer the current column and otherwise take the nearest.
+ * direction. Left and Right prefer candidates on the current row and fall
+ * back to the nearest in that direction; Up and Down prefer the current
+ * column and otherwise take the nearest.
  * Without a current rect, Down and Right start at the first candidate in
  * reading order and Up and Left at the last. Null when nothing lies there.
  */
@@ -121,15 +132,18 @@ export function nextInDirection(
   }
   const isHorizontal = direction === "left" || direction === "right";
   const scored: Scored[] = [];
+  const offRow: Scored[] = [];
   for (const candidate of sized) {
     const along = distanceAlong(current, candidate.rect, direction);
     if (along < 0) continue;
     const across = distanceAcross(current, candidate.rect, direction);
-    // Left and Right stay on the current row; Up and Down may change column.
-    if (isHorizontal && across > 0) continue;
-    scored.push({ id: candidate.id, along, across });
+    // Left and Right prefer the current row; with nothing there (another
+    // container beside this one) they take the nearest in that direction.
+    if (isHorizontal && across > 0) offRow.push({ id: candidate.id, along, across });
+    else scored.push({ id: candidate.id, along, across });
   }
-  if (scored.length === 0) return null;
-  scored.sort(compareScore);
-  return (scored[0] as Scored).id;
+  const pool = scored.length > 0 ? scored : offRow;
+  if (pool.length === 0) return null;
+  pool.sort(compareScore);
+  return (pool[0] as Scored).id;
 }

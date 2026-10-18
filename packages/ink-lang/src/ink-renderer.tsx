@@ -1,6 +1,6 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { Box, Text } from "ink";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { OpenUIContext } from "./context";
 import {
   createDesignSystem,
@@ -161,7 +161,12 @@ export function InkRenderer(props: InkRendererProps) {
   const emitUiEvent = useCallback(function emitUiEvent(event: UiEvent) {
     onUiEventRef.current?.(event);
   }, []);
-  const focusRegistry = useMemo(createFocusRegistry, []);
+  // A FocusScope above the renderer owns the registry and the navigator, so the
+  // host's own stops and the program's share one Tab order and arrow map.
+  const inheritedRegistry = useContext(FocusRegistryContext);
+  const ownRegistry = useMemo(createFocusRegistry, []);
+  const focusRegistry = inheritedRegistry ?? ownRegistry;
+  const ownsNavigation = inheritedRegistry === null;
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
@@ -171,8 +176,8 @@ export function InkRenderer(props: InkRendererProps) {
       marginX={grid.margin}
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
     >
-      <ArrowNavigator />
-      <KeyReporter />
+      {ownsNavigation ? <ArrowNavigator /> : null}
+      {ownsNavigation ? <KeyReporter /> : null}
       {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
       {showPlaceholder ? <Text dimColor>…</Text> : null}
       {isStreaming ? <Text dimColor>streaming…</Text> : null}

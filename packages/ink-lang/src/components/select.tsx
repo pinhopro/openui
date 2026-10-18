@@ -97,7 +97,12 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { vertical: true },
+    // Up and Down move the cursor until the first or last option; there they move focus.
+    arrows: function claims(direction) {
+      if (direction === "up") return cursorRef.current > 0;
+      if (direction === "down") return cursorRef.current < options.length - 1;
+      return false;
+    },
     mouse: {
       onWheel: function handleWheel(event) {
         if (isStreaming) return;

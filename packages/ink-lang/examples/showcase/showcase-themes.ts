@@ -1,4 +1,5 @@
 import type { DesignSystemInput } from "../../src/design/design-system";
+import { vscodeThemes } from "./vscode-themes";
 
 /** A design system the showcase can switch to. */
 export interface ShowcaseTheme {
@@ -28,7 +29,7 @@ const SLATE = {
   "shape.cardBorder": "double",
 };
 
-export const showcaseThemes: ShowcaseTheme[] = [
+const handMadeThemes: ShowcaseTheme[] = [
   {
     id: "default",
     name: "Default",
@@ -130,3 +131,6 @@ export const showcaseThemes: ShowcaseTheme[] = [
     },
   },
 ];
+
+/** The hand-made themes first, then the VS Code palettes. */
+export const showcaseThemes: ShowcaseTheme[] = handMadeThemes.concat(vscodeThemes);

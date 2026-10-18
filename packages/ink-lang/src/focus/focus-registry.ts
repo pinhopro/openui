@@ -1,6 +1,6 @@
 import type { DOMElement } from "ink";
 import { createContext, type RefObject } from "react";
-import type { ArrowClaims } from "./focus-navigation";
+import type { ArrowClaimsInput } from "./focus-navigation";
 
 /** One mounted focus stop, as `useFocusable` registers it. */
 export interface FocusEntry {
@@ -9,7 +9,7 @@ export interface FocusEntry {
   /** The box the stop occupies; null until mounted. */
   ref: RefObject<DOMElement | null>;
   isActive: boolean;
-  arrows: ArrowClaims;
+  arrows: ArrowClaimsInput;
   component: string;
   name: string;
 }

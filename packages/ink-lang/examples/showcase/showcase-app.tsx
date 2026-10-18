@@ -1,9 +1,20 @@
 /** @jsxRuntime automatic @jsxImportSource react */
 import type { ActionEvent, OpenUIError } from "@openuidev/lang-core";
-import { Box, measureElement, useApp, useInput, useWindowSize, type DOMElement } from "ink";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Box,
+  measureElement,
+  useApp,
+  useFocusManager,
+  useInput,
+  useWindowSize,
+  type DOMElement,
+} from "ink";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { inkLibrary } from "../../src/default-library";
 import { createDesignSystem } from "../../src/design/design-system";
+import { elementRect } from "../../src/focus/element-rect";
+import { FocusRegistryContext } from "../../src/focus/focus-registry";
+import { FocusScope } from "../../src/focus/focus-scope";
 import { InkRenderer } from "../../src/ink-renderer";
 import type { Library } from "../../src/library";
 import { MouseProvider } from "../../src/mouse/mouse-provider";
@@ -30,7 +41,7 @@ export interface ShowcaseAppProps {
   stream: StreamOptions;
 }
 
-const SIDEBAR_WIDTH = 20;
+const SIDEBAR_WIDTH = 26;
 const WHEEL_ROWS = 3;
 const ACCENT = "cyan";
 const LOG_ROWS = 6;
@@ -50,6 +61,16 @@ interface MouseScopeProps {
 function MouseScope({ enabled, children }: MouseScopeProps) {
   if (!enabled) return children;
   return <MouseProvider options={{ motion: true }}>{children}</MouseProvider>;
+}
+
+/** True when `element` sits inside `pane`. */
+function isInsidePane(element: DOMElement, pane: DOMElement): boolean {
+  let current: DOMElement | undefined = element;
+  while (current !== undefined) {
+    if (current === pane) return true;
+    current = current.parentNode;
+  }
+  return false;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -94,6 +115,8 @@ function PagePane({
   const [heights, setHeights] = useState<PaneHeights>({ viewport: 0, content: 0 });
   const viewportRef = useRef<DOMElement | null>(null);
   const contentRef = useRef<DOMElement | null>(null);
+  const registry = useContext(FocusRegistryContext);
+  const manager = useFocusManager();
 
   // Back to the top whenever another page comes in.
   useEffect(
@@ -126,6 +149,26 @@ function PagePane({
       return clamp(previous + delta, 0, maxScroll);
     });
   }
+
+  // A stop that takes focus below or above the fold brings the pane to it.
+  useEffect(
+    function scrollFocusIntoView() {
+      const viewport = viewportRef.current;
+      if (registry === null || manager.activeId === undefined || viewport === null) return;
+      const entry = registry.find(manager.activeId);
+      if (entry === null || entry.ref.current === null) return;
+      if (!isInsidePane(entry.ref.current, viewport)) return;
+      const stop = elementRect(entry.ref.current);
+      const frame = elementRect(viewport);
+      const top = frame.y + 1;
+      const bottom = frame.y + frame.height - 2;
+      const stopBottom = stop.y + stop.height - 1;
+      if (stop.y < top) scrollBy(stop.y - top);
+      else if (stopBottom > bottom) scrollBy(Math.min(stopBottom - bottom, stop.y - top));
+    },
+    // Only a focus change moves the pane; the scroll itself must not re-trigger it.
+    [manager.activeId],
+  );
 
   useInput(function handleScrollKey(_input, key) {
     if (key.eventType === "release") return;
@@ -227,49 +270,57 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
 
   return (
     <MouseScope enabled={mouse}>
-      <Box flexDirection="column" width={columns} height={rows}>
-        <Box flexGrow={1} minHeight={0}>
-          <Box flexDirection="column" width={SIDEBAR_WIDTH} borderStyle="single" borderDimColor>
-            <Sidebar
-              pages={pages}
-              activeIndex={activeIndex}
-              onSelect={selectPage}
-              width={SIDEBAR_WIDTH - 2}
-            />
-            <Box paddingX={1}>
-              <ThemeSelect
-                themes={showcaseThemes}
-                activeIndex={themeIndex}
-                onSelect={setThemeIndex}
-                width={SIDEBAR_WIDTH - 5}
+      <FocusScope onUiEvent={onUiEvent}>
+        <Box flexDirection="column" width={columns} height={rows}>
+          <Box flexGrow={1} minHeight={0}>
+            <Box
+              flexDirection="column"
+              width={SIDEBAR_WIDTH}
+              flexShrink={0}
+              borderStyle="single"
+              borderDimColor
+            >
+              <Sidebar
+                pages={pages}
+                activeIndex={activeIndex}
+                onSelect={selectPage}
+                width={SIDEBAR_WIDTH - 2}
               />
+              <Box paddingX={1}>
+                <ThemeSelect
+                  themes={showcaseThemes}
+                  activeIndex={themeIndex}
+                  onSelect={setThemeIndex}
+                  width={SIDEBAR_WIDTH - 5}
+                />
+              </Box>
+            </Box>
+            <Box flexDirection="column" flexGrow={1} minWidth={0}>
+              <PagePane
+                pageId={page === undefined ? "" : page.id}
+                response={streamed.response}
+                isStreaming={streamed.isStreaming}
+                library={page === undefined ? inkLibrary : (page.library ?? inkLibrary)}
+                theme={theme}
+                canvas={canvas}
+                tools={tools}
+                onAction={onAction}
+                onStateUpdate={setState}
+                onError={setErrors}
+                onUiEvent={onUiEvent}
+              />
+              <EventLog entries={events} height={LOG_ROWS} columns={columns - SIDEBAR_WIDTH} />
             </Box>
           </Box>
-          <Box flexDirection="column" flexGrow={1} minWidth={0}>
-            <PagePane
-              pageId={page === undefined ? "" : page.id}
-              response={streamed.response}
-              isStreaming={streamed.isStreaming}
-              library={page === undefined ? inkLibrary : (page.library ?? inkLibrary)}
-              theme={theme}
-              canvas={canvas}
-              tools={tools}
-              onAction={onAction}
-              onStateUpdate={setState}
-              onError={setErrors}
-              onUiEvent={onUiEvent}
-            />
-            <EventLog entries={events} height={LOG_ROWS} columns={columns - SIDEBAR_WIDTH} />
-          </Box>
+          <StatusBar
+            columns={columns}
+            mouse={mouse}
+            lastAction={lastAction}
+            state={describeState(state)}
+            errors={describeErrors(errors)}
+          />
         </Box>
-        <StatusBar
-          columns={columns}
-          mouse={mouse}
-          lastAction={lastAction}
-          state={describeState(state)}
-          errors={describeErrors(errors)}
-        />
-      </Box>
+      </FocusScope>
     </MouseScope>
   );
 }

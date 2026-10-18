@@ -31,7 +31,12 @@ function CarouselStrip({ index, count, onStep }: CarouselStripProps) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: `${index + 1} / ${count}`,
-    arrows: { horizontal: true },
+    // Left and Right move between items until the ends; there they move focus.
+    arrows: function claims(direction) {
+      if (direction === "left") return index > 0;
+      if (direction === "right") return index < count - 1;
+      return false;
+    },
     mouse: {
       // The left arrow glyph steps back, the right one forward.
       onClick: function handleClick(event) {

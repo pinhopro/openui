@@ -79,7 +79,12 @@ function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: active === undefined ? "" : triggerText(active),
-    arrows: { horizontal: true },
+    // Left and Right switch tabs until the first or last one; there they move focus.
+    arrows: function claims(direction) {
+      if (direction === "left") return activeIndex > 0;
+      if (direction === "right") return activeIndex < items.length - 1;
+      return false;
+    },
     mouse: {
       onWheel: function handleWheel(event) {
         if (isStreaming) return;

@@ -20,7 +20,9 @@ describe("nextInDirection", () => {
   it("moves right and left along a row", () => {
     expect(nextInDirection(one.rect, all, "right")).toBe("two");
     expect(nextInDirection(two.rect, all, "left")).toBe("one");
-    expect(nextInDirection(two.rect, all, "right")).toBeNull();
+    // Nothing on the row: the nearest to the right on another row (another container) is taken.
+    expect(nextInDirection(two.rect, all, "right")).toBe("four");
+    expect(nextInDirection(four.rect, all, "right")).toBeNull();
   });
 
   it("moves down and up to the candidate that overlaps the column, else the nearest", () => {

@@ -27,14 +27,30 @@ const PASSWORD_MASK = "*";
 function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
+  const value = displayText(field.value);
+  const [editor, setEditor] = useState<EditorState>({ value, cursor: countGraphemes(value) });
+  // A value the editor did not produce (declared default, initialState, @Set, @Reset)
+  // moves the cursor to the end.
+  const current: EditorState =
+    editor.value === value ? editor : { value, cursor: countGraphemes(value) };
+  // Several keys can arrive in one stdin chunk before React re-renders, so the
+  // handler works from the latest state, not from the rendered closure.
+  const editorRef = useRef<EditorState>(current);
+  editorRef.current = current;
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: field.name,
-    arrows: { horizontal: true },
+    // Left and Right move the cursor while it can move; at the ends they move focus.
+    arrows: function claims(direction) {
+      if (direction === "left") return editorRef.current.cursor > 0;
+      if (direction === "right") {
+        return editorRef.current.cursor < countGraphemes(editorRef.current.value);
+      }
+      return false;
+    },
   });
   const reportInput = useInputEvent(field.name);
   const styles = useFieldStyles(focusable.isFocused);
-  const value = displayText(field.value);
   const valueRef = useRef(value);
   valueRef.current = value;
   const validation = useFieldValidation({
@@ -45,15 +61,6 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
       return valueRef.current;
     },
   });
-  const [editor, setEditor] = useState<EditorState>({ value, cursor: countGraphemes(value) });
-  // A value the editor did not produce (declared default, initialState, @Set, @Reset)
-  // moves the cursor to the end.
-  const current: EditorState =
-    editor.value === value ? editor : { value, cursor: countGraphemes(value) };
-  // Several keys can arrive in one stdin chunk before React re-renders, so the
-  // handler works from the latest state, not from the rendered closure.
-  const editorRef = useRef<EditorState>(current);
-  editorRef.current = current;
   const canType = focusable.isFocused && !isStreaming;
 
   useInput(

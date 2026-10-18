@@ -93,16 +93,20 @@ describe("Select", () => {
     rendered.unmount();
   });
 
-  it("stops at both ends of the list", async () => {
+  it("stops at the ends of the list and hands the next arrow to the neighbour", async () => {
     const { rendered } = await renderSelect(formProgram);
     rendered.instance.stdin.write(KEYS.TAB);
     await settle();
     rendered.instance.stdin.write(KEYS.UP);
     await settle();
     expect(inverseSegments(rendered.frame())).toEqual([" US East "]);
-    rendered.instance.stdin.write(KEYS.DOWN + KEYS.DOWN + KEYS.DOWN + KEYS.DOWN);
+    rendered.instance.stdin.write(KEYS.DOWN + KEYS.DOWN);
     await settle();
     expect(inverseSegments(rendered.frame())).toEqual([" Asia Pacific "]);
+    // At the last option Down has nowhere to go inside the list: focus moves on.
+    rendered.instance.stdin.write(KEYS.DOWN);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Go ]"]);
     rendered.unmount();
   });
 
