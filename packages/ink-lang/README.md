@@ -73,7 +73,7 @@ A host that targets both renderers generates the prompt from the full React libr
 pnpm --filter @openuidev/ink-lang demo
 ```
 
-`examples/demo.tsx` streams a mock response chunk by chunk, logs every `onAction` event and the `onStateUpdate` snapshots under the rendered program. Tab and Shift+Tab move focus, Enter or Space presses a button, typing edits the field, Esc quits.
+`examples/demo.tsx` streams a mock response chunk by chunk, logs every `onAction` event and the `onStateUpdate` snapshots under the rendered program. Tab and Shift+Tab move focus, Enter or Space presses a button, typing edits the field, Up and Down move through a Select, Esc quits.
 
 ## `InkRenderer` props
 
@@ -95,22 +95,28 @@ While `isStreaming` is true and the root has not appeared yet, a dim `…` place
 
 Every component keeps the name, positional argument order, Zod schema and description of its `@openuidev/react-ui` counterpart; a test compares them with the generated spec of the React default library.
 
-| Component     | Signature                                                             | Terminal rendering                                                                                                          |
-| :------------ | :-------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
-| `Stack`       | `Stack(children, direction?, gap?, align?, justify?, wrap?)`          | Ink `Box`; gap tokens become 0 to 3 cells                                                                                   |
-| `Card`        | `Card(children, variant?, direction?, gap?, align?, justify?, wrap?)` | Round border (`card`), single dim border (`sunk`), no border (`clear`)                                                      |
-| `CardHeader`  | `CardHeader(title?, subtitle?)`                                       | Bold title line and dim subtitle line                                                                                       |
-| `TextContent` | `TextContent(text, size?)`                                            | Plain text; `small` dim, `small-heavy` bold dim, `large` bold, `large-heavy` bold underlined (markdown is not rendered yet) |
-| `Button`      | `Button(label, action?, variant?, type?, size?)`                      | `[ label ]`, inverse when focused, red when `destructive`, dim while streaming                                              |
-| `Buttons`     | `Buttons(buttons, direction?)`                                        | Row (default) or column of buttons                                                                                          |
-| `Input`       | `Input(name, placeholder?, type?, rules?, value?)`                    | Single-line editor with a block cursor; `password` masks; `value` takes a `$binding`                                        |
-| `Form`        | `Form(name, buttons, fields?)`                                        | Scopes its fields under the form name, then draws the buttons (no validation yet)                                           |
-| `FormControl` | `FormControl(label, input, hint?)`                                    | Bold label, the input, dim hint                                                                                             |
-| `Label`       | `Label(text)`                                                         | Plain text                                                                                                                  |
+| Component     | Signature                                                             | Terminal rendering                                                                                                                    |
+| :------------ | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
+| `Stack`       | `Stack(children, direction?, gap?, align?, justify?, wrap?)`          | Ink `Box`; gap tokens become 0 to 3 cells                                                                                             |
+| `Card`        | `Card(children, variant?, direction?, gap?, align?, justify?, wrap?)` | Round border (`card`), single dim border (`sunk`), no border (`clear`)                                                                |
+| `CardHeader`  | `CardHeader(title?, subtitle?)`                                       | Bold title line and dim subtitle line                                                                                                 |
+| `TextContent` | `TextContent(text, size?)`                                            | Plain text; `small` dim, `small-heavy` bold dim, `large` bold, `large-heavy` bold underlined (markdown is not rendered yet)           |
+| `Button`      | `Button(label, action?, variant?, type?, size?)`                      | `[ label ]`, inverse when focused, red when `destructive`, dim while streaming                                                        |
+| `Buttons`     | `Buttons(buttons, direction?)`                                        | Row (default) or column of buttons                                                                                                    |
+| `Input`       | `Input(name, placeholder?, type?, rules?, value?)`                    | Single-line editor with a block cursor; `password` masks; `value` takes a `$binding`                                                  |
+| `Select`      | `Select(name, items, placeholder?, rules?, value?, size?)`            | Picked label or dim placeholder; focused it opens the option list, Up and Down move, Enter or Space picks; `value` takes a `$binding` |
+| `SelectItem`  | `SelectItem(value, label)`                                            | One option of a Select (not drawn on its own)                                                                                         |
+| `Form`        | `Form(name, buttons, fields?)`                                        | Scopes its fields under the form name, then draws the buttons (no validation yet)                                                     |
+| `FormControl` | `FormControl(label, input, hint?)`                                    | Bold label, the input, dim hint                                                                                                       |
+| `Label`       | `Label(text)`                                                         | Plain text                                                                                                                            |
+| `Table`       | `Table(columns)`                                                      | Bold header, dim rule, one line per row; widths from the widest cell, `number` columns right aligned, wide rows clipped               |
+| `Col`         | `Col(label, data, type?)`                                             | One column of a Table: `data` is one value or component per row (not drawn on its own)                                                |
+| `Tabs`        | `Tabs(items)`                                                         | Focusable tab strip (active tab bold and underlined, inverse when focused); Left and Right switch; only the active content is mounted |
+| `TabItem`     | `TabItem(value, trigger, content)`                                    | One tab of a Tabs strip (not drawn on its own)                                                                                        |
 
-`Card.children` and `FormControl.input` accept the components of this library only; everything else about the schemas is identical to react-ui.
+`Card.children`, `TabItem.content` and `FormControl.input` accept the components of this library only; everything else about the schemas is identical to react-ui.
 
-Keyboard: Tab and Shift+Tab move focus between buttons and inputs (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor. Enter inside an input does nothing in this version.
+Keyboard: Tab and Shift+Tab move focus between buttons, inputs, selects and tab strips (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor; Enter inside an input does nothing in this version. In a focused Select, Up and Down move the cursor and Enter or Space picks. In a focused Tabs strip, Left and Right switch tabs.
 
 ## Defining your own components
 
@@ -194,16 +200,15 @@ sequenceDiagram
 
 ## Not in this version
 
-| Item                              | Planned approach                                                                                                         |
-| :-------------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| `Table` / `Col`                   | Reuse react-ui's column-oriented schema; rows as `Box`, widths from the widest cell, `overflow="hidden"` for long tables |
-| `Tabs` / `TabItem`                | Reuse the schema; a focusable tab strip (Left/Right), only the active content mounted                                    |
-| `Select` / `SelectItem`           | Reuse the schema; focusable list with Up/Down and Enter, writing through `useStateField` like `Input`                    |
-| Charts                            | Reuse the chart schemas; sparkline and block-character bars for 1D data, a dim fallback line for the rest                |
-| Forms with validation             | Port `useFormValidation` from `react-lang`; `FormControl` shows the error line; primary buttons validate first           |
-| Theming                           | A theme context with named colors read by the focus styles and the components                                            |
-| Markdown in `TextContent`         | A small markdown-to-Ink transform (bold, italic, code, lists); plain text until then                                     |
-| Query loading indicator and retry | A spinner line while loading and a focusable retry when a query failed                                                   |
+| Item                              | Planned approach                                                                                               |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| `Combobox`                        | Reuse the schema; a `Select` with a filter line on top                                                         |
+| Table paging                      | `contentOffsetY` paging for tables taller than the terminal; today every row is drawn                          |
+| Charts                            | Reuse the chart schemas; sparkline and block-character bars for 1D data, a dim fallback line for the rest      |
+| Forms with validation             | Port `useFormValidation` from `react-lang`; `FormControl` shows the error line; primary buttons validate first |
+| Theming                           | A theme context with named colors read by the focus styles and the components                                  |
+| Markdown in `TextContent`         | A small markdown-to-Ink transform (bold, italic, code, lists); plain text until then                           |
+| Query loading indicator and retry | A spinner line while loading and a focusable retry when a query failed                                         |
 
 ## License
 

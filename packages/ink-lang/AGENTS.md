@@ -20,60 +20,66 @@ Build order: `lang-core` -> `ink-lang`. Nothing else in the workspace is a depen
 
 ## File Map
 
-| Path                                   | Purpose                                                                                                                                        |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/index.ts`                         | Public API. Every export consumers see; check here when adding or removing exports.                                                            |
-| `src/ink-renderer.tsx`                 | `<InkRenderer>`: props -> runtime hook -> context -> `<RenderNode>`, placeholder, status and error lines.                                      |
-| `src/use-openui-runtime.ts`            | The one hook that wires `runtime/` to React state (parser, store, query manager, actions, errors).                                             |
-| `src/runtime/parse-response.ts`        | `StreamParser.set` plus message-marker stripping; never throws.                                                                                |
-| `src/runtime/evaluation-context.ts`    | `EvaluationContext` (getState, resolveRef) and library function merging.                                                                       |
-| `src/runtime/evaluate-result.ts`       | `evaluateRoot` with runtime error collection.                                                                                                  |
-| `src/runtime/query-nodes.ts`           | `ParseResult` -> `QueryNode[]` / `MutationNode[]`.                                                                                             |
-| `src/runtime/field-state.ts`           | Form field wrapper format (`{ value, componentType }`) and the `formState` payload.                                                            |
-| `src/runtime/run-action-plan.ts`       | Executes `@Run`, `@ToAssistant`, `@OpenUrl`, `@Set`, `@Reset` and custom action steps.                                                         |
-| `src/runtime/trigger-action.ts`        | Dispatch: action plan, legacy object, or label-only `continue_conversation`.                                                                   |
-| `src/runtime/tool-provider.ts`         | Function map or MCP client -> stable `ToolProvider`.                                                                                           |
-| `src/runtime/collect-errors.ts`        | Parser, runtime, render and query errors -> the `onError` list.                                                                                |
-| `src/context.ts`                       | `OpenUIContext` and the hooks components use (`useTriggerAction`, `useIsStreaming`, ...).                                                      |
-| `src/form-name-context.ts`             | `FormNameContext` / `useFormName`.                                                                                                             |
-| `src/use-state-field.ts`               | `useStateField`: `$binding` two-way field or form field.                                                                                       |
-| `src/use-openui-store.ts`              | `useSyncExternalStore` bridges for the store and the query manager.                                                                            |
-| `src/render-value.tsx`                 | `renderValue(value)` (the context's `renderNode`): primitives -> `<Text>`, arrays, elements, null -> nothing.                                  |
-| `src/render-node.tsx`                  | Library lookup + error boundary. The red `UnknownComponent` branch is defensive: the parser already drops unknown components and reports them. |
-| `src/unknown-component.tsx`            | `<UnknownComponent>`: the red `Unknown component: X` line for a type the library lacks.                                                        |
-| `src/error-footer.tsx`                 | `<ErrorFooter>`: one red dim line per error, drawn under the program when no `onError` is passed.                                              |
-| `src/element-node.ts`                  | `isElementValue` guard for parsed component nodes (lang-core keeps its own internal). Public export.                                           |
-| `src/element-error-boundary.tsx`       | Keeps the last good children when a renderer throws; reports `render-error`.                                                                   |
-| `src/library.ts`                       | `defineComponent` / `createLibrary` typed for Ink renderers (thin wrappers over lang-core).                                                    |
-| `src/reactive.ts`                      | `reactive(schema)`: marks a prop as bindable (`markReactive`).                                                                                 |
-| `src/default-library.ts`               | `inkLibrary` (root `Stack`) and its prompt groups.                                                                                             |
-| `src/schemas/*.ts`                     | Verbatim copies of `packages/react-ui/src/genui-lib/<X>/schema.ts`. Do not edit by hand (see below).                                           |
-| `src/components/*.tsx`                 | One Ink renderer per component; `text-input.tsx` is the model-facing `Input`.                                                                  |
-| `src/components/flex-box-props.ts`     | Pure mapping of Stack/Card flex props to Ink Box props.                                                                                        |
-| `src/components/text-editing.ts`       | Pure grapheme-aware editor logic (`applyKeyToEditor`, `splitForCursor`, `maskValue`).                                                          |
-| `src/components/text-content-style.ts` | Pure mapping of the TextContent size to bold / dim / underline.                                                                                |
-| `src/components/button-keys.ts`        | `isPressKey`: Enter or Space presses a button; kitty release events never do.                                                                  |
-| `src/focus/use-focusable.ts`           | `useFocus` with a per-instance id; `isActive: false` while streaming.                                                                          |
-| `src/focus/focus-style.ts`             | Pure focus ring styles for buttons.                                                                                                            |
-| `examples/demo.tsx`                    | Streams `examples/demo-program.ts` into `InkRenderer` and logs host callbacks.                                                                 |
-| `test/`                                | Vitest suites (see Testing). `test/helpers/` holds the Ink test library, the renderer-less runtime fixture and the render helpers.             |
+| Path                                   | Purpose                                                                                                                                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`                         | Public API. Every export consumers see; check here when adding or removing exports.                                                                                                                       |
+| `src/ink-renderer.tsx`                 | `<InkRenderer>`: props -> runtime hook -> context -> `<RenderNode>`, placeholder, status and error lines.                                                                                                 |
+| `src/use-openui-runtime.ts`            | The one hook that wires `runtime/` to React state (parser, store, query manager, actions, errors).                                                                                                        |
+| `src/runtime/parse-response.ts`        | `StreamParser.set` plus message-marker stripping; never throws.                                                                                                                                           |
+| `src/runtime/evaluation-context.ts`    | `EvaluationContext` (getState, resolveRef) and library function merging.                                                                                                                                  |
+| `src/runtime/evaluate-result.ts`       | `evaluateRoot` with runtime error collection.                                                                                                                                                             |
+| `src/runtime/query-nodes.ts`           | `ParseResult` -> `QueryNode[]` / `MutationNode[]`.                                                                                                                                                        |
+| `src/runtime/field-state.ts`           | Form field wrapper format (`{ value, componentType }`) and the `formState` payload.                                                                                                                       |
+| `src/runtime/run-action-plan.ts`       | Executes `@Run`, `@ToAssistant`, `@OpenUrl`, `@Set`, `@Reset` and custom action steps.                                                                                                                    |
+| `src/runtime/trigger-action.ts`        | Dispatch: action plan, legacy object, or label-only `continue_conversation`.                                                                                                                              |
+| `src/runtime/tool-provider.ts`         | Function map or MCP client -> stable `ToolProvider`.                                                                                                                                                      |
+| `src/runtime/collect-errors.ts`        | Parser, runtime, render and query errors -> the `onError` list.                                                                                                                                           |
+| `src/context.ts`                       | `OpenUIContext` and the hooks components use (`useTriggerAction`, `useIsStreaming`, ...).                                                                                                                 |
+| `src/form-name-context.ts`             | `FormNameContext` / `useFormName`.                                                                                                                                                                        |
+| `src/use-state-field.ts`               | `useStateField`: `$binding` two-way field or form field.                                                                                                                                                  |
+| `src/use-openui-store.ts`              | `useSyncExternalStore` bridges for the store and the query manager.                                                                                                                                       |
+| `src/render-value.tsx`                 | `renderValue(value)` (the context's `renderNode`): primitives -> `<Text>`, arrays, elements, null -> nothing.                                                                                             |
+| `src/render-node.tsx`                  | Library lookup + error boundary. The red `UnknownComponent` branch is defensive: the parser already drops unknown components and reports them.                                                            |
+| `src/unknown-component.tsx`            | `<UnknownComponent>`: the red `Unknown component: X` line for a type the library lacks.                                                                                                                   |
+| `src/error-footer.tsx`                 | `<ErrorFooter>`: one red dim line per error, drawn under the program when no `onError` is passed.                                                                                                         |
+| `src/element-node.ts`                  | `isElementValue` guard for parsed component nodes (lang-core keeps its own internal). Public export.                                                                                                      |
+| `src/element-error-boundary.tsx`       | Keeps the last good children when a renderer throws; reports `render-error`.                                                                                                                              |
+| `src/library.ts`                       | `defineComponent` / `createLibrary` typed for Ink renderers (thin wrappers over lang-core).                                                                                                               |
+| `src/reactive.ts`                      | `reactive(schema)`: marks a prop as bindable (`markReactive`).                                                                                                                                            |
+| `src/default-library.ts`               | `inkLibrary` (root `Stack`) and its prompt groups.                                                                                                                                                        |
+| `src/schemas/*.ts`                     | Verbatim copies of `packages/react-ui/src/genui-lib/<X>/schema.ts`. Do not edit by hand (see below).                                                                                                      |
+| `src/components/*.tsx`                 | One Ink renderer per component; `text-input.tsx` is the model-facing `Input`. `col.tsx`, `tab-item.tsx` and `select-item.tsx` render nothing: they are data for `table.tsx`, `tabs.tsx` and `select.tsx`. |
+| `src/components/flex-box-props.ts`     | Pure mapping of Stack/Card flex props to Ink Box props.                                                                                                                                                   |
+| `src/components/text-editing.ts`       | Pure grapheme-aware editor logic (`applyKeyToEditor`, `splitForCursor`, `maskValue`).                                                                                                                     |
+| `src/components/text-content-style.ts` | Pure mapping of the TextContent size to bold / dim / underline.                                                                                                                                           |
+| `src/components/button-keys.ts`        | `isPressKey`: Enter or Space presses a button; kitty release events never do.                                                                                                                             |
+| `src/components/arrow-keys.ts`         | `horizontalStep` / `verticalStep`: -1, 0 or 1 for the arrow keys; kitty release events are 0.                                                                                                             |
+| `src/components/step-index.ts`         | `clampIndex` / `stepIndex`: clamped list moves shared by Tabs and Select (no wrapping).                                                                                                                   |
+| `src/components/table-layout.ts`       | Pure measuring of a Table's Col elements: `cellText`, column widths (graphemes), alignment and row count.                                                                                                 |
+| `src/components/select-options.ts`     | Pure `selectOptions` / `indexOfOption`: SelectItem elements to `{ value, label }` options.                                                                                                                |
+| `src/focus/use-focusable.ts`           | `useFocus` with a per-instance id; `isActive: false` while streaming.                                                                                                                                     |
+| `src/focus/focus-style.ts`             | Pure focus ring styles for buttons.                                                                                                                                                                       |
+| `examples/demo.tsx`                    | Streams `examples/demo-program.ts` into `InkRenderer` and logs host callbacks.                                                                                                                            |
+| `test/`                                | Vitest suites (see Testing). `test/helpers/` holds the Ink test library, the renderer-less runtime fixture and the render helpers.                                                                        |
 
 ## Key Patterns
 
 ### Schema parity rule
 
-Every component that exists in `packages/react-ui/src/genui-lib/` keeps its name, positional argument order, Zod schema, enum values, defaults and description. `test/schema-parity.test.ts` compares `inkLibrary` with `docs/generated/playground-library.spec.json` (override the path with `OPENUI_LIBRARY_SPEC`). The only allowed differences are the member lists of `Card.children` and `FormControl.input`, which list the terminal components. If a parity test fails after an upstream change, update the copy in `src/schemas/` to match react-ui, never the other way round.
+Every component that exists in `packages/react-ui/src/genui-lib/` keeps its name, positional argument order, Zod schema, enum values, defaults and description. `test/schema-parity.test.ts` compares `inkLibrary` with `docs/generated/playground-library.spec.json` (override the path with `OPENUI_LIBRARY_SPEC`). The only allowed differences are the member lists of `Card.children`, `TabItem.content` and `FormControl.input`, which list the terminal components. If a parity test fails after an upstream change, update the copy in `src/schemas/` to match react-ui, never the other way round.
 
 ### Adding a component
 
 1. Copy its schema from react-ui into `src/schemas/<name>-schema.ts` (verbatim; unions reduced to terminal components if needed).
 2. Write the Ink renderer in `src/components/<name>.tsx` as a named function and `defineComponent({ name, props, description, component })` with the react-ui description.
 3. Add it to `inkLibrary` in `src/default-library.ts`, to a prompt group, and to `src/index.ts`.
-4. Add the name to `SHARED` in `test/schema-parity.test.ts` and write a rendering test in `test/components.test.tsx` (TDD: test first).
+4. Add the name to `SHARED` in `test/schema-parity.test.ts` (and to `UNION_PROPS` when a union was reduced), add it to the component list in `test/components.test.tsx`, and write rendering tests there or in a `test/<name>.test.tsx` suite for interactive components (TDD: test first).
 
 ### Interactive components
 
 Use `useFocusable({ isActive: !isStreaming })` for the focus ring and `useInput(handler, { isActive })` for keys. Fire actions only through `useTriggerAction()`; write values only through `useStateField(name, value).setValue` or `useSetFieldValue()`. Components never call the host and never write to the console (`no-console` is an error in `src/`).
+
+Ink's focus order is the order in which `useFocus` effects run, and React runs a child's effects before its parent's. A focusable container that renders focusable children (Tabs) must therefore put its own focus hook in a child component rendered before the content (`TabStrip`), or Tab would reach the buttons inside before the strip. Several keys can arrive in one stdin chunk before React re-renders, so handlers read the latest state from a ref (`Input`, `Select`) or use functional `setState` updates (`Tabs`).
 
 ### Code style (strict)
 
@@ -88,7 +94,7 @@ Use `useFocusable({ isActive: !isStreaming })` for the focus ring and `useInput(
 - `ink-testing-library` renders `<InkRenderer>` with fake streams. `test/helpers/render-program.tsx` mounts a program, `instance.stdin.write(KEYS.TAB)` presses keys (`test/helpers/keys.ts`), and `settle()` waits a few macrotasks.
 - `test/helpers/ink-test-library.tsx` is a small library with hooks into the tests (`setters`, `clicks`, `probe`) for runtime behaviour; `test/helpers/test-library.ts` is a renderer-less library for the pure `runtime/` tests.
 - `test/conformance.interactions.test.tsx` replays `spec/fixtures/1.0/**/interactions.json` with generic Ink renderers, like react-lang's runner (`OPENUI_FIXTURES` overrides the path, `OPENUI_CONFORMANCE_REPORT` writes a report).
-- Pure modules (`runtime/*`, `flex-box-props`, `text-editing`, `focus-style`) have direct unit tests; write those first when changing behaviour.
+- Pure modules (`runtime/*`, `flex-box-props`, `text-editing`, `focus-style`, `arrow-keys`, `step-index`, `table-layout`, `select-options`) have direct unit tests; write those first when changing behaviour.
 
 ## Do NOT Change
 

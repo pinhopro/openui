@@ -88,8 +88,8 @@ function Demo() {
       />
       <Box flexDirection="column" marginTop={1} borderStyle="single" borderDimColor paddingX={1}>
         <Text dimColor>
-          Tab / Shift+Tab move focus. Enter or Space presses a button. Type into the field. Esc or
-          Ctrl+C quits.
+          Tab / Shift+Tab move focus. Enter or Space presses a button or picks an option. Up / Down
+          move through the select. Type into the field. Esc or Ctrl+C quits.
         </Text>
         <Text dimColor>onStateUpdate: {JSON.stringify(state)}</Text>
         <Text dimColor>onError: {errors}</Text>
