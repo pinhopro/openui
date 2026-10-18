@@ -6,6 +6,8 @@ import { Col } from "./components/col";
 import { Form } from "./components/form";
 import { FormControl } from "./components/form-control";
 import { Label } from "./components/label";
+import { Select } from "./components/select";
+import { SelectItem } from "./components/select-item";
 import { Stack } from "./components/stack";
 import { TabItem } from "./components/tab-item";
 import { Table } from "./components/table";
@@ -47,11 +49,12 @@ export const inkComponentGroups: ComponentGroup[] = [
   },
   {
     name: "Forms",
-    components: ["Form", "FormControl", "Label", "Input"],
+    components: ["Form", "FormControl", "Label", "Input", "Select", "SelectItem"],
     notes: [
       "- Define EACH FormControl as its own reference - do NOT inline all controls in one array.",
       "- NEVER nest Form inside Form.",
       "- Form requires explicit buttons. Always pass a Buttons(...) reference as the second Form argument: Form(name, buttons, fields).",
+      "- Select takes SelectItem(value, label) options; bind its value with a $variable to read it elsewhere.",
     ],
   },
   {
@@ -81,6 +84,8 @@ export const inkLibrary: Library = createLibrary({
     FormControl,
     Label,
     Input,
+    Select,
+    SelectItem,
     Button,
     Buttons,
   ],

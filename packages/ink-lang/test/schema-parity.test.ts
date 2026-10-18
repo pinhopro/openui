@@ -30,6 +30,8 @@ const SHARED = [
   "Col",
   "Tabs",
   "TabItem",
+  "Select",
+  "SelectItem",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */

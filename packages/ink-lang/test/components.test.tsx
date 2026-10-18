@@ -25,6 +25,8 @@ describe("default library", () => {
       "FormControl",
       "Input",
       "Label",
+      "Select",
+      "SelectItem",
       "Stack",
       "TabItem",
       "Table",
