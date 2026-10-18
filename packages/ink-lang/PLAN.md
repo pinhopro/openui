@@ -392,8 +392,11 @@ Verification before pushing: `pnpm -r build`, `pnpm -r test`, and for `ink-lang`
 ## 10. Out of scope for this pass (next batch)
 
 Status: every item below shipped in later commits on `feat/ink-lang` (Table/Tabs/Select in
-batch 2; charts, validation, theming, markdown and the query spinner/retry in batch 3).
-Only Combobox and table paging remain, listed in the README.
+batch 2; charts, validation, theming, markdown and the query spinner/retry in batch 3;
+Combobox, table paging and braille line/area/scatter charts in batch 4). Nothing from this
+list is open. Combobox has no react-ui counterpart, so it reuses Select's schema and is the
+one terminal-only component; table paging is client-side with a fixed page of ten rows and a
+focusable pager footer rather than `contentOffsetY`.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
