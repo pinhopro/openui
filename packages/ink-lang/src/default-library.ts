@@ -10,6 +10,8 @@ import { CardHeader } from "./components/card-header";
 import { Carousel } from "./components/carousel";
 import { CheckBoxGroup } from "./components/check-box-group";
 import { CheckBoxItem } from "./components/check-box-item";
+import { ChipItem } from "./components/chip-item";
+import { Chips } from "./components/chips";
 import { CodeBlock } from "./components/code-block";
 import { Col } from "./components/col";
 import { DatePicker } from "./components/date-picker";
@@ -28,6 +30,8 @@ import { LineChart } from "./components/line-chart";
 import { ListBlock } from "./components/list-block";
 import { ListItem } from "./components/list-item";
 import { MarkDownRenderer } from "./components/mark-down-renderer";
+import { OptionCard } from "./components/option-card";
+import { OptionCards } from "./components/option-cards";
 import { PieChart } from "./components/pie-chart";
 import { Point } from "./components/point";
 import { RadarChart } from "./components/radar-chart";
@@ -160,8 +164,14 @@ export const inkComponentGroups: ComponentGroup[] = [
       "RadioItem",
       "SwitchGroup",
       "SwitchItem",
+      "Chips",
+      "ChipItem",
+      "OptionCards",
+      "OptionCard",
     ],
     notes: [
+      "- Chips: compact single/multiple selection pills. Use ChipItem references for each option.",
+      "- OptionCards: larger selectable cards with title, subtitle and an optional Icon or Image on top. Use OptionCard references for each option.",
       "- Define EACH FormControl as its own reference - do NOT inline all controls in one array.",
       "- NEVER nest Form inside Form.",
       "- Form requires explicit buttons. Always pass a Buttons(...) reference as the second Form argument: Form(name, buttons, fields).",
@@ -241,6 +251,10 @@ export const inkLibrary: Library = createLibrary({
     RadioItem,
     SwitchGroup,
     SwitchItem,
+    ChipItem,
+    Chips,
+    OptionCard,
+    OptionCards,
     Button,
     Buttons,
     BarChart,

@@ -95,6 +95,8 @@ export { CardHeader } from "./components/card-header";
 export { Carousel } from "./components/carousel";
 export { CheckBoxGroup } from "./components/check-box-group";
 export { CheckBoxItem } from "./components/check-box-item";
+export { ChipItem } from "./components/chip-item";
+export { Chips } from "./components/chips";
 export { CodeBlock } from "./components/code-block";
 export { Col } from "./components/col";
 export { DatePicker } from "./components/date-picker";
@@ -111,6 +113,8 @@ export { Label } from "./components/label";
 export { ListBlock } from "./components/list-block";
 export { ListItem } from "./components/list-item";
 export { MarkDownRenderer } from "./components/mark-down-renderer";
+export { OptionCard } from "./components/option-card";
+export { OptionCards } from "./components/option-cards";
 export { RadioGroup } from "./components/radio-group";
 export { RadioItem } from "./components/radio-item";
 export { Select } from "./components/select";
@@ -161,6 +165,8 @@ export { CardChildUnion, CardSchema } from "./schemas/card-schema";
 export { CarouselSchema } from "./schemas/carousel-schema";
 export { CheckBoxGroupSchema, createCheckBoxGroupSchema } from "./schemas/check-box-group-schema";
 export { CheckBoxItemSchema } from "./schemas/check-box-item-schema";
+export { ChipItemSchema } from "./schemas/chip-item-schema";
+export { ChipsSchema } from "./schemas/chips-schema";
 export { CodeBlockSchema } from "./schemas/code-block-schema";
 export { ColSchema } from "./schemas/col-schema";
 export { ContentChildUnion } from "./schemas/content-child-union";
@@ -182,6 +188,8 @@ export { LineChartSchema } from "./schemas/line-chart-schema";
 export { ListBlockSchema } from "./schemas/list-block-schema";
 export { ListItemSchema } from "./schemas/list-item-schema";
 export { MarkDownRendererSchema } from "./schemas/mark-down-renderer-schema";
+export { OptionCardSchema } from "./schemas/option-card-schema";
+export { OptionCardsSchema } from "./schemas/option-cards-schema";
 export { PieChartSchema } from "./schemas/pie-chart-schema";
 export { PointSchema } from "./schemas/point-schema";
 export { RadarChartSchema } from "./schemas/radar-chart-schema";
@@ -250,6 +258,14 @@ export type { LinePosition } from "./components/multiline-editing";
 export { displayText, padEnd, padStart, widestText } from "./components/pad";
 export { indexOfOption, selectOptions } from "./components/select-options";
 export type { SelectOption } from "./components/select-options";
+export {
+  normalizeSelection,
+  selectionForValidation,
+  selectionItems,
+  storedSelection,
+  toggleSelection,
+} from "./components/selection-field";
+export type { SelectionItem, SelectionType } from "./components/selection-field";
 export { sliderTrack, sliderValue, stepSliderValue } from "./components/slider-track";
 export { clampIndex, stepIndex } from "./components/step-index";
 export { cellText, tableLayout } from "./components/table-layout";

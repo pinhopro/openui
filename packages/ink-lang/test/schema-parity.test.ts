@@ -75,6 +75,10 @@ const SHARED = [
   "RadioItem",
   "SwitchGroup",
   "SwitchItem",
+  "Chips",
+  "ChipItem",
+  "OptionCards",
+  "OptionCard",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */

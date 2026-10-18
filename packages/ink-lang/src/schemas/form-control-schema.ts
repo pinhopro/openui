@@ -1,6 +1,8 @@
 import { z } from "zod/v4";
 import { CheckBoxGroup } from "../components/check-box-group";
+import { Chips } from "../components/chips";
 import { DatePicker } from "../components/date-picker";
+import { OptionCards } from "../components/option-cards";
 import { RadioGroup } from "../components/radio-group";
 import { Select } from "../components/select";
 import { Slider } from "../components/slider";
@@ -19,6 +21,8 @@ export const FormControlSchema = z.object({
     Slider.ref,
     CheckBoxGroup.ref,
     RadioGroup.ref,
+    Chips.ref,
+    OptionCards.ref,
   ]),
   hint: z.string().optional(),
 });
