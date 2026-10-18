@@ -20,11 +20,13 @@ describe("default library", () => {
       "Buttons",
       "Card",
       "CardHeader",
+      "Col",
       "Form",
       "FormControl",
       "Input",
       "Label",
       "Stack",
+      "Table",
       "TextContent",
     ]);
   });
@@ -146,6 +148,55 @@ describe("Form, FormControl and Label", () => {
     expect(plain).toContain("[ Go ]");
     expect(plain).toContain("Done");
     expect(plain.indexOf("Email")).toBeLessThan(plain.indexOf("[ Go ]"));
+    rendered.unmount();
+  });
+});
+
+describe("Table", () => {
+  it("draws a bold header, a separator and one line per row with aligned columns", async () => {
+    const program = [
+      "root = Stack([table])",
+      'table = Table([Col("Name", ["Ada", "Grace"]), Col("Age", [36, 45], "number")])',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    expect(lines(rendered.frame())).toEqual([
+      "Name   Age",
+      "─────  ───",
+      "Ada     36",
+      "Grace   45",
+    ]);
+    const headerLine = rendered.frame().split("\n")[0] ?? "";
+    expect(headerLine).toContain(BOLD_ON);
+    rendered.unmount();
+  });
+
+  it("renders component cells through the library", async () => {
+    const program = [
+      "root = Stack([table])",
+      'table = Table([Col("Task", ["Deploy"]), Col("Action", [Button("Go")], "action")])',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    const plain = stripAnsi(rendered.frame());
+    expect(plain).toContain("Deploy");
+    expect(plain).toContain("[ Go ]");
+    rendered.unmount();
+  });
+
+  it("clips rows wider than the terminal instead of wrapping them", async () => {
+    const long = "x".repeat(150);
+    const program = `root = Stack([Table([Col("Wide", ["${long}"]), Col("B", ["b"])])])`;
+    const rendered = await renderProgram(inkLibrary, program);
+    const plain = lines(rendered.frame());
+    expect(plain).toHaveLength(3);
+    for (const line of plain) {
+      expect(line.length).toBeLessThanOrEqual(100);
+    }
+    rendered.unmount();
+  });
+
+  it("renders nothing for a table without columns", async () => {
+    const rendered = await renderProgram(inkLibrary, "root = Stack([Table([])])");
+    expect(stripAnsi(rendered.frame()).trim()).toBe("");
     rendered.unmount();
   });
 });

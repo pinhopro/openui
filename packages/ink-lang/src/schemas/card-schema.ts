@@ -3,6 +3,7 @@ import { Buttons } from "../components/buttons";
 import { CardHeader } from "../components/card-header";
 import { Form } from "../components/form";
 import { Stack } from "../components/stack";
+import { Table } from "../components/table";
 import { TextContent } from "../components/text-content";
 import { FlexPropsSchema } from "./flex-props-schema";
 
@@ -11,6 +12,7 @@ import { FlexPropsSchema } from "./flex-props-schema";
 export const CardChildUnion = z.union([
   TextContent.ref,
   CardHeader.ref,
+  Table.ref,
   Form.ref,
   Buttons.ref,
   Stack.ref,

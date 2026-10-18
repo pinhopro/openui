@@ -26,6 +26,8 @@ const SHARED = [
   "Form",
   "FormControl",
   "Label",
+  "Table",
+  "Col",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */

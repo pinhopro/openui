@@ -2,10 +2,12 @@ import { Button } from "./components/button";
 import { Buttons } from "./components/buttons";
 import { Card } from "./components/card";
 import { CardHeader } from "./components/card-header";
+import { Col } from "./components/col";
 import { Form } from "./components/form";
 import { FormControl } from "./components/form-control";
 import { Label } from "./components/label";
 import { Stack } from "./components/stack";
+import { Table } from "./components/table";
 import { TextContent } from "./components/text-content";
 import { Input } from "./components/text-input";
 import { createLibrary, type ComponentGroup, type Library } from "./library";
@@ -26,6 +28,14 @@ export const inkComponentGroups: ComponentGroup[] = [
     notes: [
       '- Use Cards to group related sections. Stack with direction "row" for side-by-side layouts.',
       "- Give a Card a title with a CardHeader as its first child.",
+    ],
+  },
+  {
+    name: "Data",
+    components: ["Table", "Col"],
+    notes: [
+      "- Table is column-oriented: one Col per column, each with its own data array (one value per row).",
+      '- Mark numeric columns with type "number" so they are right-aligned.',
     ],
   },
   {
@@ -56,6 +66,8 @@ export const inkLibrary: Library = createLibrary({
     Card,
     CardHeader,
     TextContent,
+    Table,
+    Col,
     Form,
     FormControl,
     Label,
