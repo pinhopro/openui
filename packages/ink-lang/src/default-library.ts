@@ -5,6 +5,7 @@ import { Buttons } from "./components/buttons";
 import { Card } from "./components/card";
 import { CardHeader } from "./components/card-header";
 import { Col } from "./components/col";
+import { Combobox } from "./components/combobox";
 import { Form } from "./components/form";
 import { FormControl } from "./components/form-control";
 import { HorizontalBarChart } from "./components/horizontal-bar-chart";
@@ -90,12 +91,13 @@ export const inkComponentGroups: ComponentGroup[] = [
   },
   {
     name: "Forms",
-    components: ["Form", "FormControl", "Label", "Input", "Select", "SelectItem"],
+    components: ["Form", "FormControl", "Label", "Input", "Select", "Combobox", "SelectItem"],
     notes: [
       "- Define EACH FormControl as its own reference - do NOT inline all controls in one array.",
       "- NEVER nest Form inside Form.",
       "- Form requires explicit buttons. Always pass a Buttons(...) reference as the second Form argument: Form(name, buttons, fields).",
       "- Select takes SelectItem(value, label) options; bind its value with a $variable to read it elsewhere.",
+      "- Combobox takes the same arguments as Select and lets the user type to filter long option lists.",
     ],
   },
   {
@@ -126,6 +128,7 @@ export const inkLibrary: Library = createLibrary({
     Label,
     Input,
     Select,
+    Combobox,
     SelectItem,
     Button,
     Buttons,

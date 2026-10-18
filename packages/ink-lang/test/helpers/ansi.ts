@@ -5,6 +5,7 @@ export const BOLD_ON = "\u001b[1m";
 export const DIM_ON = "\u001b[2m";
 export const UNDERLINE_ON = "\u001b[4m";
 export const RED_ON = "\u001b[31m";
+export const CYAN_ON = "\u001b[36m";
 
 /** The frame without any escape sequences. */
 export function stripAnsi(text: string): string {

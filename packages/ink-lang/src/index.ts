@@ -42,6 +42,8 @@ export {
 } from "./form-validation-context";
 export type { FormValidationContextValue } from "./form-validation-context";
 export { renderValue } from "./render-value";
+export { useFieldRules } from "./use-field-rules";
+export type { FieldRules } from "./use-field-rules";
 export { useStateField } from "./use-state-field";
 
 // Theme
@@ -88,6 +90,7 @@ export { Buttons } from "./components/buttons";
 export { Card } from "./components/card";
 export { CardHeader } from "./components/card-header";
 export { Col } from "./components/col";
+export { Combobox } from "./components/combobox";
 export { Form } from "./components/form";
 export { FormControl } from "./components/form-control";
 export { Label } from "./components/label";
@@ -124,6 +127,7 @@ export { ButtonsSchema } from "./schemas/buttons-schema";
 export { CardHeaderSchema } from "./schemas/card-header-schema";
 export { CardChildUnion, CardSchema } from "./schemas/card-schema";
 export { ColSchema } from "./schemas/col-schema";
+export { ComboboxSchema } from "./schemas/combobox-schema";
 export { FlexPropsSchema } from "./schemas/flex-props-schema";
 export { FormControlSchema } from "./schemas/form-control-schema";
 export { FormSchema } from "./schemas/form-schema";
@@ -151,6 +155,18 @@ export { TextContentSchema } from "./schemas/text-content-schema";
 
 // Building blocks for custom terminal components
 export { horizontalStep, verticalStep } from "./components/arrow-keys";
+export {
+  createBrailleCanvas,
+  dotColumns,
+  dotRows,
+  fillBelow,
+  plot,
+  plotArea,
+  plotLine,
+  projectValue,
+  toLines,
+} from "./components/braille-canvas";
+export type { BrailleCanvas } from "./components/braille-canvas";
 export { buildSeriesRows, buildSlices, seriesNames } from "./components/chart-data";
 export type { ChartSlice, SeriesRow } from "./components/chart-data";
 export {
@@ -160,20 +176,26 @@ export {
   proportionSegments,
   sparkline,
 } from "./components/chart-text";
+export { filterOptions, listWindow } from "./components/combobox-options";
+export type { ListWindow } from "./components/combobox-options";
 export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
 export { hasMarkdown, parseInline, parseMarkdown } from "./components/markdown";
 export type { MarkdownLine, MarkdownLineKind, MarkdownSegment } from "./components/markdown";
+export { readScatterDatasets } from "./components/scatter-data";
+export type { ScatterDataset, ScatterPoint } from "./components/scatter-data";
 export { indexOfOption, selectOptions } from "./components/select-options";
 export type { SelectOption } from "./components/select-options";
 export { clampIndex, stepIndex } from "./components/step-index";
 export { cellText, tableLayout } from "./components/table-layout";
 export type { TableAlign, TableColumn, TableLayout } from "./components/table-layout";
+export { pageBounds, pageSummary } from "./components/table-paging";
+export type { PageBounds } from "./components/table-paging";
 export { textContentStyle } from "./components/text-content-style";
 export type { TextContentStyle } from "./components/text-content-style";
 export { applyKeyToEditor, maskValue, splitForCursor } from "./components/text-editing";
 export type { CursorSplit, EditorState } from "./components/text-editing";
-export { buttonTextStyle } from "./focus/focus-style";
+export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
 export type { ButtonTextStyle } from "./focus/focus-style";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
