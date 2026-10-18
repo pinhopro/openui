@@ -421,6 +421,9 @@ rows toggle on click, the Slider drags, the pressed box captures moves and the r
 added arrow-key focus navigation by position on screen (`focus/`), and a browser-like UI
 event stream (`onUiEvent`: focus, blur, keydown, keyup, input, change and the mouse
 events) that the showcase lists in a scrollable panel.
+Theming then grew from five colors into a palette plus CSS-like style slots (`field`,
+`button`, `card`, `heading`, `subtext`, `focusRing`), each a box and text style merged field
+by field over defaults derived from the palette, with four presets the showcase cycles.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

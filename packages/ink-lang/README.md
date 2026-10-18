@@ -85,24 +85,24 @@ The showcase is a full-screen tour of every component, one page per group, with 
 pnpm --filter @openuidev/ink-lang showcase
 ```
 
-`examples/showcase.tsx` takes the alternate screen and renders `examples/showcase/showcase-app.tsx`: a sidebar of pages on the left (Up and Down, a click or the wheel pick one; Ctrl+N and Ctrl+P work from anywhere), the active page streaming into `InkRenderer` on the right (PgUp, PgDn and the wheel scroll it) and a status bar with the last `onAction` event and `onStateUpdate` snapshot. Every page is an OpenUI Lang program under `examples/showcase/programs/`, and a test checks that, together, they use every component of the library. The Feedback page's queries and mutation are served by `examples/showcase/showcase-tools.ts`, whose `health` tool fails on its first call so the retry control shows. Ctrl+Q quits; `--no-mouse` keeps the terminal's own text selection.
+Ctrl+T (or a click on the theme line under the page list) cycles the theme presets. `examples/showcase.tsx` takes the alternate screen and renders `examples/showcase/showcase-app.tsx`: a sidebar of pages on the left (Up and Down, a click or the wheel pick one; Ctrl+N and Ctrl+P work from anywhere), the active page streaming into `InkRenderer` on the right (PgUp, PgDn and the wheel scroll it) and a status bar with the last `onAction` event and `onStateUpdate` snapshot. Every page is an OpenUI Lang program under `examples/showcase/programs/`, and a test checks that, together, they use every component of the library. The Feedback page's queries and mutation are served by `examples/showcase/showcase-tools.ts`, whose `health` tool fails on its first call so the retry control shows. Ctrl+Q quits; `--no-mouse` keeps the terminal's own text selection.
 
 ## `InkRenderer` props
 
-| Prop            | Type                                                          | Description                                                                                                                                                    |
-| :-------------- | :------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `response`      | `string \| null`                                              | The accumulated OpenUI Lang text, or a stored message with `]]>openui:` markers                                                                                |
-| `library`       | `Library`                                                     | A library from `createLibrary()`; `inkLibrary` is the default                                                                                                  |
-| `isStreaming`   | `boolean`                                                     | True while the model is still producing the program: buttons and inputs are inactive, queries wait, errors are held back                                       |
-| `onAction`      | `(event: ActionEvent) => void`                                | Button presses and custom actions, after `@Set`, `@Reset` and `@Run` steps have run                                                                            |
-| `onStateUpdate` | `(state: Record<string, unknown>) => void`                    | The store snapshot after each user edit (never for declared defaults)                                                                                          |
-| `initialState`  | `Record<string, unknown>`                                     | State to restore: `$`-prefixed keys are bindings, other keys are form state                                                                                    |
-| `onParseResult` | `(result: ParseResult \| null) => void`                       | The raw parse result whenever it changes                                                                                                                       |
-| `toolProvider`  | `Record<string, (args) => Promise<unknown>> \| McpClientLike` | Serves `Query()` and `Mutation()` calls once streaming ends                                                                                                    |
-| `onError`       | `(errors: OpenUIError[]) => void`                             | Structured errors once streaming ends, `[]` when a new stream starts. Without it, errors are drawn as a red footer in the UI                                   |
-| `theme`         | `Partial<InkTheme>`                                           | Colors for borders, headings, buttons, tags, callouts and trends: `accent`, `danger`, `muted`, `success`, `warning` (defaults: cyan, red, gray, green, yellow) |
-| `mouse`         | `boolean \| { motion?: boolean }`                             | Turns terminal mouse reporting on (see [Mouse](#mouse)); `{ motion: false }` skips hover tracking                                                              |
-| `onUiEvent`     | `(event: UiEvent) => void`                                    | Browser-like events of every component: focus, blur, keydown, keyup, input, change and the mouse events (see [UI events](#ui-events))                          |
+| Prop            | Type                                                          | Description                                                                                                                                                                          |
+| :-------------- | :------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `response`      | `string \| null`                                              | The accumulated OpenUI Lang text, or a stored message with `]]>openui:` markers                                                                                                      |
+| `library`       | `Library`                                                     | A library from `createLibrary()`; `inkLibrary` is the default                                                                                                                        |
+| `isStreaming`   | `boolean`                                                     | True while the model is still producing the program: buttons and inputs are inactive, queries wait, errors are held back                                                             |
+| `onAction`      | `(event: ActionEvent) => void`                                | Button presses and custom actions, after `@Set`, `@Reset` and `@Run` steps have run                                                                                                  |
+| `onStateUpdate` | `(state: Record<string, unknown>) => void`                    | The store snapshot after each user edit (never for declared defaults)                                                                                                                |
+| `initialState`  | `Record<string, unknown>`                                     | State to restore: `$`-prefixed keys are bindings, other keys are form state                                                                                                          |
+| `onParseResult` | `(result: ParseResult \| null) => void`                       | The raw parse result whenever it changes                                                                                                                                             |
+| `toolProvider`  | `Record<string, (args) => Promise<unknown>> \| McpClientLike` | Serves `Query()` and `Mutation()` calls once streaming ends                                                                                                                          |
+| `onError`       | `(errors: OpenUIError[]) => void`                             | Structured errors once streaming ends, `[]` when a new stream starts. Without it, errors are drawn as a red footer in the UI                                                         |
+| `theme`         | `InkThemeOverrides`                                           | The palette (`accent`, `danger`, `muted`, `success`, `warning`) and the CSS-like style slots (`field`, `button`, `card`, `heading`, `subtext`, `focusRing`); see [Theming](#theming) |
+| `mouse`         | `boolean \| { motion?: boolean }`                             | Turns terminal mouse reporting on (see [Mouse](#mouse)); `{ motion: false }` skips hover tracking                                                                                    |
+| `onUiEvent`     | `(event: UiEvent) => void`                                    | Browser-like events of every component: focus, blur, keydown, keyup, input, change and the mouse events (see [UI events](#ui-events))                                                |
 
 While `isStreaming` is true and the root has not appeared yet, a dim `…` placeholder is drawn; a dim `streaming…` line sits under the tree until the stream ends, and `loading…` while a query is in flight.
 
@@ -307,6 +307,38 @@ sequenceDiagram
 `ink-lang` sends nothing. It uses `createStreamingParser` and `library.prompt()` from `@openuidev/lang-core`, which are not instrumented. See the `lang-core` README for the flags that disable the rest of that package's telemetry.
 
 ## Validation
+
+## Theming
+
+A theme is a palette plus one style slot per part of the UI, so a design system's tokens map onto the terminal the way they map onto CSS. Every color takes any Ink value: a name (`cyan`), a hex code (`#38bdf8`) or `rgb(...)`.
+
+| Slot        | Parts                                                | Shape                                                                                                                   |
+| :---------- | :--------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| `field`     | Input, TextArea, Select, Combobox, DatePicker        | `box` (border, borderColor, borderDim, background, paddingX, paddingY), `text`, `placeholder`, `focused: { box, text }` |
+| `button`    | Button, IconButton, the table pager, `[ retry ]`     | `primary`, `secondary`, `tertiary`, `destructive`, `focused`, `disabled` (text styles)                                  |
+| `card`      | Card                                                 | `card`, `sunk`, `clear` (box styles)                                                                                    |
+| `heading`   | CardHeader titles                                    | text style                                                                                                              |
+| `subtext`   | Subtitles and hints                                  | text style                                                                                                              |
+| `focusRing` | The option, row, tab, cell or value under the cursor | text style                                                                                                              |
+
+A text style is `{ color, background, bold, dim, italic, underline, inverse, strikethrough }`; a box style is `{ border: "none" | "single" | "double" | "round" | "bold" | "classic", borderColor, borderDim, background, paddingX, paddingY }`. The defaults derive from the palette (a new `accent` recolors headings and card borders), and whatever the host passes is merged field by field over them:
+
+```tsx
+<InkRenderer
+  response={response}
+  library={inkLibrary}
+  theme={{
+    accent: "#38bdf8",
+    field: {
+      box: { border: "round", borderDim: true, paddingX: 1 },
+      focused: { box: { borderDim: false, borderColor: "#38bdf8" }, text: { bold: true } },
+    },
+    focusRing: { inverse: false, background: "#334155" },
+  }}
+/>
+```
+
+`themePresets` ships four ready-made themes (`default`, `bordered`, `minimal`, `midnight`) that the showcase cycles with Ctrl+T; `resolveTheme(overrides)` returns the full `InkTheme`, and custom components read it with `useTheme()` and draw it with `boxProps` / `textProps` (or `FieldFrame` and `useFieldStyles` for a field).
 
 ## UI events
 

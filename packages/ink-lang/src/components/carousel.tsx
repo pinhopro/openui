@@ -8,6 +8,7 @@ import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { CarouselSchema } from "../schemas/carousel-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { horizontalStep } from "./arrow-keys";
 import { clampIndex, stepIndex } from "./step-index";
 
@@ -25,6 +26,7 @@ interface CarouselStripProps {
  */
 function CarouselStrip({ index, count, onStep }: CarouselStripProps) {
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const strip = `◂ ${index + 1} / ${count} ▸`;
   const focusable = useFocusable({
     isActive: !isStreaming,
@@ -50,9 +52,10 @@ function CarouselStrip({ index, count, onStep }: CarouselStripProps) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
+  const ring = focusable.isFocused ? textProps(theme.focusRing) : textProps({});
   return (
     <Box ref={focusable.ref}>
-      <Text inverse={focusable.isFocused} dimColor={!focusable.isFocused}>
+      <Text {...ring} dimColor={focusable.isFocused ? ring.dimColor : true}>
         {strip}
       </Text>
     </Box>

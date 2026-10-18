@@ -5,6 +5,7 @@ import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { FormControlSchema } from "../schemas/form-control-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 
 type FormControlProps = z.infer<typeof FormControlSchema>;
 
@@ -42,7 +43,7 @@ function FormControlRenderer({ props, renderNode }: ComponentRenderProps<FormCon
       {error !== undefined ? (
         <Text color={theme.danger}>{error}</Text>
       ) : hasHint ? (
-        <Text dimColor>{String(props.hint)}</Text>
+        <Text {...textProps(theme.subtext)}>{String(props.hint)}</Text>
       ) : null}
     </Box>
   );

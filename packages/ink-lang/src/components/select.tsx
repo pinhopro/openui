@@ -6,9 +6,13 @@ import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { SelectSchema } from "../schemas/select-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
+import { useFieldStyles } from "../use-field-styles";
 import { useStateField } from "../use-state-field";
 import { verticalStep } from "./arrow-keys";
 import { isPressKey } from "./button-keys";
+import { FieldFrame } from "./field-frame";
 import { indexOfOption, selectOptions, type SelectOption } from "./select-options";
 import { clampIndex, stepIndex } from "./step-index";
 
@@ -28,7 +32,9 @@ interface OptionRowProps {
 
 /** One option line: a filled mark for the stored value, inverse video under the cursor; a click picks it. */
 function OptionRow({ option, index, isSelected, isUnderCursor, onPick }: OptionRowProps) {
+  const theme = useTheme();
   const rowRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isUnderCursor ? textProps(theme.focusRing) : textProps({});
   useMouse(rowRef, {
     onClick: function handleClick() {
       onPick(index);
@@ -38,7 +44,7 @@ function OptionRow({ option, index, isSelected, isUnderCursor, onPick }: OptionR
     <Box ref={rowRef}>
       <Text>
         {"  " + (isSelected ? SELECTED_MARK : UNSELECTED_MARK) + " "}
-        <Text inverse={isUnderCursor}>{" " + option.label + " "}</Text>
+        <Text {...cursorStyle}>{" " + option.label + " "}</Text>
       </Text>
     </Box>
   );
@@ -103,6 +109,7 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
     },
   });
   const canUse = focusable.isFocused && !isStreaming;
+  const styles = useFieldStyles(focusable.isFocused);
 
   function moveCursor(delta: number): void {
     const next = stepIndex(cursorRef.current, options.length, delta);
@@ -139,14 +146,16 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   const prefix = focusable.isFocused ? "> " : "  ";
   const summary =
     selected === undefined ? (
-      <Text dimColor>{placeholder}</Text>
+      <Text {...styles.placeholder}>{placeholder}</Text>
     ) : (
-      <Text bold={focusable.isFocused}>{selected.label}</Text>
+      <Text {...styles.text} bold={focusable.isFocused ? true : styles.text.bold}>
+        {selected.label}
+      </Text>
     );
 
   return (
-    <Box ref={focusable.ref} flexDirection="column">
-      <Text>
+    <FieldFrame boxRef={focusable.ref} isFocused={focusable.isFocused} column>
+      <Text {...styles.text}>
         {prefix + "▾ "}
         {summary}
       </Text>
@@ -158,7 +167,7 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
           onPick={pickWithMouse}
         />
       ) : null}
-    </Box>
+    </FieldFrame>
   );
 }
 

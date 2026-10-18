@@ -7,6 +7,8 @@ import { isElementValue } from "../element-node";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { AccordionSchema } from "../schemas/accordion-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { displayText } from "./pad";
 
@@ -28,6 +30,7 @@ interface SectionHeaderProps {
  */
 function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: trigger,
@@ -45,9 +48,10 @@ function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
+  const ring = focusable.isFocused ? textProps(theme.focusRing) : textProps({});
   return (
     <Box ref={focusable.ref}>
-      <Text inverse={focusable.isFocused} bold={isOpen}>
+      <Text {...ring} bold={isOpen ? true : ring.bold}>
         {(isOpen ? OPEN_MARK : CLOSED_MARK) + " " + trigger}
       </Text>
     </Box>

@@ -3,6 +3,7 @@ import { isPressKey } from "./components/button-keys";
 import { buttonTextStyle } from "./focus/focus-style";
 import { useFocusable } from "./focus/use-focusable";
 import { useTheme } from "./theme";
+import { textProps } from "./theme-styles";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const SPINNER_INTERVAL_MS = 80;
@@ -45,11 +46,13 @@ function RetryButton({ isStreaming, onRetry }: RetryButtonProps) {
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
-  const style = buttonTextStyle(focusable.isFocused, isStreaming, "secondary", undefined);
+  const style = textProps(
+    buttonTextStyle(focusable.isFocused, isStreaming, "secondary", undefined, theme.button),
+  );
   return (
     <Box>
       <Box ref={focusable.ref}>
-        <Text inverse={style.inverse} dimColor={style.dimColor} color={theme.danger}>
+        <Text {...style} color={theme.danger}>
           [ retry ]
         </Text>
       </Box>

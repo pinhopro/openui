@@ -5,9 +5,11 @@ import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { TextAreaSchema } from "../schemas/text-area-schema";
+import { useFieldStyles, type FieldInkStyles } from "../use-field-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useInputEvent } from "../use-input-event";
 import { useStateField } from "../use-state-field";
+import { FieldFrame } from "./field-frame";
 import { applyKeyToMultilineEditor, linePosition } from "./multiline-editing";
 import { displayText } from "./pad";
 import { countGraphemes, splitForCursor, type EditorState } from "./text-editing";
@@ -22,10 +24,18 @@ interface TextAreaLinesProps {
   rows: number;
   isFocused: boolean;
   placeholder: string;
+  styles: FieldInkStyles;
 }
 
 /** The text split into lines, padded to `rows`, with the cursor on its line while focused. */
-function TextAreaLines({ value, cursor, rows, isFocused, placeholder }: TextAreaLinesProps) {
+function TextAreaLines({
+  value,
+  cursor,
+  rows,
+  isFocused,
+  placeholder,
+  styles,
+}: TextAreaLinesProps) {
   const lines = value.split("\n");
   const position = linePosition(value, cursor);
   const count = Math.max(rows, lines.length);
@@ -36,25 +46,29 @@ function TextAreaLines({ value, cursor, rows, isFocused, placeholder }: TextArea
     if (isFocused && index === position.line) {
       const split = splitForCursor(line, position.column);
       rendered.push(
-        <Text key={index}>
+        <Text key={index} {...styles.text}>
           {prefix + split.before}
           <Text inverse>{split.at}</Text>
           {split.after}
-          {value === "" ? <Text dimColor>{placeholder}</Text> : null}
+          {value === "" ? <Text {...styles.placeholder}>{placeholder}</Text> : null}
         </Text>,
       );
       continue;
     }
     if (index === 0 && value === "") {
       rendered.push(
-        <Text key={index}>
+        <Text key={index} {...styles.text}>
           {prefix}
-          <Text dimColor>{placeholder}</Text>
+          <Text {...styles.placeholder}>{placeholder}</Text>
         </Text>,
       );
       continue;
     }
-    rendered.push(<Text key={index}>{prefix + (line === "" ? " " : line)}</Text>);
+    rendered.push(
+      <Text key={index} {...styles.text}>
+        {prefix + (line === "" ? " " : line)}
+      </Text>,
+    );
   }
   return <Box flexDirection="column">{rendered}</Box>;
 }
@@ -69,6 +83,7 @@ function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
     arrows: { horizontal: true, vertical: true },
   });
   const reportInput = useInputEvent(field.name);
+  const styles = useFieldStyles(focusable.isFocused);
   const value = displayText(field.value);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -103,15 +118,16 @@ function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
 
   const rows = typeof props.rows === "number" && props.rows > 0 ? props.rows : DEFAULT_ROWS;
   return (
-    <Box ref={focusable.ref} flexDirection="column">
+    <FieldFrame boxRef={focusable.ref} isFocused={focusable.isFocused} column>
       <TextAreaLines
         value={value}
         cursor={current.cursor}
         rows={rows}
         isFocused={focusable.isFocused}
         placeholder={displayText(props.placeholder)}
+        styles={styles}
       />
-    </Box>
+    </FieldFrame>
   );
 }
 

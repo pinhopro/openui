@@ -7,6 +7,8 @@ import { isElementValue } from "../element-node";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ListBlockSchema } from "../schemas/list-block-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { displayText } from "./pad";
 
@@ -33,6 +35,7 @@ function listItems(items: unknown): ElementNode[] {
 function ActionableEntry({ item, marker }: ListEntryProps) {
   const triggerAction = useTriggerAction();
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const title = displayText(item.props["title"]);
   const actionLabel = displayText(item.props["actionLabel"]);
 
@@ -61,7 +64,7 @@ function ActionableEntry({ item, marker }: ListEntryProps) {
     <Box ref={focusable.ref}>
       <Text>
         {marker + " "}
-        <Text inverse={focusable.isFocused}>{title}</Text>
+        <Text {...(focusable.isFocused ? textProps(theme.focusRing) : {})}>{title}</Text>
         {actionLabel === "" ? null : <Text dimColor>{"  (" + actionLabel + ")"}</Text>}
       </Text>
     </Box>

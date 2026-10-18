@@ -1,6 +1,8 @@
 import { Box, Text, type DOMElement } from "ink";
 import { useRef } from "react";
 import { useMouse } from "../mouse/use-mouse";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 
 export interface OptionLineProps {
   /** The glyph before the label: `[x]`, `( )`, `[on ]`... */
@@ -15,7 +17,9 @@ export interface OptionLineProps {
 
 /** `mark label` and, under it, the dim description indented past the mark; a click presses it. */
 export function OptionLine({ mark, label, description, isCursor, onPress }: OptionLineProps) {
+  const theme = useTheme();
   const lineRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isCursor ? textProps(theme.focusRing) : textProps({});
   useMouse(lineRef, {
     onClick: function handleClick() {
       onPress();
@@ -25,7 +29,7 @@ export function OptionLine({ mark, label, description, isCursor, onPress }: Opti
     <Box ref={lineRef} flexDirection="column">
       <Text>
         {mark + " "}
-        <Text inverse={isCursor}>{label}</Text>
+        <Text {...cursorStyle}>{label}</Text>
       </Text>
       {description === "" ? null : (
         <Text dimColor>{" ".repeat(mark.length + 1) + description}</Text>

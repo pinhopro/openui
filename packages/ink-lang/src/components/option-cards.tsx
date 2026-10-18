@@ -5,6 +5,7 @@ import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { OptionCardsSchema } from "../schemas/option-cards-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import {
@@ -35,6 +36,7 @@ interface OptionCardBoxProps {
 function OptionCardBox({ item, isSelected, isCursor, topContent, onPress }: OptionCardBoxProps) {
   const theme = useTheme();
   const cardRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isCursor ? textProps(theme.focusRing) : textProps({});
   useMouse(cardRef, {
     onClick: function handleClick() {
       onPress();
@@ -52,7 +54,7 @@ function OptionCardBox({ item, isSelected, isCursor, topContent, onPress }: Opti
       {topContent}
       <Text dimColor={item.disabled}>
         {(isSelected ? SELECTED_MARK : UNSELECTED_MARK) + " "}
-        <Text inverse={isCursor} bold={isSelected}>
+        <Text {...cursorStyle} bold={isSelected ? true : cursorStyle.bold}>
           {item.label}
         </Text>
       </Text>

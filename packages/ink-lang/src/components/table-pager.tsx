@@ -2,6 +2,8 @@ import { Box, Text, useInput } from "ink";
 import { useIsStreaming } from "../context";
 import { pagerTextStyle } from "../focus/focus-style";
 import { useFocusable } from "../focus/use-focusable";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { pageSummary, type PageBounds } from "./table-paging";
 
@@ -14,6 +16,7 @@ interface PagerButtonProps {
 /** A focusable `[ prev ]` / `[ next ]`; dim and inert at the end of the table. A click presses it. */
 function PagerButton({ label, disabled, onPress }: PagerButtonProps) {
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: label,
@@ -31,12 +34,12 @@ function PagerButton({ label, disabled, onPress }: PagerButtonProps) {
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
-  const style = pagerTextStyle(focusable.isFocused, disabled || isStreaming);
+  const style = textProps(
+    pagerTextStyle(focusable.isFocused, disabled || isStreaming, theme.button),
+  );
   return (
     <Box ref={focusable.ref}>
-      <Text inverse={style.inverse} dimColor={style.dimColor}>
-        [ {label} ]
-      </Text>
+      <Text {...style}>[ {label} ]</Text>
     </Box>
   );
 }

@@ -4,6 +4,8 @@ import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { ChipsSchema } from "../schemas/chips-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import { iconText } from "./icon";
@@ -31,7 +33,9 @@ interface ChipProps {
 
 /** `[✓ label]` when selected, `[ label ]` otherwise; dim when disabled. A click presses it. */
 function Chip({ item, isSelected, isCursor, onPress }: ChipProps) {
+  const theme = useTheme();
   const chipRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isCursor ? textProps(theme.focusRing) : textProps({});
   useMouse(chipRef, {
     onClick: function handleClick() {
       onPress();
@@ -42,7 +46,11 @@ function Chip({ item, isSelected, isCursor, onPress }: ChipProps) {
   const text = isSelected ? "[" + SELECTED_MARK + label + "]" : "[ " + label + " ]";
   return (
     <Box ref={chipRef}>
-      <Text inverse={isCursor} bold={isSelected} dimColor={item.disabled}>
+      <Text
+        {...cursorStyle}
+        bold={isSelected ? true : cursorStyle.bold}
+        dimColor={item.disabled ? true : cursorStyle.dimColor}
+      >
         {text}
       </Text>
     </Box>

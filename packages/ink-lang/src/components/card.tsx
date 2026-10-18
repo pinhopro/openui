@@ -2,29 +2,23 @@ import { Box } from "ink";
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { CardSchema } from "../schemas/card-schema";
-import { useTheme } from "../theme";
+import { useTheme, type InkTheme } from "../theme";
+import { boxProps, type BoxStyle } from "../theme-styles";
 import { flexBoxProps } from "./flex-box-props";
 
 type CardProps = z.infer<typeof CardSchema>;
 
-interface CardBorder {
-  borderStyle: "round" | "single" | undefined;
-  borderDimColor: boolean;
-  paddingX: number;
-}
-
-/** card: round border; sunk: single dim border; clear: no border at all. */
-function cardBorder(variant: string | undefined): CardBorder {
-  if (variant === "clear") return { borderStyle: undefined, borderDimColor: false, paddingX: 0 };
-  if (variant === "sunk") return { borderStyle: "single", borderDimColor: true, paddingX: 1 };
-  return { borderStyle: "round", borderDimColor: false, paddingX: 1 };
+/** The theme slot of a Card variant: card (default), sunk or clear. */
+function cardStyle(variant: string | undefined, theme: InkTheme): BoxStyle {
+  if (variant === "clear") return theme.card.clear;
+  if (variant === "sunk") return theme.card.sunk;
+  return theme.card.card;
 }
 
 function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
   const theme = useTheme();
   const box = flexBoxProps(props);
-  const border = cardBorder(props.variant);
-  const borderColor = border.borderStyle === "round" ? theme.accent : undefined;
+  const style = boxProps(cardStyle(props.variant, theme));
   return (
     <Box
       flexDirection={box.flexDirection}
@@ -32,10 +26,12 @@ function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
       alignItems={box.alignItems}
       justifyContent={box.justifyContent}
       flexWrap={box.flexWrap}
-      borderStyle={border.borderStyle}
-      borderColor={borderColor}
-      borderDimColor={border.borderDimColor}
-      paddingX={border.paddingX}
+      borderStyle={style.borderStyle}
+      borderColor={style.borderColor}
+      borderDimColor={style.borderDimColor}
+      backgroundColor={style.backgroundColor}
+      paddingX={style.paddingX}
+      paddingY={style.paddingY}
     >
       {renderNode(props.children)}
     </Box>

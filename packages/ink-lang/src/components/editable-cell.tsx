@@ -2,6 +2,8 @@ import { Box, Text, useInput } from "ink";
 import { useRef, useState } from "react";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { useInputEvent } from "../use-input-event";
 import { verticalStep } from "./arrow-keys";
 import { isPressKey } from "./button-keys";
@@ -26,6 +28,7 @@ export interface EditableCellProps {
 /** A select cell: Up and Down (or Enter and Space) move to the previous or next option. */
 function SelectCell({ name, column, value, width, onChange }: EditableCellProps) {
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const focusable = useFocusable({ isActive: !isStreaming, name, arrows: { vertical: true } });
 
   useInput(
@@ -43,7 +46,7 @@ function SelectCell({ name, column, value, width, onChange }: EditableCellProps)
   return (
     <Box ref={focusable.ref}>
       <Text>
-        <Text inverse={focusable.isFocused}>{label}</Text>
+        <Text {...(focusable.isFocused ? textProps(theme.focusRing) : {})}>{label}</Text>
         {padEnd("", width - countGraphemes(label))}
       </Text>
     </Box>

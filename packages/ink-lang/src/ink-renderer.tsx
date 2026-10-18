@@ -13,7 +13,7 @@ import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
-import { resolveTheme, ThemeContext, type InkTheme } from "./theme";
+import { resolveTheme, ThemeContext, type InkThemeOverrides } from "./theme";
 import { UiEventContext, type UiEvent } from "./ui-events";
 import { useOpenUIRuntime } from "./use-openui-runtime";
 
@@ -36,8 +36,12 @@ export interface InkRendererProps {
   toolProvider?: ToolProviderInput;
   /** Receives the structured error list once streaming ends; without it, errors are drawn in the frame. */
   onError?: (errors: OpenUIError[]) => void;
-  /** Colors for borders, headings, destructive buttons and hints; slots left out use the defaults. */
-  theme?: Partial<InkTheme>;
+  /**
+   * The palette (`accent`, `danger`...) and the CSS-like style slots
+   * (`field`, `button`, `card`, `heading`, `subtext`, `focusRing`); anything
+   * left out keeps the default, derived from the palette.
+   */
+  theme?: InkThemeOverrides;
   /**
    * Turns terminal mouse reporting on: clicks, hover and the wheel reach the
    * components. `true` reports every move; `{ motion: false }` reports presses

@@ -3,6 +3,7 @@ import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { CardHeaderSchema } from "../schemas/card-header-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 
 type CardHeaderProps = z.infer<typeof CardHeaderSchema>;
 
@@ -13,12 +14,8 @@ function CardHeaderRenderer({ props }: ComponentRenderProps<CardHeaderProps>) {
   if (!hasTitle && !hasSubtitle) return null;
   return (
     <Box flexDirection="column">
-      {hasTitle ? (
-        <Text bold color={theme.accent}>
-          {String(props.title)}
-        </Text>
-      ) : null}
-      {hasSubtitle ? <Text dimColor>{String(props.subtitle)}</Text> : null}
+      {hasTitle ? <Text {...textProps(theme.heading)}>{String(props.title)}</Text> : null}
+      {hasSubtitle ? <Text {...textProps(theme.subtext)}>{String(props.subtitle)}</Text> : null}
     </Box>
   );
 }

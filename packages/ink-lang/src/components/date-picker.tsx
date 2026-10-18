@@ -1,10 +1,11 @@
-import { Box, Text, useInput } from "ink";
+import { Text, useInput } from "ink";
 import { useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { DatePickerSchema } from "../schemas/date-picker-schema";
+import { useFieldStyles, type FieldInkStyles } from "../use-field-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import { horizontalStep, verticalStep } from "./arrow-keys";
@@ -17,6 +18,7 @@ import {
   type CalendarDate,
   type DateSegment,
 } from "./date-segments";
+import { FieldFrame } from "./field-frame";
 import { clampIndex, stepIndex } from "./step-index";
 
 type DatePickerProps = z.infer<typeof DatePickerSchema>;
@@ -42,10 +44,11 @@ interface DateTextProps {
   date: CalendarDate | undefined;
   /** The focused segment of this date, or -1 when the focus is elsewhere. */
   activeSegment: number;
+  styles: FieldInkStyles;
 }
 
-/** `YYYY-MM-DD` with the active segment in inverse video; dim while there is no date. */
-function DateText({ date, activeSegment }: DateTextProps) {
+/** `YYYY-MM-DD` with the active segment in inverse video; placeholder-styled while there is no date. */
+function DateText({ date, activeSegment, styles }: DateTextProps) {
   const segments = dateSegments(date);
   const parts: ReactNode[] = [];
   for (let index = 0; index < segments.length; index += 1) {
@@ -56,7 +59,7 @@ function DateText({ date, activeSegment }: DateTextProps) {
       </Text>,
     );
   }
-  return <Text dimColor={date === undefined}>{parts}</Text>;
+  return <Text {...(date === undefined ? styles.placeholder : styles.text)}>{parts}</Text>;
 }
 
 /**
@@ -72,6 +75,7 @@ function DatePickerRenderer({ props }: ComponentRenderProps<DatePickerProps>) {
     name: field.name,
     arrows: { horizontal: true, vertical: true },
   });
+  const styles = useFieldStyles(focusable.isFocused);
   const isRange = props.mode === "range";
   const dateCount = isRange ? 2 : 1;
   const segmentCount = SEGMENTS_PER_DATE * dateCount;
@@ -145,16 +149,17 @@ function DatePickerRenderer({ props }: ComponentRenderProps<DatePickerProps>) {
         key={index}
         date={dates[index]}
         activeSegment={isActiveDate ? segment - first : -1}
+        styles={styles}
       />,
     );
   }
   return (
-    <Box ref={focusable.ref}>
-      <Text>
+    <FieldFrame boxRef={focusable.ref} isFocused={focusable.isFocused}>
+      <Text {...styles.text}>
         {focusable.isFocused ? "> " : "  "}
         {parts}
       </Text>
-    </Box>
+    </FieldFrame>
   );
 }
 

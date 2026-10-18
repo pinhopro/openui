@@ -5,6 +5,7 @@ import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ModalSchema } from "../schemas/modal-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { useStateField } from "../use-state-field";
 import { isPressKey } from "./button-keys";
 import { displayText } from "./pad";
@@ -18,6 +19,7 @@ interface CloseButtonProps {
 /** The focusable `[ x ]` in the title line; Enter, Space or Escape close the modal. */
 function CloseButton({ onClose }: CloseButtonProps) {
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: "close",
@@ -38,7 +40,7 @@ function CloseButton({ onClose }: CloseButtonProps) {
 
   return (
     <Box ref={focusable.ref}>
-      <Text inverse={focusable.isFocused}>[ x ]</Text>
+      <Text {...(focusable.isFocused ? textProps(theme.focusRing) : {})}>[ x ]</Text>
     </Box>
   );
 }

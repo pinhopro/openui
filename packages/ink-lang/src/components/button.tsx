@@ -9,6 +9,7 @@ import { useFormValidation } from "../form-validation-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ButtonSchema } from "../schemas/button-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { buttonNeedsValidation } from "./button-validation";
 
@@ -52,26 +53,15 @@ function ButtonRenderer({ props }: ComponentRenderProps<ButtonProps>) {
     { isActive: canPress },
   );
 
-  const style = buttonTextStyle(
-    focusable.isFocused,
-    isStreaming,
-    props.variant,
-    props.type,
-    theme.danger,
+  const style = textProps(
+    buttonTextStyle(focusable.isFocused, isStreaming, props.variant, props.type, theme.button),
   );
   // The outer box follows the parent's alignment; the inner one hugs the
   // label so a click on blank space to its right does not press the button.
   return (
     <Box>
       <Box ref={focusable.ref}>
-        <Text
-          inverse={style.inverse}
-          bold={style.bold}
-          dimColor={style.dimColor}
-          color={style.color}
-        >
-          [ {label} ]
-        </Text>
+        <Text {...style}>[ {label} ]</Text>
       </Box>
     </Box>
   );

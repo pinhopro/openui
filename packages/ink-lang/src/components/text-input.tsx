@@ -1,13 +1,15 @@
-import { Box, Text, useInput } from "ink";
+import { Text, useInput } from "ink";
 import { useRef, useState } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { InputSchema } from "../schemas/input-schema";
+import { useFieldStyles, type FieldInkStyles } from "../use-field-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useInputEvent } from "../use-input-event";
 import { useStateField } from "../use-state-field";
+import { FieldFrame } from "./field-frame";
 import { displayText } from "./pad";
 import {
   applyKeyToEditor,
@@ -31,6 +33,7 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
     arrows: { horizontal: true },
   });
   const reportInput = useInputEvent(field.name);
+  const styles = useFieldStyles(focusable.isFocused);
   const value = displayText(field.value);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -71,39 +74,45 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
   const shown = props.type === "password" ? maskValue(value, PASSWORD_MASK) : value;
   const placeholder = props.placeholder ?? "";
   return (
-    <Box ref={focusable.ref}>
-      {inputLine(focusable.isFocused, shown, placeholder, current.cursor)}
-    </Box>
+    <FieldFrame boxRef={focusable.ref} isFocused={focusable.isFocused}>
+      {inputLine(focusable.isFocused, shown, placeholder, current.cursor, styles)}
+    </FieldFrame>
   );
 }
 
 /** The one line of the editor: placeholder or value, with a block cursor while focused. */
-function inputLine(isFocused: boolean, shown: string, placeholder: string, cursor: number) {
+function inputLine(
+  isFocused: boolean,
+  shown: string,
+  placeholder: string,
+  cursor: number,
+  styles: FieldInkStyles,
+) {
   if (!isFocused) {
     if (shown === "") {
       return (
-        <Text>
+        <Text {...styles.text}>
           {"  "}
-          <Text dimColor>{placeholder}</Text>
+          <Text {...styles.placeholder}>{placeholder}</Text>
         </Text>
       );
     }
-    return <Text>{"  " + shown}</Text>;
+    return <Text {...styles.text}>{"  " + shown}</Text>;
   }
 
   if (shown === "") {
     return (
-      <Text>
+      <Text {...styles.text}>
         {"> "}
         <Text inverse> </Text>
-        <Text dimColor>{placeholder}</Text>
+        <Text {...styles.placeholder}>{placeholder}</Text>
       </Text>
     );
   }
 
   const split = splitForCursor(shown, cursor);
   return (
-    <Text>
+    <Text {...styles.text}>
       {"> " + split.before}
       <Text inverse>{split.at}</Text>
       {split.after}

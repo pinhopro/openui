@@ -8,6 +8,7 @@ import { useFormName } from "../form-name-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { IconButtonSchema } from "../schemas/icon-button-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { isPressKey } from "./button-keys";
 import { iconText } from "./icon";
 import { displayText } from "./pad";
@@ -44,21 +45,15 @@ function IconButtonRenderer({ props }: ComponentRenderProps<IconButtonProps>) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
-  const style = buttonTextStyle(
-    focusable.isFocused,
-    isStreaming,
-    props.variant,
-    undefined,
-    theme.danger,
+  const style = textProps(
+    buttonTextStyle(focusable.isFocused, isStreaming, props.variant, undefined, theme.button),
   );
   const icon = iconText(props.icon);
   const label = icon === "" ? name : icon + " " + name;
   return (
     <Box>
       <Box ref={focusable.ref}>
-        <Text inverse={style.inverse} bold={style.bold} dimColor={style.dimColor}>
-          [ {label} ]
-        </Text>
+        <Text {...style}>[ {label} ]</Text>
       </Box>
     </Box>
   );

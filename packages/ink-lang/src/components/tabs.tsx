@@ -8,6 +8,8 @@ import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { TabsSchema } from "../schemas/tabs-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { horizontalStep } from "./arrow-keys";
 import { clampIndex, stepIndex } from "./step-index";
 
@@ -41,7 +43,9 @@ interface TabTriggerProps {
 
 /** One trigger of the strip; a click on it selects its tab. */
 function TabTrigger({ item, index, isActive, isFocused, onSelect }: TabTriggerProps) {
+  const theme = useTheme();
   const boxRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isActive && isFocused ? textProps(theme.focusRing) : textProps({});
   useMouse(boxRef, {
     onClick: function handleClick() {
       onSelect(index);
@@ -49,12 +53,7 @@ function TabTrigger({ item, index, isActive, isFocused, onSelect }: TabTriggerPr
   });
   return (
     <Box ref={boxRef}>
-      <Text
-        inverse={isActive && isFocused}
-        bold={isActive}
-        underline={isActive}
-        dimColor={!isActive}
-      >
+      <Text {...cursorStyle} bold={isActive} underline={isActive} dimColor={!isActive}>
         {" " + triggerText(item) + " "}
       </Text>
     </Box>

@@ -6,10 +6,14 @@ import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { ComboboxSchema } from "../schemas/combobox-schema";
+import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
+import { useFieldStyles } from "../use-field-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import { verticalStep } from "./arrow-keys";
 import { filterOptions, listWindow } from "./combobox-options";
+import { FieldFrame } from "./field-frame";
 import { indexOfOption, selectOptions, type SelectOption } from "./select-options";
 import { clampIndex, stepIndex } from "./step-index";
 import { applyKeyToEditor, splitForCursor, type EditorState } from "./text-editing";
@@ -32,7 +36,9 @@ interface MatchRowProps {
 
 /** One visible match: a mark for the stored value, inverse video under the cursor; a click picks it. */
 function MatchRow({ option, index, isSelected, isUnderCursor, onPick }: MatchRowProps) {
+  const theme = useTheme();
   const rowRef = useRef<DOMElement | null>(null);
+  const cursorStyle = isUnderCursor ? textProps(theme.focusRing) : textProps({});
   useMouse(rowRef, {
     onClick: function handleClick() {
       onPick(index);
@@ -42,7 +48,7 @@ function MatchRow({ option, index, isSelected, isUnderCursor, onPick }: MatchRow
     <Box ref={rowRef}>
       <Text>
         {"  " + (isSelected ? SELECTED_MARK : UNSELECTED_MARK) + " "}
-        <Text inverse={isUnderCursor}>{" " + option.label + " "}</Text>
+        <Text {...cursorStyle}>{" " + option.label + " "}</Text>
       </Text>
     </Box>
   );
@@ -157,6 +163,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const highlightRef = useRef(cursor);
   highlightRef.current = cursor;
   const canUse = focusable.isFocused && !isStreaming;
+  const styles = useFieldStyles(focusable.isFocused);
 
   function resetFilter(): void {
     editorRef.current = EMPTY_EDITOR;
@@ -227,27 +234,36 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const selected = options[selectedIndex];
   const placeholder = props.placeholder ?? DEFAULT_PLACEHOLDER;
   let summary: ReactNode;
+  const bold = focusable.isFocused ? true : styles.text.bold;
   if (selected !== undefined) {
-    summary = <Text bold={focusable.isFocused}>{selected.label}</Text>;
+    summary = (
+      <Text {...styles.text} bold={bold}>
+        {selected.label}
+      </Text>
+    );
   } else if (typeof field.value === "string" && field.value !== "") {
-    summary = <Text bold={focusable.isFocused}>{field.value}</Text>;
+    summary = (
+      <Text {...styles.text} bold={bold}>
+        {field.value}
+      </Text>
+    );
   } else {
-    summary = <Text dimColor>{placeholder}</Text>;
+    summary = <Text {...styles.placeholder}>{placeholder}</Text>;
   }
 
   if (!focusable.isFocused) {
     return (
-      <Box ref={focusable.ref}>
-        <Text>
+      <FieldFrame boxRef={focusable.ref} isFocused={false}>
+        <Text {...styles.text}>
           {"  ▾ "}
           {summary}
         </Text>
-      </Box>
+      </FieldFrame>
     );
   }
 
   return (
-    <Box ref={focusable.ref} flexDirection="column">
+    <FieldFrame boxRef={focusable.ref} isFocused column>
       <FilterLine editor={editor} fallback={summary} />
       <FilteredList
         options={filtered}
@@ -255,7 +271,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
         cursor={cursor}
         onPick={pickWithMouse}
       />
-    </Box>
+    </FieldFrame>
   );
 }
 

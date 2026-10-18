@@ -47,8 +47,42 @@ export type { FieldValidation, FieldValidationOptions } from "./use-field-valida
 export { useStateField } from "./use-state-field";
 
 // Theme
-export { ThemeContext, defaultTheme, resolveTheme, useTheme } from "./theme";
-export type { InkTheme } from "./theme";
+export { FieldFrame } from "./components/field-frame";
+export type { FieldFrameProps } from "./components/field-frame";
+export {
+  ThemeContext,
+  defaultPalette,
+  defaultStyles,
+  defaultTheme,
+  fieldStyles,
+  resolveTheme,
+  useTheme,
+} from "./theme";
+export type {
+  ButtonTheme,
+  ButtonThemeOverrides,
+  CardTheme,
+  CardThemeOverrides,
+  FieldFocusTheme,
+  FieldFocusThemeOverrides,
+  FieldTheme,
+  FieldThemeOverrides,
+  InkPalette,
+  InkTheme,
+  InkThemeOverrides,
+} from "./theme";
+export { findPreset, themePresets } from "./theme-presets";
+export type { ThemePreset } from "./theme-presets";
+export { boxProps, mergeBoxStyle, mergeTextStyle, textProps } from "./theme-styles";
+export type {
+  BorderStyleName,
+  BoxStyle,
+  InkBoxProps,
+  InkTextProps,
+  TextStyle,
+} from "./theme-styles";
+export { useFieldStyles } from "./use-field-styles";
+export type { FieldInkStyles } from "./use-field-styles";
 
 // Tool providers
 export type { ToolFunction, ToolFunctionMap, ToolProviderInput } from "./runtime/tool-provider";
@@ -351,7 +385,6 @@ export type { ArrowClaims, ArrowDirection, NavigationCandidate } from "./focus/f
 export { FocusRegistryContext, createFocusRegistry } from "./focus/focus-registry";
 export type { FocusEntry, FocusRegistry } from "./focus/focus-registry";
 export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
-export type { ButtonTextStyle } from "./focus/focus-style";
 export { keyName } from "./focus/key-name";
 export { KeyReporter } from "./focus/key-reporter";
 export { useFocusable } from "./focus/use-focusable";

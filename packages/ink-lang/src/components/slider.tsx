@@ -8,6 +8,7 @@ import { defineComponent, type ComponentRenderProps } from "../library";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import { SliderSchema } from "../schemas/slider-schema";
 import { useTheme } from "../theme";
+import { textProps } from "../theme-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import { horizontalStep } from "./arrow-keys";
@@ -95,7 +96,9 @@ function SliderRenderer({ props }: ComponentRenderProps<SliderProps>) {
         <Text color={focusable.isFocused ? theme.accent : undefined}>
           {sliderTrack(value, min, max, TRACK_WIDTH)}
         </Text>{" "}
-        <Text inverse={focusable.isFocused}>{formatNumber(value)}</Text>
+        <Text {...(focusable.isFocused ? textProps(theme.focusRing) : {})}>
+          {formatNumber(value)}
+        </Text>
       </Text>
     </Box>
   );
