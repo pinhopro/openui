@@ -1,0 +1,21 @@
+/** Text sizes, markdown, code, icons, tags, the text blocks and the metric indicators. */
+export const contentProgram = [
+  "root = Stack([header, sizes, markdown, code, icons, tags, texts, metrics])",
+  'header = CardHeader("Content", "Text, markdown, code, icons, tags and metrics")',
+  'sizes = Stack([large, medium, small], "column", "none")',
+  'large = TextContent("Large heavy text", "large-heavy")',
+  'medium = TextContent("Default text with **bold**, _italic_, `code` and a [link](https://www.openui.com).")',
+  'small = TextContent("Small heavy text", "small-heavy")',
+  'markdown = MarkDownRenderer("## Markdown\\n\\n- bullet one\\n- bullet two\\n\\n1. first\\n2. second", "sunk")',
+  'code = CodeBlock("ts", "const answer = 42;\\nconsole.log(answer);")',
+  'icons = Stack([InlineHeader("Icons", "drawn as their names"), Icon("rocket"), launch], "column", "xs")',
+  'launch = IconButton("Launch", Icon("rocket"), @ToAssistant("Launch"), "primary", "small", "circle")',
+  'tags = Stack([Tag("neutral"), Tag("info", Icon("info"), "md", "info"), Tag("success", null, "sm", "success"), Tag("warning", null, "sm", "warning"), Tag("danger", null, "sm", "danger"), TagBlock(["alpha", "beta", "gamma"], "sm")], "row", "s", null, null, true)',
+  'texts = Stack([plain, bold, iconText, imageText, imageTextLarge], "column", "xs")',
+  'plain = Text("text", "Plain text", "with a subtext", "text", "md")',
+  'bold = BoldText("number", "1,024", "requests", "number", "lg")',
+  'iconText = IconText(Icon("user"), "info", "sm", "Icon text", "with a subtitle", true, "horizontal")',
+  'imageText = ImageText("https://example.com/avatar.png", "Avatar", "Image text", "with a subtitle", false, "horizontal", 4)',
+  'imageTextLarge = ImageTextLarge("https://example.com/banner.png", "Banner", "Image text large", "with a subtitle", true)',
+  'metrics = Stack([MetricIndicatorInline("$12.4k", "this month", {direction: "up", value: 12}), MetricIndicatorWithStrikethrough("$9.99", "per seat", "$14.99", {direction: "down", value: 33})], "row", "l")',
+].join("\n");

@@ -158,7 +158,9 @@ packages/ink-lang/
 │       └── label.tsx            plain Text
 ├── examples/
 │   ├── demo-program.ts          the mock OpenUI Lang response and its chunking
-│   └── demo.tsx                 streams it into <InkRenderer>, logs onAction events
+│   ├── demo.tsx                 streams it into <InkRenderer>, logs onAction events
+│   ├── showcase.tsx             full-screen tour: sidebar of pages, mouse on, alternate screen
+│   └── showcase/                ShowcaseApp, Sidebar, StatusBar, streaming hook, fake tools, one program per page
 └── test/
     ├── helpers/                 render-with-library.tsx, keys.ts (Tab, Enter, ...), settle.ts
     ├── render-node.test.tsx

@@ -1,0 +1,22 @@
+/** Callouts bound to state, a modal, a query with a spinner, a flaky query with retry and a mutation. */
+export const feedbackProgram = [
+  "$showInfo = true",
+  "$showModal = false",
+  "root = Stack([header, callouts, modalRow, modal, statsCard, healthCard, ticketCard])",
+  'header = CardHeader("Feedback", "Callouts, modal, queries and mutations")',
+  'callouts = Stack([info, warning, error, success, plain, toggles], "column", "xs")',
+  'info = Callout("info", "Heads up", "Queries run once the stream ends; a failed one leaves a retry control.", $showInfo)',
+  'warning = Callout("warning", "Rate limit", "Slow down a little.")',
+  'error = Callout("error", "Deploy failed", "A rollback has started.")',
+  'success = Callout("success", "All green", "Every check passed.")',
+  'plain = TextCallout("neutral", "Plain callout", "Without a colored border")',
+  'toggles = Buttons([Button("Hide the info callout", @Set($showInfo, false), "secondary"), Button("Show it again", @Set($showInfo, true), "secondary")])',
+  'modalRow = Buttons([Button("Open the modal", @Set($showModal, true))])',
+  'modal = Modal("Confirm deploy", $showModal, [TextContent("Deploy v1.4 to production?"), Buttons([Button("Deploy", @ToAssistant("Deploy v1.4")), Button("Cancel", @Set($showModal, false), "secondary")])], "sm")',
+  'stats = Query("stats", {}, {total: 0, p95: 0})',
+  'statsCard = Card([CardHeader("Query", "served by the host toolProvider"), TextContent("Total requests: " + stats.total + " | p95: " + stats.p95 + " ms")], "sunk")',
+  'health = Query("health", {}, {status: "unknown"})',
+  'healthCard = Card([CardHeader("Flaky query", "fails once, then press retry"), TextContent("Health: " + health.status)], "sunk")',
+  'createTicket = Mutation("create_ticket", {title: "Showcase ticket"})',
+  'ticketCard = Card([CardHeader("Mutation", "runs when the button is pressed"), TextContent("Ticket: " + createTicket.id), Buttons([Button("Create a ticket", @Run(createTicket))])], "sunk")',
+].join("\n");

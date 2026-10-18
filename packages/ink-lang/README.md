@@ -79,6 +79,14 @@ pnpm --filter @openuidev/ink-lang demo
 pnpm --filter @openuidev/ink-lang demo -- --mouse
 ```
 
+The showcase is a full-screen tour of every component, one page per group, with the mouse on:
+
+```bash
+pnpm --filter @openuidev/ink-lang showcase
+```
+
+`examples/showcase.tsx` takes the alternate screen and renders `examples/showcase/showcase-app.tsx`: a sidebar of pages on the left (Up and Down, a click or the wheel pick one; Ctrl+N and Ctrl+P work from anywhere), the active page streaming into `InkRenderer` on the right (PgUp, PgDn and the wheel scroll it) and a status bar with the last `onAction` event and `onStateUpdate` snapshot. Every page is an OpenUI Lang program under `examples/showcase/programs/`, and a test checks that, together, they use every component of the library. The Feedback page's queries and mutation are served by `examples/showcase/showcase-tools.ts`, whose `health` tool fails on its first call so the retry control shows. Ctrl+Q quits; `--no-mouse` keeps the terminal's own text selection.
+
 ## `InkRenderer` props
 
 | Prop            | Type                                                          | Description                                                                                                                                                    |
