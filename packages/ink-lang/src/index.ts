@@ -70,3 +70,43 @@ export type {
   StateField,
   ToolProvider,
 } from "@openuidev/lang-core";
+
+// Default terminal library and its components
+export { Button } from "./components/button";
+export { Buttons } from "./components/buttons";
+export { Card } from "./components/card";
+export { CardHeader } from "./components/card-header";
+export { Form } from "./components/form";
+export { FormControl } from "./components/form-control";
+export { Label } from "./components/label";
+export { Stack } from "./components/stack";
+export { TextContent } from "./components/text-content";
+export { Input } from "./components/text-input";
+export { inkComponentGroups, inkLibrary } from "./default-library";
+
+// Schemas (verbatim copies of the React default library's)
+export { actionPropSchema } from "./schemas/action-schema";
+export { ButtonSchema } from "./schemas/button-schema";
+export { ButtonsSchema } from "./schemas/buttons-schema";
+export { CardHeaderSchema } from "./schemas/card-header-schema";
+export { CardChildUnion, CardSchema } from "./schemas/card-schema";
+export { FlexPropsSchema } from "./schemas/flex-props-schema";
+export { FormControlSchema } from "./schemas/form-control-schema";
+export { FormSchema } from "./schemas/form-schema";
+export { InputSchema } from "./schemas/input-schema";
+export { LabelSchema } from "./schemas/label-schema";
+export { rulesSchema } from "./schemas/rules-schema";
+export { StackSchema } from "./schemas/stack-schema";
+export { TextContentSchema } from "./schemas/text-content-schema";
+
+// Building blocks for custom terminal components
+export { flexBoxProps } from "./components/flex-box-props";
+export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
+export { textContentStyle } from "./components/text-content-style";
+export type { TextContentStyle } from "./components/text-content-style";
+export { applyKeyToEditor, maskValue, splitForCursor } from "./components/text-editing";
+export type { CursorSplit, EditorState } from "./components/text-editing";
+export { buttonTextStyle } from "./focus/focus-style";
+export type { ButtonTextStyle } from "./focus/focus-style";
+export { useFocusable } from "./focus/use-focusable";
+export type { Focusable, FocusableOptions } from "./focus/use-focusable";
