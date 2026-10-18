@@ -1,6 +1,10 @@
+import { Box, Text, type DOMElement } from "ink";
+import { render } from "ink-testing-library";
+import { useRef, type RefObject } from "react";
 import { describe, expect, it } from "vitest";
-import { targetsUnderCell, type MeasuredTarget } from "../../src/mouse/hit-test";
+import { measureTargets, targetsUnderCell, type MeasuredTarget } from "../../src/mouse/hit-test";
 import type { MouseTarget } from "../../src/mouse/mouse-target";
+import { settle } from "../helpers/settle";
 
 function target(): MouseTarget {
   return { ref: { current: null }, handlers: {} };
@@ -52,5 +56,35 @@ describe("targetsUnderCell", () => {
     const empty = measured(0, 0, 0, 0, 5);
     const real = measured(0, 0, 4, 1, 1);
     expect(targetsUnderCell([empty, real], 0, 0)).toEqual([real.target]);
+  });
+});
+
+describe("measureTargets", () => {
+  it("subtracts the contentOffsetY of scrolled ancestors so rects are viewport cells", async () => {
+    let captured: RefObject<DOMElement | null> | null = null;
+    function Scrolled() {
+      const ref = useRef<DOMElement | null>(null);
+      captured = ref;
+      return (
+        <Box flexDirection="column" height={2} overflowY="hidden" contentOffsetY={3}>
+          <Box flexDirection="column" flexShrink={0}>
+            <Text>0</Text>
+            <Text>1</Text>
+            <Text>2</Text>
+            <Text>3</Text>
+            <Box ref={ref} width={1}>
+              <Text>4</Text>
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+    const instance = render(<Scrolled />);
+    await settle();
+    const ref = captured as RefObject<DOMElement | null> | null;
+    expect(ref).not.toBeNull();
+    const [first] = measureTargets([{ ref: ref as RefObject<DOMElement | null>, handlers: {} }]);
+    expect(first?.rect).toEqual({ x: 0, y: 1, width: 1, height: 1 });
+    instance.unmount();
   });
 });

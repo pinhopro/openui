@@ -30,16 +30,48 @@ function elementDepth(element: DOMElement): number {
   return depth;
 }
 
-/** Measures every mounted target; targets whose ref is empty are skipped. */
+interface Offset {
+  x: number;
+  y: number;
+}
+
+function contentOffset(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.trunc(value);
+}
+
+/**
+ * How far the ancestors' `contentOffsetX` / `contentOffsetY` (scrolled
+ * containers) move the element on screen: Ink's layout metrics leave those
+ * out, the terminal cells do not.
+ */
+function scrolledOffset(element: DOMElement): Offset {
+  const offset: Offset = { x: 0, y: 0 };
+  let current: DOMElement | undefined = element.parentNode;
+  while (current !== undefined) {
+    offset.x += contentOffset(current.style.contentOffsetX);
+    offset.y += contentOffset(current.style.contentOffsetY);
+    current = current.parentNode;
+  }
+  return offset;
+}
+
+/** Measures every mounted target in viewport cells; targets whose ref is empty are skipped. */
 export function measureTargets(targets: Iterable<MouseTarget>): MeasuredTarget[] {
   const measured: MeasuredTarget[] = [];
   for (const target of targets) {
     const element = target.ref.current;
     if (element === null) continue;
     const metrics = measureElement(element);
+    const scrolled = scrolledOffset(element);
     measured.push({
       target,
-      rect: { x: metrics.x, y: metrics.y, width: metrics.width, height: metrics.height },
+      rect: {
+        x: metrics.x - scrolled.x,
+        y: metrics.y - scrolled.y,
+        width: metrics.width,
+        height: metrics.height,
+      },
       depth: elementDepth(element),
     });
   }
