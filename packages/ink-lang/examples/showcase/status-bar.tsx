@@ -14,7 +14,8 @@ export interface StatusBarProps {
   errors: string;
 }
 
-const KEY_HELP = "Ctrl+N / Ctrl+P pages  Tab focus  Enter press  PgUp / PgDn scroll  Ctrl+Q quit";
+const KEY_HELP =
+  "Ctrl+N / Ctrl+P pages  Tab / arrows focus  Enter press  PgUp / PgDn scroll  Ctrl+T theme  Ctrl+Q quit";
 
 /** The two lines at the bottom: the key help and what the host last received. */
 export function StatusBar({ columns, mouse, lastAction, state, errors }: StatusBarProps) {

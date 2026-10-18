@@ -10,6 +10,7 @@ import { settle } from "../helpers/settle";
 
 const CTRL_N = "\u000e";
 const CTRL_P = "\u0010";
+const CTRL_T = "\u0014";
 
 const pages: ShowcasePage[] = [
   {
@@ -136,6 +137,40 @@ describe("ShowcaseApp event log", () => {
     expect(frame).toContain("Events (");
     expect(frame).toContain('focus Button "Ping"');
     expect(frame).toContain("keydown");
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp themes", () => {
+  it("cycles the theme presets with Ctrl+T and shows the active one", async () => {
+    const withInput: ShowcasePage[] = [
+      {
+        id: "fields",
+        title: "Fields",
+        program: 'root = Stack([CardHeader("Fields"), Input("q", "Search")])',
+      },
+    ];
+    const instance = render(
+      <ShowcaseApp
+        pages={withInput}
+        tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+        mouse={false}
+        stream={{ chunkSize: 1000, intervalMs: 1 }}
+      />,
+    );
+    await settle(40);
+    let frame = lastFrame(instance.frames);
+    expect(frame).toContain("Theme: Default");
+    expect(frame).toContain("Ctrl+T");
+    expect(frame).not.toContain("╭ ");
+    instance.stdin.write(CTRL_T);
+    await settle(10);
+    frame = lastFrame(instance.frames);
+    expect(frame).toContain("Theme: Bordered");
+    expect(frame.split("╭").length).toBeGreaterThan(2);
+    instance.stdin.write(CTRL_T);
+    await settle(10);
+    expect(lastFrame(instance.frames)).toContain("Theme: Minimal");
     instance.unmount();
   });
 });

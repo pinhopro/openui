@@ -6,6 +6,7 @@ import { inkLibrary } from "../../src/default-library";
 import { InkRenderer } from "../../src/ink-renderer";
 import { MouseProvider } from "../../src/mouse/mouse-provider";
 import { useMouse } from "../../src/mouse/use-mouse";
+import { themePresets, type ThemePreset } from "../../src/theme-presets";
 import type { UiEvent } from "../../src/ui-events";
 import { describeUiEvent } from "./event-line";
 import { EventLog } from "./event-log";
@@ -14,6 +15,7 @@ import type { ShowcasePage } from "./pages";
 import type { ShowcaseTools } from "./showcase-tools";
 import { Sidebar } from "./sidebar";
 import { StatusBar } from "./status-bar";
+import { ThemePicker } from "./theme-picker";
 import { useStreamedProgram, type StreamOptions } from "./use-streamed-program";
 
 export interface ShowcaseAppProps {
@@ -58,6 +60,7 @@ interface PagePaneProps {
   pageId: string;
   response: string;
   isStreaming: boolean;
+  preset: ThemePreset;
   tools: ShowcaseTools;
   onAction: (event: ActionEvent) => void;
   onStateUpdate: (state: Record<string, unknown>) => void;
@@ -73,6 +76,7 @@ function PagePane({
   pageId,
   response,
   isStreaming,
+  preset,
   tools,
   onAction,
   onStateUpdate,
@@ -145,6 +149,7 @@ function PagePane({
           response={response}
           library={inkLibrary}
           isStreaming={isStreaming}
+          theme={preset.theme}
           onAction={onAction}
           onStateUpdate={onStateUpdate}
           onError={onError}
@@ -172,6 +177,15 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
   const [state, setState] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<OpenUIError[]>([]);
   const [events, setEvents] = useState<string[]>([]);
+  const [themeIndex, setThemeIndex] = useState(0);
+  const preset = themePresets[themeIndex] ?? (themePresets[0] as ThemePreset);
+
+  function cycleTheme(delta: number): void {
+    setThemeIndex(function move(previous) {
+      const count = themePresets.length;
+      return (previous + delta + count) % count;
+    });
+  }
 
   function onUiEvent(event: UiEvent): void {
     setEvents(function append(previous) {
@@ -194,6 +208,7 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
     if (key.ctrl && input === "n") selectPage(activeIndex + 1);
     if (key.ctrl && input === "p") selectPage(activeIndex - 1);
     if (key.ctrl && input === "q") app.exit();
+    if (key.ctrl && input === "t") cycleTheme(1);
   });
 
   function onAction(event: ActionEvent): void {
@@ -211,12 +226,16 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
               onSelect={selectPage}
               width={SIDEBAR_WIDTH - 2}
             />
+            <Box paddingX={1}>
+              <ThemePicker preset={preset} onCycle={cycleTheme} />
+            </Box>
           </Box>
           <Box flexDirection="column" flexGrow={1} minWidth={0}>
             <PagePane
               pageId={page === undefined ? "" : page.id}
               response={streamed.response}
               isStreaming={streamed.isStreaming}
+              preset={preset}
               tools={tools}
               onAction={onAction}
               onStateUpdate={setState}
