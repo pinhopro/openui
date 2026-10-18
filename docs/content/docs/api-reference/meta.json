@@ -8,6 +8,7 @@
     "vue-lang",
     "svelte-lang",
     "angular-lang",
+    "ink-lang",
     "---Chat---",
     "react-headless",
     "react-ui",

@@ -1,0 +1,93 @@
+---
+title: "Ink (terminal)"
+---
+
+<Steps>
+
+<Step title="Render the stream inside your Ink app" source="https://www.openui.com/docs/api-reference/ink-lang">
+
+Mount InkRenderer anywhere in your Ink tree, pass the accumulated response as it streams and flip isStreaming off when the model is done. Buttons and inputs stay inactive while streaming, queries wait for the end of the stream, and errors are reported only once the program is complete.
+
+```tsx title="app.tsx"
+import { Box, render, Text } from "ink";
+import { useEffect, useState } from "react";
+import { InkRenderer, inkLibrary, type ActionEvent } from "@openuidev/ink-lang";
+
+function App() {
+  const [response, setResponse] = useState("");
+  const [isStreaming, setIsStreaming] = useState(true);
+  const [lastEvent, setLastEvent] = useState<ActionEvent | null>(null);
+
+  useEffect(function stream() {
+    void streamFromYourModel(setResponse).then(function done() {
+      setIsStreaming(false);
+    });
+  }, []);
+
+  return (
+    <Box flexDirection="column">
+      <InkRenderer
+        response={response}
+        library={inkLibrary}
+        isStreaming={isStreaming}
+        onAction={setLastEvent}
+      />
+      <Text dimColor>
+        {lastEvent ? `${lastEvent.type}: ${lastEvent.humanFriendlyMessage}` : ""}
+      </Text>
+    </Box>
+  );
+}
+
+render(<App />);
+```
+
+</Step>
+
+<Step title="Generate the prompt from the same library" source="https://www.openui.com/docs/api-reference/ink-lang">
+
+inkLibrary carries the component names, positional arguments and Zod schemas of the React default library, so the prompt it generates is the one your web app already uses for those components. Tab and Shift+Tab move focus, Enter or Space presses a button, typing edits an Input.
+
+```ts title="prompt.ts"
+import { inkLibrary } from "@openuidev/ink-lang";
+
+export const systemPrompt = inkLibrary.prompt({
+  preamble: "You are a deployment assistant. Answer with OpenUI Lang.",
+});
+```
+
+</Step>
+
+<Step title="Add your own terminal components" source="https://www.openui.com/docs/api-reference/ink-lang">
+
+defineComponent pairs a Zod schema with an Ink renderer; the key order of the schema is the positional order in OpenUI Lang. Hooks such as useTriggerAction, useStateField and useFocusable connect the component to actions, state and the focus ring.
+
+```tsx title="library.tsx"
+import { Text } from "ink";
+import { z } from "zod/v4";
+import {
+  createLibrary,
+  defineComponent,
+  Stack,
+  type ComponentRenderProps,
+} from "@openuidev/ink-lang";
+
+const GreetingSchema = z.object({ name: z.string() });
+
+function GreetingRenderer({ props }: ComponentRenderProps<z.infer<typeof GreetingSchema>>) {
+  return <Text>Hello, {props.name}!</Text>;
+}
+
+export const Greeting = defineComponent({
+  name: "Greeting",
+  description: "Greets the user",
+  props: GreetingSchema,
+  component: GreetingRenderer,
+});
+
+export const library = createLibrary({ root: "Stack", components: [Stack, Greeting] });
+```
+
+</Step>
+
+</Steps>

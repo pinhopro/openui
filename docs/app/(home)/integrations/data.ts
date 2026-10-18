@@ -461,6 +461,26 @@ const integrationCatalog: Integration[] = [
     ],
   },
   {
+    slug: "ink",
+    name: "Ink (terminal)",
+    seoTitle: "Generative UI in the terminal with Ink",
+    seoDescription:
+      "Build AI-powered terminal interfaces with OpenUI and Ink. Let AI render cards, tables, forms and buttons in a TUI from the same prompt your web app uses.",
+    logo: "/integration-logos/ink.svg",
+    category: "frontend-platforms",
+    type: "Native runtime",
+    summary:
+      "To build generative UI in the terminal, render streamed OpenUI Lang with @openuidev/ink-lang inside an Ink app. InkRenderer takes the response as a prop, inkLibrary mirrors the React default library's component schemas, and hooks such as useTriggerAction connect your own Ink components to it.",
+    howItWorks:
+      "Each component pairs a Zod schema with an Ink renderer through defineComponent; the schema's key order sets the positional arguments in OpenUI Lang. InkRenderer parses the stream with lang-core, evaluates the tree and reports back through onAction, onStateUpdate and onError. Tab and Shift+Tab move focus through Ink's focus manager, Enter or Space presses a button and typing edits an Input, with the store and query manager shared with the React runtime.",
+    install: "npm install @openuidev/ink-lang ink react zod",
+    links: [
+      { label: "Ink Lang API reference", href: "/docs/api-reference/ink-lang", kind: "Docs" },
+      ...packageLinks("@openuidev/ink-lang", "ink-lang"),
+      { label: "Ink", href: "https://github.com/vadimdemedes/ink", kind: "Website" },
+    ],
+  },
+  {
     slug: "angular",
     name: "Angular",
     seoTitle: "Generative UI for Angular",
@@ -543,6 +563,7 @@ const popularityOrder: Record<IntegrationCategoryId, string[]> = {
     "vue",
     "angular",
     "svelte",
+    "ink",
     "react-native",
     "lynx",
     "assistant-ui",

@@ -1,0 +1,133 @@
+---
+title: "@openuidev/ink-lang"
+description: API reference for the terminal (Ink) runtime: component libraries, streaming rendering, actions, state and queries in a TUI.
+---
+
+Use this package to render streamed OpenUI Lang in the terminal with [Ink](https://github.com/vadimdemedes/ink). It ships `InkRenderer`, hooks for use inside rendered components, and `inkLibrary`, a terminal counterpart of the React default library with the same component names, positional arguments and schemas, so one system prompt serves a web app and a terminal app.
+
+## Install
+
+```bash
+npm install @openuidev/ink-lang ink react zod
+```
+
+Peer dependencies: `ink ^8.0.0`, `react >=19.3.0`, `zod ^3.25.0 || ^4.0.0`. Node 22 or newer. The package is ESM only, like Ink, and tracks `@openuidev/lang-core` 1.x (the OpenUI Lang 1.0 features work).
+
+## Render streamed output
+
+Pass the accumulated response text as it streams and flip `isStreaming` off when the stream ends. Buttons and inputs are inactive while streaming, queries wait, and errors are held back until the program is complete.
+
+```tsx title="app.tsx"
+import { Box, render, Text } from "ink";
+import { useEffect, useState } from "react";
+import { InkRenderer, inkLibrary, type ActionEvent } from "@openuidev/ink-lang";
+
+function App() {
+  const [response, setResponse] = useState("");
+  const [isStreaming, setIsStreaming] = useState(true);
+  const [lastEvent, setLastEvent] = useState<ActionEvent | null>(null);
+
+  useEffect(function stream() {
+    void streamFromYourModel(setResponse).then(function done() {
+      setIsStreaming(false);
+    });
+  }, []);
+
+  return (
+    <Box flexDirection="column">
+      <InkRenderer
+        response={response}
+        library={inkLibrary}
+        isStreaming={isStreaming}
+        onAction={setLastEvent}
+      />
+      <Text dimColor>
+        {lastEvent ? `${lastEvent.type}: ${lastEvent.humanFriendlyMessage}` : ""}
+      </Text>
+    </Box>
+  );
+}
+
+render(<App />);
+```
+
+The system prompt comes from the library, exactly as with `react-lang`:
+
+```ts
+const systemPrompt = inkLibrary.prompt({ preamble: "You are a deployment assistant." });
+```
+
+### `InkRenderer` props
+
+| Prop            | Type                                                          | Description                                                                                                                  |
+| :-------------- | :------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------------- |
+| `response`      | `string \| null`                                              | The accumulated OpenUI Lang text, or a stored message with `]]>openui:` markers                                              |
+| `library`       | `Library`                                                     | A library from `createLibrary()`; `inkLibrary` is the default                                                                |
+| `isStreaming`   | `boolean`                                                     | True while the model is still producing the program                                                                          |
+| `onAction`      | `(event: ActionEvent) => void`                                | Button presses and custom actions, after `@Set`, `@Reset` and `@Run` steps have run                                          |
+| `onStateUpdate` | `(state: Record<string, unknown>) => void`                    | The store snapshot after each user edit                                                                                      |
+| `initialState`  | `Record<string, unknown>`                                     | State to restore: `$`-prefixed keys are bindings, other keys are form state                                                  |
+| `onParseResult` | `(result: ParseResult \| null) => void`                       | The raw parse result whenever it changes                                                                                     |
+| `toolProvider`  | `Record<string, (args) => Promise<unknown>> \| McpClientLike` | Serves `Query()` and `Mutation()` calls once streaming ends                                                                  |
+| `onError`       | `(errors: OpenUIError[]) => void`                             | Structured errors once streaming ends, `[]` when a new stream starts; without it, errors are drawn as a red footer in the UI |
+
+## Define a library
+
+`defineComponent(config)` takes a name, description, ordered Zod object schema and an Ink renderer. The renderer receives `props`, `renderNode` for nested values and `statementId`. Ink refuses bare strings outside `<Text>`; `renderNode` wraps primitives for you.
+
+```tsx title="library.tsx"
+import { Text } from "ink";
+import { z } from "zod/v4";
+import {
+  createLibrary,
+  defineComponent,
+  Stack,
+  type ComponentRenderProps,
+} from "@openuidev/ink-lang";
+
+const GreetingSchema = z.object({
+  name: z.string(),
+  mood: z.enum(["happy", "excited"]).optional(),
+});
+
+function GreetingRenderer({ props }: ComponentRenderProps<z.infer<typeof GreetingSchema>>) {
+  return <Text bold={props.mood === "excited"}>Hello, {props.name}!</Text>;
+}
+
+export const Greeting = defineComponent({
+  name: "Greeting",
+  description: "Greets the user",
+  props: GreetingSchema,
+  component: GreetingRenderer,
+});
+
+export const library = createLibrary({ root: "Stack", components: [Stack, Greeting] });
+```
+
+Inside a renderer: `useTriggerAction()` fires an action, `useStateField(name, value)` reads and writes a field (a `$binding` prop gives a two-way field on the bound variable), `useFormName()`, `useIsStreaming()`, `useIsQueryLoading()` and `useRenderNode()` expose the runtime, `useFocusable({ isActive })` registers the component with Ink's focus manager, and `reactive(schema)` marks a prop as bindable.
+
+## Default library
+
+`inkLibrary` (root `Stack`) mirrors `@openuidev/react-ui`'s `openuiLibrary` for every component it ships. A test in the package compares names, positional order, schemas and descriptions with the generated React library spec, so a program written for the web renders in the terminal unchanged.
+
+| Component                            | Terminal rendering                                                   |
+| :----------------------------------- | :------------------------------------------------------------------- |
+| `Stack`, `Card`                      | Ink `Box` layouts; cards draw a round, single or no border           |
+| `CardHeader`, `TextContent`, `Label` | Text with bold, dim and underline styles                             |
+| `Button`, `Buttons`                  | `[ label ]`, inverse when focused; Enter or Space presses            |
+| `Input`                              | Single-line editor with a block cursor; `$binding` values round-trip |
+| `Form`, `FormControl`                | Scoped form state, label and hint lines                              |
+| `Table`, `Col`                       | Header row plus one row per entry, widths from the widest cell       |
+| `Tabs`, `TabItem`                    | Focusable tab strip; Left and Right switch the mounted tab           |
+| `Select`, `SelectItem`               | Focusable list; Up and Down move, Enter picks                        |
+
+Tab and Shift+Tab move focus between interactive components. A host that targets both renderers generates the prompt from the full React library; components the terminal library lacks are dropped by the parser and reported through `onError` as `unknown-component`.
+
+## Streaming and errors
+
+- Every prefix of a program renders; a dim placeholder shows until the root appears and a dim `streaming…` line while `isStreaming` is true.
+- Nothing a model writes can crash the renderer: parser crashes become `parse-exception` errors, a component that throws keeps its last good frame and reports `render-error`.
+- Queries never run while streaming; their defaults show until the first fetch resolves.
+- The runtime never writes to the console, which would corrupt the Ink frame.
+
+See the package [README](https://github.com/thesysdev/openui/tree/main/packages/ink-lang) for the data flow diagram and the planned components.

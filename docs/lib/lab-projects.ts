@@ -6,6 +6,7 @@ import {
   PlugZap,
   Server,
   Sparkles,
+  Terminal,
   Wrench,
 } from "lucide-react";
 import type { ComponentType } from "react";
@@ -214,6 +215,23 @@ export const labProjects: ProjectItem[] = [
         external: true,
       },
       { label: "npm", href: "https://www.npmjs.com/package/@openuidev/vue-lang", external: true },
+    ],
+  },
+  {
+    name: "Ink Lang",
+    description:
+      "Render OpenUI Lang responses in the terminal with Ink, using the React default library's component schemas.",
+    type: "Framework",
+    status: "Official",
+    accent: "slate",
+    icon: Terminal,
+    links: [
+      {
+        label: "GitHub",
+        href: "https://github.com/thesysdev/openui/tree/main/packages/ink-lang",
+        external: true,
+      },
+      { label: "npm", href: "https://www.npmjs.com/package/@openuidev/ink-lang", external: true },
     ],
   },
   {
