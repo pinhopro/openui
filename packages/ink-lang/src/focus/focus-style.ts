@@ -15,9 +15,10 @@ export function buttonTextStyle(
   disabled: boolean,
   variant: string | undefined,
   type: string | undefined,
+  dangerColor = "red",
 ): ButtonTextStyle {
   const bold = variant === undefined || variant === "primary";
-  const color = type === "destructive" ? "red" : undefined;
+  const color = type === "destructive" ? dangerColor : undefined;
   if (disabled) return { inverse: false, bold, dimColor: true, color };
   return { inverse: isFocused, bold, dimColor: false, color };
 }

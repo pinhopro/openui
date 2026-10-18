@@ -7,6 +7,7 @@ import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ButtonSchema } from "../schemas/button-schema";
+import { useTheme } from "../theme";
 import { isPressKey } from "./button-keys";
 
 type ButtonProps = z.infer<typeof ButtonSchema>;
@@ -15,6 +16,7 @@ function ButtonRenderer({ props }: ComponentRenderProps<ButtonProps>) {
   const triggerAction = useTriggerAction();
   const formName = useFormName();
   const isStreaming = useIsStreaming();
+  const theme = useTheme();
   const focusable = useFocusable({ isActive: !isStreaming });
   const canPress = focusable.isFocused && !isStreaming;
   const label = props.label === null || props.label === undefined ? "" : String(props.label);
@@ -28,7 +30,13 @@ function ButtonRenderer({ props }: ComponentRenderProps<ButtonProps>) {
     { isActive: canPress },
   );
 
-  const style = buttonTextStyle(focusable.isFocused, isStreaming, props.variant, props.type);
+  const style = buttonTextStyle(
+    focusable.isFocused,
+    isStreaming,
+    props.variant,
+    props.type,
+    theme.danger,
+  );
   return (
     <Text inverse={style.inverse} bold={style.bold} dimColor={style.dimColor} color={style.color}>
       [ {label} ]

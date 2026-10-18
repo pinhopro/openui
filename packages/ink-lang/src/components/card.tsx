@@ -2,6 +2,7 @@ import { Box } from "ink";
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { CardSchema } from "../schemas/card-schema";
+import { useTheme } from "../theme";
 import { flexBoxProps } from "./flex-box-props";
 
 type CardProps = z.infer<typeof CardSchema>;
@@ -20,8 +21,10 @@ function cardBorder(variant: string | undefined): CardBorder {
 }
 
 function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
+  const theme = useTheme();
   const box = flexBoxProps(props);
   const border = cardBorder(props.variant);
+  const borderColor = border.borderStyle === "round" ? theme.accent : undefined;
   return (
     <Box
       flexDirection={box.flexDirection}
@@ -30,6 +33,7 @@ function CardRenderer({ props, renderNode }: ComponentRenderProps<CardProps>) {
       justifyContent={box.justifyContent}
       flexWrap={box.flexWrap}
       borderStyle={border.borderStyle}
+      borderColor={borderColor}
       borderDimColor={border.borderDimColor}
       paddingX={border.paddingX}
     >

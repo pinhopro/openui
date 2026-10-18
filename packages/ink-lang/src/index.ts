@@ -37,6 +37,10 @@ export { FormNameContext, useFormName } from "./form-name-context";
 export { renderValue } from "./render-value";
 export { useStateField } from "./use-state-field";
 
+// Theme
+export { ThemeContext, defaultTheme, resolveTheme, useTheme } from "./theme";
+export type { InkTheme } from "./theme";
+
 // Tool providers
 export type { ToolFunction, ToolFunctionMap, ToolProviderInput } from "./runtime/tool-provider";
 export type { LegacyAction } from "./runtime/trigger-action";
@@ -115,6 +119,8 @@ export { TextContentSchema } from "./schemas/text-content-schema";
 export { horizontalStep, verticalStep } from "./components/arrow-keys";
 export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
+export { hasMarkdown, parseInline, parseMarkdown } from "./components/markdown";
+export type { MarkdownLine, MarkdownLineKind, MarkdownSegment } from "./components/markdown";
 export { indexOfOption, selectOptions } from "./components/select-options";
 export type { SelectOption } from "./components/select-options";
 export { clampIndex, stepIndex } from "./components/step-index";
