@@ -26,7 +26,9 @@ describe("default library", () => {
       "Input",
       "Label",
       "Stack",
+      "TabItem",
       "Table",
+      "Tabs",
       "TextContent",
     ]);
   });

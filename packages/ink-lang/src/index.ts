@@ -81,7 +81,9 @@ export { Form } from "./components/form";
 export { FormControl } from "./components/form-control";
 export { Label } from "./components/label";
 export { Stack } from "./components/stack";
+export { TabItem } from "./components/tab-item";
 export { Table } from "./components/table";
+export { Tabs } from "./components/tabs";
 export { TextContent } from "./components/text-content";
 export { Input } from "./components/text-input";
 export { inkComponentGroups, inkLibrary } from "./default-library";
@@ -100,12 +102,16 @@ export { InputSchema } from "./schemas/input-schema";
 export { LabelSchema } from "./schemas/label-schema";
 export { rulesSchema } from "./schemas/rules-schema";
 export { StackSchema } from "./schemas/stack-schema";
+export { TabContentChildUnion, TabItemSchema } from "./schemas/tab-item-schema";
 export { TableSchema } from "./schemas/table-schema";
+export { TabsSchema } from "./schemas/tabs-schema";
 export { TextContentSchema } from "./schemas/text-content-schema";
 
 // Building blocks for custom terminal components
+export { horizontalStep, verticalStep } from "./components/arrow-keys";
 export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
+export { clampIndex, stepIndex } from "./components/step-index";
 export { cellText, tableLayout } from "./components/table-layout";
 export type { TableAlign, TableColumn, TableLayout } from "./components/table-layout";
 export { textContentStyle } from "./components/text-content-style";

@@ -28,12 +28,15 @@ const SHARED = [
   "Label",
   "Table",
   "Col",
+  "Tabs",
+  "TabItem",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */
 const UNION_PROPS: Record<string, string[]> = {
   Card: ["children"],
   FormControl: ["input"],
+  TabItem: ["content"],
 };
 
 function loadSpec(): LibrarySpecFile {
@@ -60,6 +63,8 @@ function withNeutralUnions(name: string, definition: Record<string, unknown>): u
 /** Replaces the union member list inside a prompt signature: `(A | B)[]` and `input: A | B,`. */
 function withNeutralSignatureUnions(name: string, signature: string): string {
   if (name === "Card") return signature.replace(/children: \([^)]*\)\[\]/, "children: (<union>)[]");
+  if (name === "TabItem")
+    return signature.replace(/content: \([^)]*\)\[\]/, "content: (<union>)[]");
   if (name === "FormControl") return signature.replace(/input: [^,]*,/, "input: <union>,");
   return signature;
 }
