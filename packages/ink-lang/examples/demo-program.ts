@@ -4,12 +4,14 @@
  */
 export const demoProgram = [
   '$region = ""',
-  "root = Stack([header, intro, panel, regions, form])",
+  "root = Stack([header, intro, panel, traffic, share, regions, form])",
   'header = CardHeader("Deploy service", "Pick a region and confirm")',
   'intro = TextContent("The same OpenUI Lang program renders on the web with react-lang and in this terminal with ink-lang.")',
   'panel = Card([status, hint], "sunk")',
   'status = TextContent("Status: ready", "small-heavy")',
   'hint = TextContent("Tab moves focus, Enter presses a button, typing edits the field, Up and Down pick a region.", "small")',
+  'traffic = Card([CardHeader("Requests per region"), BarChart(["us-east-1", "eu-west-1", "ap-south-1"], [Series("Requests", [1200, 640, 310])], "grouped", "Region", "Requests")])',
+  'share = PieChart(["Cached", "Origin"], [72, 28], "donut")',
   'regions = Table([Col("Region", ["us-east-1", "eu-west-1", "ap-south-1"]), Col("Location", ["N. Virginia", "Ireland", "Mumbai"]), Col("Latency (ms)", [12, 88, 140], "number")])',
   'form = Form("deploy", Buttons([confirm, cancel]), [regionField, tagField])',
   'regionField = FormControl("Region", Select("region", [us, eu, ap], "Pick a region", null, $region), "Chosen: " + $region)',

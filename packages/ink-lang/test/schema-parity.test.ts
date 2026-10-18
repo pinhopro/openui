@@ -32,6 +32,19 @@ const SHARED = [
   "TabItem",
   "Select",
   "SelectItem",
+  "Series",
+  "Slice",
+  "Point",
+  "ScatterSeries",
+  "BarChart",
+  "LineChart",
+  "AreaChart",
+  "PieChart",
+  "RadialChart",
+  "SingleStackedBarChart",
+  "HorizontalBarChart",
+  "RadarChart",
+  "ScatterChart",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */

@@ -391,6 +391,10 @@ Verification before pushing: `pnpm -r build`, `pnpm -r test`, and for `ink-lang`
 
 ## 10. Out of scope for this pass (next batch)
 
+Status: every item below shipped in later commits on `feat/ink-lang` (Table/Tabs/Select in
+batch 2; charts, validation, theming, markdown and the query spinner/retry in batch 3).
+Only Combobox and table paging remain, listed in the README.
+
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Combobox`                             | Reuse the schema; a `Select` with a filter line on top. (`Table`/`Col`, `Tabs`/`TabItem` and `Select`/`SelectItem` shipped in the second batch; paging with `contentOffsetY` for tables taller than the terminal is still open.) |

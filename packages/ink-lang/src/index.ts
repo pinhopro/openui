@@ -101,8 +101,24 @@ export { TextContent } from "./components/text-content";
 export { Input } from "./components/text-input";
 export { inkComponentGroups, inkLibrary } from "./default-library";
 
+export { AreaChart } from "./components/area-chart";
+export { BarChart } from "./components/bar-chart";
+export { HorizontalBarChart } from "./components/horizontal-bar-chart";
+export { LineChart } from "./components/line-chart";
+export { PieChart } from "./components/pie-chart";
+export { Point } from "./components/point";
+export { RadarChart } from "./components/radar-chart";
+export { RadialChart } from "./components/radial-chart";
+export { ScatterChart } from "./components/scatter-chart";
+export { ScatterSeries } from "./components/scatter-series";
+export { Series } from "./components/series";
+export { SingleStackedBarChart } from "./components/single-stacked-bar-chart";
+export { Slice } from "./components/slice";
+
 // Schemas (verbatim copies of the React default library's)
 export { actionPropSchema } from "./schemas/action-schema";
+export { AreaChartSchema } from "./schemas/area-chart-schema";
+export { BarChartSchema } from "./schemas/bar-chart-schema";
 export { ButtonSchema } from "./schemas/button-schema";
 export { ButtonsSchema } from "./schemas/buttons-schema";
 export { CardHeaderSchema } from "./schemas/card-header-schema";
@@ -111,11 +127,22 @@ export { ColSchema } from "./schemas/col-schema";
 export { FlexPropsSchema } from "./schemas/flex-props-schema";
 export { FormControlSchema } from "./schemas/form-control-schema";
 export { FormSchema } from "./schemas/form-schema";
+export { HorizontalBarChartSchema } from "./schemas/horizontal-bar-chart-schema";
 export { InputSchema } from "./schemas/input-schema";
 export { LabelSchema } from "./schemas/label-schema";
+export { LineChartSchema } from "./schemas/line-chart-schema";
+export { PieChartSchema } from "./schemas/pie-chart-schema";
+export { PointSchema } from "./schemas/point-schema";
+export { RadarChartSchema } from "./schemas/radar-chart-schema";
+export { RadialChartSchema } from "./schemas/radial-chart-schema";
 export { rulesSchema } from "./schemas/rules-schema";
+export { ScatterChartSchema } from "./schemas/scatter-chart-schema";
+export { ScatterSeriesSchema } from "./schemas/scatter-series-schema";
 export { SelectItemSchema } from "./schemas/select-item-schema";
 export { SelectSchema, createSelectSchema } from "./schemas/select-schema";
+export { SeriesSchema } from "./schemas/series-schema";
+export { SingleStackedBarChartSchema } from "./schemas/single-stacked-bar-chart-schema";
+export { SliceSchema } from "./schemas/slice-schema";
 export { StackSchema } from "./schemas/stack-schema";
 export { TabContentChildUnion, TabItemSchema } from "./schemas/tab-item-schema";
 export { TableSchema } from "./schemas/table-schema";
@@ -124,6 +151,15 @@ export { TextContentSchema } from "./schemas/text-content-schema";
 
 // Building blocks for custom terminal components
 export { horizontalStep, verticalStep } from "./components/arrow-keys";
+export { buildSeriesRows, buildSlices, seriesNames } from "./components/chart-data";
+export type { ChartSlice, SeriesRow } from "./components/chart-data";
+export {
+  barCells,
+  formatNumber,
+  percentages,
+  proportionSegments,
+  sparkline,
+} from "./components/chart-text";
 export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
 export { hasMarkdown, parseInline, parseMarkdown } from "./components/markdown";

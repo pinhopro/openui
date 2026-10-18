@@ -88,6 +88,7 @@ pnpm --filter @openuidev/ink-lang demo
 | `onParseResult` | `(result: ParseResult \| null) => void`                       | The raw parse result whenever it changes                                                                                     |
 | `toolProvider`  | `Record<string, (args) => Promise<unknown>> \| McpClientLike` | Serves `Query()` and `Mutation()` calls once streaming ends                                                                  |
 | `onError`       | `(errors: OpenUIError[]) => void`                             | Structured errors once streaming ends, `[]` when a new stream starts. Without it, errors are drawn as a red footer in the UI |
+| `theme`         | `Partial<InkTheme>`                                           | Colors for borders, headings, destructive buttons and error lines: `accent`, `danger`, `muted` (defaults: cyan, red, gray)   |
 
 While `isStreaming` is true and the root has not appeared yet, a dim `…` placeholder is drawn; a dim `streaming…` line sits under the tree until the stream ends, and `loading…` while a query is in flight.
 
@@ -95,28 +96,32 @@ While `isStreaming` is true and the root has not appeared yet, a dim `…` place
 
 Every component keeps the name, positional argument order, Zod schema and description of its `@openuidev/react-ui` counterpart; a test compares them with the generated spec of the React default library.
 
-| Component     | Signature                                                             | Terminal rendering                                                                                                                    |
-| :------------ | :-------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
-| `Stack`       | `Stack(children, direction?, gap?, align?, justify?, wrap?)`          | Ink `Box`; gap tokens become 0 to 3 cells                                                                                             |
-| `Card`        | `Card(children, variant?, direction?, gap?, align?, justify?, wrap?)` | Round border (`card`), single dim border (`sunk`), no border (`clear`)                                                                |
-| `CardHeader`  | `CardHeader(title?, subtitle?)`                                       | Bold title line and dim subtitle line                                                                                                 |
-| `TextContent` | `TextContent(text, size?)`                                            | Plain text; `small` dim, `small-heavy` bold dim, `large` bold, `large-heavy` bold underlined (markdown is not rendered yet)           |
-| `Button`      | `Button(label, action?, variant?, type?, size?)`                      | `[ label ]`, inverse when focused, red when `destructive`, dim while streaming                                                        |
-| `Buttons`     | `Buttons(buttons, direction?)`                                        | Row (default) or column of buttons                                                                                                    |
-| `Input`       | `Input(name, placeholder?, type?, rules?, value?)`                    | Single-line editor with a block cursor; `password` masks; `value` takes a `$binding`                                                  |
-| `Select`      | `Select(name, items, placeholder?, rules?, value?, size?)`            | Picked label or dim placeholder; focused it opens the option list, Up and Down move, Enter or Space picks; `value` takes a `$binding` |
-| `SelectItem`  | `SelectItem(value, label)`                                            | One option of a Select (not drawn on its own)                                                                                         |
-| `Form`        | `Form(name, buttons, fields?)`                                        | Scopes its fields under the form name, then draws the buttons (no validation yet)                                                     |
-| `FormControl` | `FormControl(label, input, hint?)`                                    | Bold label, the input, dim hint                                                                                                       |
-| `Label`       | `Label(text)`                                                         | Plain text                                                                                                                            |
-| `Table`       | `Table(columns)`                                                      | Bold header, dim rule, one line per row; widths from the widest cell, `number` columns right aligned, wide rows clipped               |
-| `Col`         | `Col(label, data, type?)`                                             | One column of a Table: `data` is one value or component per row (not drawn on its own)                                                |
-| `Tabs`        | `Tabs(items)`                                                         | Focusable tab strip (active tab bold and underlined, inverse when focused); Left and Right switch; only the active content is mounted |
-| `TabItem`     | `TabItem(value, trigger, content)`                                    | One tab of a Tabs strip (not drawn on its own)                                                                                        |
+| Component                                          | Signature                                                                   | Terminal rendering                                                                                                                      |
+| :------------------------------------------------- | :-------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------- |
+| `Stack`                                            | `Stack(children, direction?, gap?, align?, justify?, wrap?)`                | Ink `Box`; gap tokens become 0 to 3 cells                                                                                               |
+| `Card`                                             | `Card(children, variant?, direction?, gap?, align?, justify?, wrap?)`       | Round border (`card`), single dim border (`sunk`), no border (`clear`)                                                                  |
+| `CardHeader`                                       | `CardHeader(title?, subtitle?)`                                             | Bold title line and dim subtitle line                                                                                                   |
+| `TextContent`                                      | `TextContent(text, size?)`                                                  | Markdown (headings, lists, bold, italic, code, links); `small` dim, `small-heavy` bold dim, `large` bold, `large-heavy` bold underlined |
+| `Button`                                           | `Button(label, action?, variant?, type?, size?)`                            | `[ label ]`, inverse when focused, red when `destructive`, dim while streaming                                                          |
+| `Buttons`                                          | `Buttons(buttons, direction?)`                                              | Row (default) or column of buttons                                                                                                      |
+| `Input`                                            | `Input(name, placeholder?, type?, rules?, value?)`                          | Single-line editor with a block cursor; `password` masks; `value` takes a `$binding`                                                    |
+| `Select`                                           | `Select(name, items, placeholder?, rules?, value?, size?)`                  | Picked label or dim placeholder; focused it opens the option list, Up and Down move, Enter or Space picks; `value` takes a `$binding`   |
+| `SelectItem`                                       | `SelectItem(value, label)`                                                  | One option of a Select (not drawn on its own)                                                                                           |
+| `Form`                                             | `Form(name, buttons, fields?)`                                              | Scopes its fields under the form name and owns their validation; draws the fields, then the buttons                                     |
+| `FormControl`                                      | `FormControl(label, input, hint?)`                                          | Bold label (`*` when required), the input, the dim hint or the red validation error                                                     |
+| `Label`                                            | `Label(text)`                                                               | Plain text                                                                                                                              |
+| `Table`                                            | `Table(columns)`                                                            | Bold header, dim rule, one line per row; widths from the widest cell, `number` columns right aligned, wide rows clipped                 |
+| `Col`                                              | `Col(label, data, type?)`                                                   | One column of a Table: `data` is one value or component per row (not drawn on its own)                                                  |
+| `Tabs`                                             | `Tabs(items)`                                                               | Focusable tab strip (active tab bold and underlined, inverse when focused); Left and Right switch; only the active content is mounted   |
+| `TabItem`                                          | `TabItem(value, trigger, content)`                                          | One tab of a Tabs strip (not drawn on its own)                                                                                          |
+| `BarChart`, `HorizontalBarChart`, `RadarChart`     | `BarChart(labels, series, variant?, xLabel?, yLabel?, height?)` and friends | One text bar per label and series with the value; `Series(category, values)` carries the numbers                                        |
+| `LineChart`, `AreaChart`                           | `LineChart(labels, series, variant?, xLabel?, yLabel?, height?)`            | One sparkline per series with its range and the first and last label                                                                    |
+| `PieChart`, `RadialChart`, `SingleStackedBarChart` | `PieChart(labels, values, variant?, appearance?)` and friends               | A colored proportion bar and a legend with percentages                                                                                  |
+| `ScatterChart`                                     | `ScatterChart(datasets, xLabel?, yLabel?)`                                  | One summary line per `ScatterSeries(name, points)`: point count and x/y ranges                                                          |
 
 `Card.children`, `TabItem.content` and `FormControl.input` accept the components of this library only; everything else about the schemas is identical to react-ui.
 
-Keyboard: Tab and Shift+Tab move focus between buttons, inputs, selects and tab strips (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor; Enter inside an input does nothing in this version. In a focused Select, Up and Down move the cursor and Enter or Space picks. In a focused Tabs strip, Left and Right switch tabs.
+Keyboard: Tab and Shift+Tab move focus between buttons, inputs, selects and tab strips (Ink's focus manager). Enter or Space presses the focused button. In a focused input, printable keys insert, Backspace and Delete remove, Left, Right, Home and End move the cursor; Enter inside an input does nothing in this version. While a query is loading a spinner line shows under the program, and a failed query leaves a focusable `[ retry ]` that re-runs it. In a focused Select, Up and Down move the cursor and Enter or Space picks. In a focused Tabs strip, Left and Right switch tabs.
 
 ## Defining your own components
 
@@ -192,23 +197,23 @@ sequenceDiagram
 - Nothing a model writes can crash the renderer: a parser crash becomes a `parse-exception` error, a component that throws is caught by an error boundary that keeps its last good frame and reports `render-error`, and a program that produced no statements reports `parse-failed`.
 - Errors are collected only once `isStreaming` is false, so half-written programs never report `unknown-component` or `missing-required` by mistake.
 - `onStateUpdate` fires once per user edit; `@Set` and `@Reset` steps count as edits.
-- The runtime never writes to the console. If you pass no `onError`, the errors are drawn under the program instead.
+- `ink-lang` never writes to the console. If you pass no `onError`, the errors are drawn under the program instead. (`lang-core` itself logs a failed query with `console.error`; Ink's `patchConsole` keeps that above the frame.)
 
 ## Telemetry
 
 `ink-lang` sends nothing. It uses `createStreamingParser` and `library.prompt()` from `@openuidev/lang-core`, which are not instrumented. See the `lang-core` README for the flags that disable the rest of that package's telemetry.
 
+## Validation
+
+`Input` rules (`{ required, email, url, numeric, min, max, minLength, maxLength, pattern }`) are checked when focus leaves the field and before a primary `Button` fires a step that leaves the form (`@ToAssistant`, a mutation, a custom action). `FormControl` shows the error in place of the hint and marks required fields with `*`. Secondary buttons and purely local steps (`@Set`, `@Reset`) skip validation, as in the React default library.
+
 ## Not in this version
 
-| Item                              | Planned approach                                                                                               |
-| :-------------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| `Combobox`                        | Reuse the schema; a `Select` with a filter line on top                                                         |
-| Table paging                      | `contentOffsetY` paging for tables taller than the terminal; today every row is drawn                          |
-| Charts                            | Reuse the chart schemas; sparkline and block-character bars for 1D data, a dim fallback line for the rest      |
-| Forms with validation             | Port `useFormValidation` from `react-lang`; `FormControl` shows the error line; primary buttons validate first |
-| Theming                           | A theme context with named colors read by the focus styles and the components                                  |
-| Markdown in `TextContent`         | A small markdown-to-Ink transform (bold, italic, code, lists); plain text until then                           |
-| Query loading indicator and retry | A spinner line while loading and a focusable retry when a query failed                                         |
+| Item         | Planned approach                                                                                                               |
+| :----------- | :----------------------------------------------------------------------------------------------------------------------------- |
+| `Combobox`   | Reuse the schema; a `Select` with a filter line on top                                                                         |
+| Table paging | `contentOffsetY` paging for tables taller than the terminal; today every row is drawn                                          |
+| Chart shapes | The terminal charts are textual (bars, sparklines, proportion bars); braille plotting for line and scatter charts could follow |
 
 ## License
 
