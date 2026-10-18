@@ -17,7 +17,6 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "postinstall.cjs",
     "README.md"
   ],
   "exports": {
@@ -53,7 +52,6 @@
     "format:check": "prettier --check ./src",
     "check:publint": "publint",
     "check:attw": "attw --pack .",
-    "postinstall": "node ./postinstall.cjs",
     "prepare": "pnpm run build",
     "prepublishOnly": "pnpm run check:publint && pnpm run check:attw",
     "ci": "pnpm run lint:check && pnpm run format:check && pnpm run test && tsc -p tsconfig.test.json --noEmit"
@@ -92,8 +90,5 @@
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@types/node": "^20",
     "vitest": "^4.0.18"
-  },
-  "dependencies": {
-    "ci-info": "^4.4.0"
   }
 }

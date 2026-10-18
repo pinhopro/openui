@@ -493,9 +493,6 @@ importers:
 
   packages/lang-core:
     dependencies:
-      ci-info:
-        specifier: ^4.4.0
-        version: 4.4.0
       zod:
         specifier: 'catalog:'
         version: 4.4.3
