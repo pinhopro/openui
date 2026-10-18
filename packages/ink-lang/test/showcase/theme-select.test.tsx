@@ -36,13 +36,13 @@ describe("ThemeSelect", () => {
     const onSelect = vi.fn();
     const instance = render(<Harness onSelect={onSelect} />);
     await settle();
-    expect(lastFrame(instance.frames)).toContain("Theme: Default ▾");
+    expect(lastFrame(instance.frames)).toContain("Default ▾");
     instance.stdin.write(KEYS.TAB);
     await settle();
     instance.stdin.write(KEYS.ENTER);
     await settle();
     let frame = lastFrame(instance.frames);
-    expect(frame).toContain("Theme: Default ▴");
+    expect(frame).toContain("Default ▴");
     expect(frame).toContain("Midnight");
     instance.stdin.write(KEYS.DOWN);
     await settle();
@@ -50,7 +50,7 @@ describe("ThemeSelect", () => {
     await settle();
     expect(onSelect).toHaveBeenLastCalledWith(1);
     frame = lastFrame(instance.frames);
-    expect(frame).toContain("Theme: Bordered ▾");
+    expect(frame).toContain("Bordered ▾");
     expect(frame).not.toContain("Midnight");
     instance.unmount();
   });
@@ -64,7 +64,7 @@ describe("ThemeSelect", () => {
     );
     await settle();
     let plain = lastFrame(instance.frames);
-    const label = findCell(plain, "Theme:");
+    const label = findCell(plain, "Default ▾");
     instance.stdin.write(MOUSE.click(label.x + 2, label.y));
     await settle();
     plain = lastFrame(instance.frames);
@@ -72,7 +72,7 @@ describe("ThemeSelect", () => {
     instance.stdin.write(MOUSE.click(midnight.x, midnight.y));
     await settle();
     expect(onSelect).toHaveBeenLastCalledWith(3);
-    expect(lastFrame(instance.frames)).toContain("Theme: Midnight ▾");
+    expect(lastFrame(instance.frames)).toContain("Midnight ▾");
     instance.stdin.write(MOUSE.wheelDown(label.x + 2, label.y));
     await settle();
     expect(onSelect).toHaveBeenLastCalledWith(4);

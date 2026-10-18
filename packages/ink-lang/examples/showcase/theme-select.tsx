@@ -114,8 +114,9 @@ export function ThemeSelect({ themes, activeIndex, onSelect, width }: ThemeSelec
   }
   return (
     <Box ref={boxRef} flexDirection="column" marginTop={1}>
+      <Text dimColor>Theme</Text>
       <Text dimColor={!focus.isFocused} inverse={focus.isFocused && !isOpen}>
-        {fitLine(`Theme: ${active === undefined ? "" : active.name} ${isOpen ? "▴" : "▾"}`, width)}
+        {fitLine(`${active === undefined ? "" : active.name} ${isOpen ? "▴" : "▾"}`, width)}
       </Text>
       {isOpen ? (
         rows
