@@ -85,7 +85,7 @@ The showcase is a full-screen tour of every component, one page per group, with 
 pnpm --filter @openuidev/ink-lang showcase
 ```
 
-Ctrl+T (or a click on the theme line under the page list) cycles the theme presets. `examples/showcase.tsx` takes the alternate screen and renders `examples/showcase/showcase-app.tsx`: a sidebar of pages on the left (Up and Down, a click or the wheel pick one; Ctrl+N and Ctrl+P work from anywhere), the active page streaming into `InkRenderer` on the right (PgUp, PgDn and the wheel scroll it) and a status bar with the last `onAction` event and `onStateUpdate` snapshot. Every page is an OpenUI Lang program under `examples/showcase/programs/`, and a test checks that, together, they use every component of the library. The Feedback page's queries and mutation are served by `examples/showcase/showcase-tools.ts`, whose `health` tool fails on its first call so the retry control shows. Ctrl+Q quits; `--no-mouse` keeps the terminal's own text selection.
+Ctrl+T (or a click on the theme line under the page list) cycles the theme presets. The theme line under the page list is a select of design systems (Default, Bordered, Minimal, Midnight, Daylight, System and Monokai; Ctrl+T cycles them). The Dialogs page shows confirm, info, warning, form and choice dialogs; Design tokens shows a `Theme(...)` declared by the program; Chat app renders a product screen with its own component library and design system. `examples/showcase.tsx` takes the alternate screen and renders `examples/showcase/showcase-app.tsx`: a sidebar of pages on the left (Up and Down, a click or the wheel pick one; Ctrl+N and Ctrl+P work from anywhere), the active page streaming into `InkRenderer` on the right (PgUp, PgDn and the wheel scroll it) and a status bar with the last `onAction` event and `onStateUpdate` snapshot. Every page is an OpenUI Lang program under `examples/showcase/programs/`, and a test checks that, together, they use every component of the library. The Feedback page's queries and mutation are served by `examples/showcase/showcase-tools.ts`, whose `health` tool fails on its first call so the retry control shows. Ctrl+Q quits; `--no-mouse` keeps the terminal's own text selection.
 
 ## `InkRenderer` props
 
@@ -103,6 +103,7 @@ Ctrl+T (or a click on the theme line under the page list) cycles the theme prese
 | `theme`         | `InkThemeOverrides`                                           | The palette (`accent`, `danger`, `muted`, `success`, `warning`) and the CSS-like style slots (`field`, `button`, `card`, `heading`, `subtext`, `focusRing`); see [Theming](#theming) |
 | `mouse`         | `boolean \| { motion?: boolean }`                             | Turns terminal mouse reporting on (see [Mouse](#mouse)); `{ motion: false }` skips hover tracking                                                                                    |
 | `onUiEvent`     | `(event: UiEvent) => void`                                    | Browser-like events of every component: focus, blur, keydown, keyup, input, change and the mouse events (see [UI events](#ui-events))                                                |
+| `designSystem`  | `DesignSystemInput`                                           | Design tokens, a stylesheet of the CSS subset and a light/dark/system mode; see [Design systems](#design-systems)                                                                    |
 
 While `isStreaming` is true and the root has not appeared yet, a dim `…` placeholder is drawn; a dim `streaming…` line sits under the tree until the stream ends, and `loading…` while a query is in flight.
 
@@ -123,6 +124,10 @@ Every component keeps the name, positional argument order, Zod schema and descri
 | `Input`                                                                                              | Focuses the field                                                                                          | -                                                                                                                                                                                                                    | -                                                 |
 | `Select`                                                                                             | Opens it; a click on an option picks it                                                                    | -                                                                                                                                                                                                                    | Moves the highlight (opens the list first)        |
 | `Combobox`                                                                                           | Opens it; a click on a match picks it                                                                      | -                                                                                                                                                                                                                    | Moves the highlight (opens the list first)        |
+| `Theme`                                                                                              | `Theme(tokens, css?, children)`                                                                            | Applies a design system (tokens plus a CSS-subset stylesheet) to its children; terminal only                                                                                                                         |
+| `Tooltip`                                                                                            | `Tooltip(trigger, text, placement?, variant?)`                                                             | Shows the text beside the trigger while it is focused or hovered; terminal only                                                                                                                                      |
+| `QrCode`                                                                                             | `QrCode(data, size?)`                                                                                      | A scannable QR code in block characters (`compact` half blocks or `large`); terminal only                                                                                                                            |
+| `ModalDialog`                                                                                        | `ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?)`     | A confirm, info, warning or destructive dialog that blocks everything behind it; terminal only                                                                                                                       |
 | `SelectItem`                                                                                         | `SelectItem(value, label)`                                                                                 | One option of a Select or Combobox (not drawn on its own)                                                                                                                                                            |
 | `Form`                                                                                               | `Form(name, buttons, fields?)`                                                                             | Scopes its fields under the form name and owns their validation; draws the fields, then the buttons                                                                                                                  |
 | `FormControl`                                                                                        | `FormControl(label, input, hint?)`                                                                         | Bold label (`*` when required), the input, the dim hint or the red validation error                                                                                                                                  |
@@ -339,6 +344,42 @@ A text style is `{ color, background, bold, dim, italic, underline, inverse, str
 ```
 
 `themePresets` ships four ready-made themes (`default`, `bordered`, `minimal`, `midnight`) that the showcase cycles with Ctrl+T; `resolveTheme(overrides)` returns the full `InkTheme`, and custom components read it with `useTheme()` and draw it with `boxProps` / `textProps` (or `FieldFrame` and `useFieldStyles` for a field).
+
+## Design systems
+
+`designSystem` takes a whole design system and derives every style from it, the way a web app derives its look from tokens and CSS:
+
+```tsx
+<InkRenderer
+  response={response}
+  library={inkLibrary}
+  designSystem={{
+    mode: "system",
+    tokens: {
+      "color.primary": "#2563eb",
+      "color.canvas.surface": "#f1f5f9",
+      "shape.fieldBorder": "round",
+      light: { "color.text.value": "#0f172a" },
+      dark: { "color.text.value": "#f8fafc" },
+    },
+    css: "Table tbody tr:odd { background-color: #e2e8f0 } Button:hover { background-color: var(--color-primary-100) }",
+  }}
+/>
+```
+
+**Tokens.** `color.primitive` holds the scales `primary`, `neutral`, `error`, `success`, `warning`, `info` and `canvas` (stops 100, 300, 500, 700, 900; one hex value becomes a scale, a named color fills every stop). `color.semantic` holds `canvas` (app, surface, disabled, content), `border` (default, hover, focus, error, success, disabled), `text` and `textBackground` (value, label, helper, placeholder, action, disabled, error, success), `button.background` and `button.text` (default, focus, hover, pressed, disabled) and `icon` (default, hover, pressed, disabled); the ones left empty follow the primitives or the terminal's own colors. `spacing` (xs, sm, md, lg, xl, in cells) sizes the Stack gap words; `grid` (columns, margin, gutter, containerMaxWidth) lays card blocks out in columns and bounds the root; `typography` (display, h1 to h6, body, label, helper: weight, italic, underline, transform, color) dresses headings, labels and helpers; `shape` (fieldBorder, cardBorder) picks the border styles. Write them as a nested object, as dotted paths (`"color.text.value"`), or as CSS variable names (`"--color-text-value"`); `mode` is `light`, `dark` or `system` (read from the terminal's `COLORFGBG`), and a `light` or `dark` block applies on top for that mode. Every token is also a CSS variable (`var(--color-primary-500)`, `var(--spacing-md)`) the stylesheet can read.
+
+**Stylesheet.** A subset of CSS: `Component`, `Component.variant` or `Component .part` (`Button.secondary`, `FormControl .label`, `Input::placeholder`), the states `:focus`, `:hover`, `:pressed`, `:disabled` and `:cursor` (the option under a group's cursor), descendants (`Form Button`, `Table tbody tr:odd td.number`) and `*`. Tables expose `thead`, `tbody`, `tr` (`:odd`, `:even`, `:first`, `:last`), `th` and `td` (`.number`, `.string`, `.col-N`), and the components inside a cell match `Table td Input`. Properties: `color`, `background-color`, `border`, `border-style`, `border-color`, `border-radius`, `outline` (drawn as the border), `padding` and its sides, `margin` and its sides, `gap`, `width`, `min-width`, `max-width`, `height`, `min-height`, `text-align`, `font-weight`, `font-style`, `font-size`, `font-family`, `text-decoration` (with a style and a color), `text-transform`, `opacity` (below 1 dims) and `filter: invert(1)` (inverse video). Lengths are cells, `px` (8 per cell) or `rem`/`em` (2 cells); colors are any Ink value plus the keywords `dim` and `inverse`. Rules cascade by specificity, then order: the default stylesheet derived from the tokens, then `css`, then the `theme` slots.
+
+Where the terminal has no equivalent, the property is accepted and degrades: `font-size` above normal renders bold (Ink lays text out in cells), `font-family` is kept as a hint, styled and colored underlines (`text-decoration: underline wavy red`) render as a plain underline because Ink normalizes them, and `z-index` is not part of the subset.
+
+**In programs.** A model or a product team can declare the same thing inside OpenUI Lang with the `Theme` component, which applies to its children only:
+
+```
+root = Theme({"color.primary": "#0f766e", "shape.fieldBorder": "round", mode: "dark"}, "ChatMessage.sent .bubble { background-color: #ccfbf1 }", [page])
+```
+
+**Custom components** read the cascade with `useComponentStyle(classes, states)` (the current component type and its ancestors are known) or `useStyleAs("Button", classes, states)` to style a part like another component, and draw it with `boxProps` / `textProps`. The `theme` slots still work and join the same cascade as rules.
 
 ## UI events
 

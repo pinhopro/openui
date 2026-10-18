@@ -3,19 +3,21 @@ import type { ActionEvent, OpenUIError } from "@openuidev/lang-core";
 import { Box, measureElement, useApp, useInput, useWindowSize, type DOMElement } from "ink";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { inkLibrary } from "../../src/default-library";
+import { createDesignSystem } from "../../src/design/design-system";
 import { InkRenderer } from "../../src/ink-renderer";
+import type { Library } from "../../src/library";
 import { MouseProvider } from "../../src/mouse/mouse-provider";
 import { useMouse } from "../../src/mouse/use-mouse";
-import { themePresets, type ThemePreset } from "../../src/theme-presets";
 import type { UiEvent } from "../../src/ui-events";
 import { describeUiEvent } from "./event-line";
 import { EventLog } from "./event-log";
 import { describeAction, describeErrors, describeState } from "./host-log";
 import type { ShowcasePage } from "./pages";
+import { showcaseThemes, type ShowcaseTheme } from "./showcase-themes";
 import type { ShowcaseTools } from "./showcase-tools";
 import { Sidebar } from "./sidebar";
 import { StatusBar } from "./status-bar";
-import { ThemePicker } from "./theme-picker";
+import { ThemeSelect } from "./theme-select";
 import { useStreamedProgram, type StreamOptions } from "./use-streamed-program";
 
 export interface ShowcaseAppProps {
@@ -60,7 +62,10 @@ interface PagePaneProps {
   pageId: string;
   response: string;
   isStreaming: boolean;
-  preset: ThemePreset;
+  library: Library;
+  theme: ShowcaseTheme;
+  /** The theme's app canvas color, painted behind the page. */
+  canvas: string;
   tools: ShowcaseTools;
   onAction: (event: ActionEvent) => void;
   onStateUpdate: (state: Record<string, unknown>) => void;
@@ -76,7 +81,9 @@ function PagePane({
   pageId,
   response,
   isStreaming,
-  preset,
+  library,
+  theme,
+  canvas,
   tools,
   onAction,
   onStateUpdate,
@@ -142,14 +149,15 @@ function PagePane({
       borderColor={ACCENT}
       paddingX={1}
       overflowY="hidden"
+      backgroundColor={canvas === "" ? undefined : canvas}
       contentOffsetY={clamp(scroll, 0, maxScroll)}
     >
       <Box ref={contentRef} flexDirection="column" flexShrink={0}>
         <InkRenderer
           response={response}
-          library={inkLibrary}
+          library={library}
           isStreaming={isStreaming}
-          theme={preset.theme}
+          designSystem={theme.designSystem}
           onAction={onAction}
           onStateUpdate={onStateUpdate}
           onError={onError}
@@ -178,11 +186,13 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
   const [errors, setErrors] = useState<OpenUIError[]>([]);
   const [events, setEvents] = useState<string[]>([]);
   const [themeIndex, setThemeIndex] = useState(0);
-  const preset = themePresets[themeIndex] ?? (themePresets[0] as ThemePreset);
+  const theme = showcaseThemes[themeIndex] ?? (showcaseThemes[0] as ShowcaseTheme);
+  // The app canvas color of the theme paints the page pane.
+  const canvas = createDesignSystem(theme.designSystem).tokens.color.semantic.canvas.app;
 
   function cycleTheme(delta: number): void {
     setThemeIndex(function move(previous) {
-      const count = themePresets.length;
+      const count = showcaseThemes.length;
       return (previous + delta + count) % count;
     });
   }
@@ -227,7 +237,12 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
               width={SIDEBAR_WIDTH - 2}
             />
             <Box paddingX={1}>
-              <ThemePicker preset={preset} onCycle={cycleTheme} />
+              <ThemeSelect
+                themes={showcaseThemes}
+                activeIndex={themeIndex}
+                onSelect={setThemeIndex}
+                width={SIDEBAR_WIDTH - 5}
+              />
             </Box>
           </Box>
           <Box flexDirection="column" flexGrow={1} minWidth={0}>
@@ -235,7 +250,9 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
               pageId={page === undefined ? "" : page.id}
               response={streamed.response}
               isStreaming={streamed.isStreaming}
-              preset={preset}
+              library={page === undefined ? inkLibrary : (page.library ?? inkLibrary)}
+              theme={theme}
+              canvas={canvas}
               tools={tools}
               onAction={onAction}
               onStateUpdate={setState}

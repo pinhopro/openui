@@ -42,7 +42,7 @@ describe("showcase pages", () => {
   for (const page of showcasePages) {
     it(`renders the "${page.title}" page without errors`, async () => {
       const reports: OpenUIError[][] = [];
-      const rendered = await renderProgram(inkLibrary, page.program, {
+      const rendered = await renderProgram(page.library ?? inkLibrary, page.program, {
         toolProvider: createShowcaseTools({ latencyMs: 0, healthFailsFirst: false }),
         onError: function onError(errors) {
           reports.push(errors);
@@ -50,7 +50,10 @@ describe("showcase pages", () => {
       });
       await settle(20);
       expect(reports[reports.length - 1] ?? []).toEqual([]);
-      expect(stripAnsi(rendered.frame())).toContain(page.title);
+      const plain = stripAnsi(rendered.frame());
+      expect(plain.trim().length).toBeGreaterThan(0);
+      // Pages that open with a CardHeader show their title; a product screen (the chat) has none.
+      if (page.program.includes(`CardHeader("${page.title}"`)) expect(plain).toContain(page.title);
       rendered.unmount();
     });
   }

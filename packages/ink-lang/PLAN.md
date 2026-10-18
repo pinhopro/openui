@@ -424,6 +424,13 @@ events) that the showcase lists in a scrollable panel.
 Theming then grew from five colors into a palette plus CSS-like style slots (`field`,
 `button`, `card`, `heading`, `subtext`, `focusRing`), each a box and text style merged field
 by field over defaults derived from the palette, with four presets the showcase cycles.
+Those slots then became a projection of a full design system: design tokens (primitive scales,
+semantic colors, spacing, grid, typography, shape, light/dark/system) and a CSS subset with
+descendant selectors, table parts and the usual box and text properties, resolved by a cascade
+every component reads (`src/design/`). The program can declare one with `Theme(...)`; Tooltip,
+QrCode and ModalDialog (on a modal layer that makes the page inert) joined as terminal-only
+components, and the showcase gained a theme select, a dialogs page, a tokens page and a chat
+screen built with its own component library.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

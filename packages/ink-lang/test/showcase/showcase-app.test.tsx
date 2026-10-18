@@ -80,7 +80,9 @@ describe("ShowcaseApp", () => {
     await settle(40);
     instance.stdin.write(CTRL_N);
     await settle(40);
-    // The sidebar holds focus; Tab moves to the page's button.
+    // The sidebar holds focus; Tab moves to the theme select, then to the page's button.
+    instance.stdin.write(KEYS.TAB);
+    await settle();
     instance.stdin.write(KEYS.TAB);
     await settle();
     instance.stdin.write(KEYS.ENTER);
@@ -131,6 +133,8 @@ describe("ShowcaseApp event log", () => {
     await settle(40);
     instance.stdin.write(CTRL_N);
     await settle(40);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
     instance.stdin.write(KEYS.TAB);
     await settle();
     const frame = lastFrame(instance.frames);

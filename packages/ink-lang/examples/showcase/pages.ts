@@ -1,13 +1,18 @@
+import type { Library } from "../../src/library";
+import { chatLibrary } from "./chat-library";
 import { cardsProgram } from "./programs/cards";
 import { chartsProgram } from "./programs/charts";
+import { chatProgram } from "./programs/chat";
 import { contentProgram } from "./programs/content";
 import { dataProgram } from "./programs/data";
+import { dialogsProgram } from "./programs/dialogs";
 import { feedbackProgram } from "./programs/feedback";
 import { formsProgram } from "./programs/forms";
 import { layoutProgram } from "./programs/layout";
 import { navigationProgram } from "./programs/navigation";
 import { overviewProgram } from "./programs/overview";
 import { selectionProgram } from "./programs/selection";
+import { tokensProgram } from "./programs/tokens";
 
 /** One entry of the showcase sidebar: an OpenUI Lang program the main pane streams in. */
 export interface ShowcasePage {
@@ -15,6 +20,8 @@ export interface ShowcasePage {
   /** The sidebar label; also the title of the page's CardHeader. */
   title: string;
   program: string;
+  /** The library the page renders with; the default library when left out. */
+  library?: Library;
 }
 
 export const showcasePages: ShowcasePage[] = [
@@ -67,5 +74,21 @@ export const showcasePages: ShowcasePage[] = [
     id: "feedback",
     title: "Feedback",
     program: feedbackProgram,
+  },
+  {
+    id: "dialogs",
+    title: "Dialogs",
+    program: dialogsProgram,
+  },
+  {
+    id: "tokens",
+    title: "Design tokens",
+    program: tokensProgram,
+  },
+  {
+    id: "chat",
+    title: "Chat app",
+    program: chatProgram,
+    library: chatLibrary,
   },
 ];

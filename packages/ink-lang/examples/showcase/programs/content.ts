@@ -1,6 +1,6 @@
 /** Text sizes, markdown, code, icons, tags, the text blocks and the metric indicators. */
 export const contentProgram = [
-  "root = Stack([header, sizes, markdown, code, icons, tags, texts, metrics])",
+  "root = Stack([header, sizes, markdown, code, icons, tips, tags, texts, metrics])",
   'header = CardHeader("Content", "Text, markdown, code, icons, tags and metrics")',
   'sizes = Stack([large, medium, small], "column", "none")',
   'large = TextContent("Large heavy text", "large-heavy")',
@@ -10,6 +10,7 @@ export const contentProgram = [
   'code = CodeBlock("ts", "const answer = 42;\\nconsole.log(answer);")',
   'icons = Stack([InlineHeader("Icons", "drawn as their names"), Icon("rocket"), launch], "column", "xs")',
   'launch = IconButton("Launch", Icon("rocket"), @ToAssistant("Launch"), "primary", "small", "circle")',
+  'tips = Stack([InlineHeader("Tooltips", "focus or hover the trigger"), Tooltip(Icon("info"), "View certificate details", "bottom", "light"), Tooltip(Button("Deploy", @ToAssistant("Deploy")), "Ships the current build to production", "right")], "column", "xs")',
   'tags = Stack([Tag("neutral"), Tag("info", Icon("info"), "md", "info"), Tag("success", null, "sm", "success"), Tag("warning", null, "sm", "warning"), Tag("danger", null, "sm", "danger"), TagBlock(["alpha", "beta", "gamma"], "sm")], "row", "s", null, null, true)',
   'texts = Stack([plain, bold, iconText, imageText, imageTextLarge], "column", "xs")',
   'plain = Text("text", "Plain text", "with a subtext", "text", "md")',

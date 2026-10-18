@@ -1,6 +1,6 @@
 /** The landing page: what the showcase is and how to move around it. */
 export const overviewProgram = [
-  "root = Stack([header, intro, kpis, tags, actions])",
+  "root = Stack([header, intro, kpis, tags, actions, docsCode])",
   'header = CardHeader("Overview", "Every component of the React default library, rendered in the terminal")',
   'intro = TextContent("Pick a page in the sidebar. **Tab** moves focus, **Enter** presses, **Ctrl+N** and **Ctrl+P** switch pages. With the mouse on you can click, hover and scroll.")',
   'kpis = OverviewCardBlock([components, tests, deps], "grid")',
@@ -11,4 +11,5 @@ export const overviewProgram = [
   "actions = Buttons([hello, docs])",
   'hello = Button("Say hello", @ToAssistant("Hello from the showcase"))',
   'docs = Button("Open the docs", @OpenUrl("https://www.openui.com/docs"), "secondary")',
+  'docsCode = Card([CardHeader("Scan for the docs", "a QrCode component, drawn with block characters"), QrCode("https://www.openui.com/docs")], "sunk")',
 ].join("\n");
