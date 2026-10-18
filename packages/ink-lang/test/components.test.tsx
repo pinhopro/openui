@@ -23,6 +23,7 @@ describe("default library", () => {
       "Card",
       "CardHeader",
       "Col",
+      "Combobox",
       "Form",
       "FormControl",
       "HorizontalBarChart",

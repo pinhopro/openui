@@ -42,6 +42,8 @@ export {
 } from "./form-validation-context";
 export type { FormValidationContextValue } from "./form-validation-context";
 export { renderValue } from "./render-value";
+export { useFieldRules } from "./use-field-rules";
+export type { FieldRules } from "./use-field-rules";
 export { useStateField } from "./use-state-field";
 
 // Theme
@@ -88,6 +90,7 @@ export { Buttons } from "./components/buttons";
 export { Card } from "./components/card";
 export { CardHeader } from "./components/card-header";
 export { Col } from "./components/col";
+export { Combobox } from "./components/combobox";
 export { Form } from "./components/form";
 export { FormControl } from "./components/form-control";
 export { Label } from "./components/label";
@@ -124,6 +127,7 @@ export { ButtonsSchema } from "./schemas/buttons-schema";
 export { CardHeaderSchema } from "./schemas/card-header-schema";
 export { CardChildUnion, CardSchema } from "./schemas/card-schema";
 export { ColSchema } from "./schemas/col-schema";
+export { ComboboxSchema } from "./schemas/combobox-schema";
 export { FlexPropsSchema } from "./schemas/flex-props-schema";
 export { FormControlSchema } from "./schemas/form-control-schema";
 export { FormSchema } from "./schemas/form-schema";
@@ -160,6 +164,8 @@ export {
   proportionSegments,
   sparkline,
 } from "./components/chart-text";
+export { filterOptions, listWindow } from "./components/combobox-options";
+export type { ListWindow } from "./components/combobox-options";
 export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
 export { hasMarkdown, parseInline, parseMarkdown } from "./components/markdown";

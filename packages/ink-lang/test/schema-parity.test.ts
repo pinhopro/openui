@@ -115,6 +115,13 @@ describe("schema parity with the React default library", () => {
     });
   }
 
+  it("gives the terminal-only Combobox exactly Select's JSON Schema", () => {
+    expect(spec.schema.$defs["Combobox"]).toBeUndefined();
+    const combobox = { ...(inkSchema.$defs?.["Combobox"] as Record<string, unknown>) };
+    delete combobox["description"];
+    expect(combobox).toEqual(inkSchema.$defs?.["Select"]);
+  });
+
   it("shares the ActionExpression definition used by Button.action", () => {
     expect(inkSchema.$defs?.["ActionExpression"]).toEqual(spec.schema.$defs["ActionExpression"]);
   });
