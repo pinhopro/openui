@@ -8,12 +8,18 @@ export interface InkTheme {
   danger: string;
   /** Secondary text such as hints and status lines. */
   muted: string;
+  /** Success tags, callouts and upward metric trends. */
+  success: string;
+  /** Warning tags and callouts. */
+  warning: string;
 }
 
 export const defaultTheme: InkTheme = {
   accent: "cyan",
   danger: "red",
   muted: "gray",
+  success: "green",
+  warning: "yellow",
 };
 
 /** Fills the slots a host left out with the default theme. */
