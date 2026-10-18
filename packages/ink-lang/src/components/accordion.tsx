@@ -28,7 +28,15 @@ interface SectionHeaderProps {
  */
 function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: trigger,
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) onToggle();
+      },
+    },
+  });
 
   useInput(
     function handleHeaderKey(input, key) {
@@ -38,9 +46,11 @@ function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
   );
 
   return (
-    <Text inverse={focusable.isFocused} bold={isOpen}>
-      {(isOpen ? OPEN_MARK : CLOSED_MARK) + " " + trigger}
-    </Text>
+    <Box ref={focusable.ref}>
+      <Text inverse={focusable.isFocused} bold={isOpen}>
+        {(isOpen ? OPEN_MARK : CLOSED_MARK) + " " + trigger}
+      </Text>
+    </Box>
   );
 }
 

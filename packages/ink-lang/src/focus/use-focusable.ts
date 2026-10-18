@@ -1,31 +1,166 @@
-import { useFocus, useFocusManager } from "ink";
-import { useCallback, useId } from "react";
+import { useFocus, useFocusManager, type DOMElement } from "ink";
+import { useCallback, useContext, useEffect, useId, useRef, type RefObject } from "react";
+import { useElementType } from "../element-type-context";
+import type { MouseEvent } from "../mouse/mouse-sequence";
+import type { MouseHandlers, MouseWheelEvent } from "../mouse/mouse-target";
+import { useMouse } from "../mouse/use-mouse";
+import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
+import type { ArrowClaims } from "./focus-navigation";
+import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
 
 export interface FocusableOptions {
   /** False takes the component out of the Tab cycle (for example while streaming). */
   isActive: boolean;
+  /** What identifies this instance in UI events: a field name, a label, a trigger. */
+  name?: string;
+  /** The arrow axes the component uses itself; the other arrows move focus instead. */
+  arrows?: ArrowClaims;
+  /** Handlers on the focusable box besides focusing it: press on click, drag... */
+  mouse?: MouseHandlers;
+  /** Focus as soon as the pointer enters, the way a button highlights on hover. */
+  hoverFocus?: boolean;
 }
 
 export interface Focusable {
+  /** Put this on the component's outer `Box`: it is what the mouse hits and the arrows measure. */
+  ref: RefObject<DOMElement | null>;
   isFocused: boolean;
   /** Moves Ink's focus to this component (a no-op while it is inactive). */
   focus: () => void;
 }
 
+const NO_CLAIMS: ArrowClaims = {};
+const NO_HANDLERS: MouseHandlers = {};
+
 /**
- * Registers the component with Ink's focus manager under an id that is unique
- * per mounted instance, so Tab and Shift+Tab move between buttons and inputs
- * even when the same statement is rendered more than once.
+ * One focus stop. It registers with Ink's focus manager under an id that is
+ * unique per mounted instance, with the renderer's focus registry (so the
+ * arrow keys can find it on screen) and as a mouse target: a press on its box
+ * focuses it, and every mouse, focus and blur event is reported to the host.
  */
 export function useFocusable(options: FocusableOptions): Focusable {
   const id = useId();
-  const focus = useFocus({ id, isActive: options.isActive });
+  const isActive = options.isActive;
+  const focus = useFocus({ id, isActive });
   const manager = useFocusManager();
+  const ref = useRef<DOMElement | null>(null);
+  const component = useElementType();
+  const name = options.name ?? "";
+  const emit = useUiEvents();
+  const registry = useContext(FocusRegistryContext);
+  const mouse = options.mouse ?? NO_HANDLERS;
+  const hoverFocus = options.hoverFocus === true;
+
   const focusSelf = useCallback(
     function focusSelf() {
       manager.focus(id);
     },
     [id, manager],
   );
-  return { isFocused: focus.isFocused, focus: focusSelf };
+
+  const entryRef = useRef<FocusEntry>({
+    id,
+    ref,
+    isActive,
+    arrows: options.arrows ?? NO_CLAIMS,
+    component,
+    name,
+  });
+  entryRef.current.isActive = isActive;
+  entryRef.current.arrows = options.arrows ?? NO_CLAIMS;
+  entryRef.current.component = component;
+  entryRef.current.name = name;
+
+  useEffect(
+    function registerStop() {
+      if (registry === null) return undefined;
+      return registry.register(entryRef.current);
+    },
+    [registry],
+  );
+
+  const wasFocusedRef = useRef(false);
+  useEffect(
+    function reportFocusChange() {
+      if (focus.isFocused === wasFocusedRef.current) return;
+      wasFocusedRef.current = focus.isFocused;
+      emit({ type: focus.isFocused ? "focus" : "blur", component, name });
+    },
+    [component, emit, focus.isFocused, name],
+  );
+
+  function report(type: UiEventType, event: MouseEvent): void {
+    const uiEvent: UiEvent = {
+      type,
+      component,
+      name,
+      x: event.x,
+      y: event.y,
+      button: event.button,
+      shift: event.shift,
+      alt: event.alt,
+      ctrl: event.ctrl,
+    };
+    emit(uiEvent);
+  }
+
+  const handlers: MouseHandlers = {
+    onMouseDown: function handleMouseDown(event) {
+      report("mousedown", event);
+      if (isActive && event.button === "left") focusSelf();
+      mouse.onMouseDown?.(event);
+    },
+    onMouseUp: function handleMouseUp(event) {
+      report("mouseup", event);
+      mouse.onMouseUp?.(event);
+    },
+    onClick: function handleClick(event) {
+      report("click", event);
+      mouse.onClick?.(event);
+    },
+    onDoubleClick: function handleDoubleClick(event) {
+      report("dblclick", event);
+      mouse.onDoubleClick?.(event);
+    },
+    onContextMenu: function handleContextMenu(event) {
+      report("contextmenu", event);
+      mouse.onContextMenu?.(event);
+    },
+    onMouseEnter: function handleMouseEnter(event) {
+      report("mouseenter", event);
+      if (hoverFocus && isActive) focusSelf();
+      mouse.onMouseEnter?.(event);
+    },
+    onMouseLeave: function handleMouseLeave(event) {
+      report("mouseleave", event);
+      mouse.onMouseLeave?.(event);
+    },
+    onMouseMove: function handleMouseMove(event) {
+      report("mousemove", event);
+      mouse.onMouseMove?.(event);
+    },
+  };
+  // Only a component that scrolls or steps on the wheel takes wheel events;
+  // otherwise they keep bubbling to a scrolling container.
+  if (mouse.onWheel !== undefined) {
+    const onWheel = mouse.onWheel;
+    handlers.onWheel = function handleWheel(event: MouseWheelEvent) {
+      emit({
+        type: "wheel",
+        component,
+        name,
+        x: event.x,
+        y: event.y,
+        direction: event.direction,
+        ticks: event.ticks,
+        shift: event.shift,
+        alt: event.alt,
+        ctrl: event.ctrl,
+      });
+      onWheel(event);
+    };
+  }
+  useMouse(ref, handlers);
+
+  return { ref, isFocused: focus.isFocused, focus: focusSelf };
 }

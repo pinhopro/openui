@@ -23,6 +23,8 @@ export interface MouseHandlers {
   onMouseUp?: MouseEventHandler;
   /** Left button pressed and released on the same target. */
   onClick?: MouseEventHandler;
+  /** A second click on the same target within `DOUBLE_CLICK_MS`, after that click. */
+  onDoubleClick?: MouseEventHandler;
   /** Right button released on the target. */
   onContextMenu?: MouseEventHandler;
   onMouseMove?: MouseEventHandler;

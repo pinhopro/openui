@@ -18,7 +18,15 @@ interface CloseButtonProps {
 /** The focusable `[ x ]` in the title line; Enter, Space or Escape close the modal. */
 function CloseButton({ onClose }: CloseButtonProps) {
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: "close",
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) onClose();
+      },
+    },
+  });
 
   useInput(
     function handleCloseKey(input, key) {
@@ -28,7 +36,11 @@ function CloseButton({ onClose }: CloseButtonProps) {
     { isActive: focusable.isFocused && !isStreaming },
   );
 
-  return <Text inverse={focusable.isFocused}>[ x ]</Text>;
+  return (
+    <Box ref={focusable.ref}>
+      <Text inverse={focusable.isFocused}>[ x ]</Text>
+    </Box>
+  );
 }
 
 /**

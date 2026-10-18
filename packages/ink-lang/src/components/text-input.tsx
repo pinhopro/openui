@@ -1,12 +1,12 @@
-import { Box, Text, useInput, type DOMElement } from "ink";
+import { Box, Text, useInput } from "ink";
 import { useRef, useState } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
-import { useMouse } from "../mouse/use-mouse";
 import { InputSchema } from "../schemas/input-schema";
 import { useFieldValidation } from "../use-field-validation";
+import { useInputEvent } from "../use-input-event";
 import { useStateField } from "../use-state-field";
 import { displayText } from "./pad";
 import {
@@ -25,7 +25,12 @@ const PASSWORD_MASK = "*";
 function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: field.name,
+    arrows: { horizontal: true },
+  });
+  const reportInput = useInputEvent(field.name);
   const value = displayText(field.value);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -55,6 +60,7 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
       editorRef.current = next;
       setEditor(next);
       if (next.value !== previous.value) {
+        reportInput(next.value);
         field.setValue(next.value);
         validation.clearError();
       }
@@ -62,18 +68,12 @@ function InputRenderer({ props }: ComponentRenderProps<InputProps>) {
     { isActive: canType },
   );
 
-  // A click on the line focuses the field, like Tab.
-  const boxRef = useRef<DOMElement | null>(null);
-  useMouse(boxRef, {
-    onClick: function handleClick() {
-      if (!isStreaming) focusable.focus();
-    },
-  });
-
   const shown = props.type === "password" ? maskValue(value, PASSWORD_MASK) : value;
   const placeholder = props.placeholder ?? "";
   return (
-    <Box ref={boxRef}>{inputLine(focusable.isFocused, shown, placeholder, current.cursor)}</Box>
+    <Box ref={focusable.ref}>
+      {inputLine(focusable.isFocused, shown, placeholder, current.cursor)}
+    </Box>
   );
 }
 

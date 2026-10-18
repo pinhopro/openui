@@ -44,18 +44,30 @@ function PressableCard({ item, action }: PressableCardProps) {
   const formName = useFormName();
   const isStreaming = useIsStreaming();
   const theme = useTheme();
-  const focusable = useFocusable({ isActive: !isStreaming });
+  function press(): void {
+    void triggerAction(item.label, formName, withItemContext(action, item.context));
+  }
+
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: item.label,
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) press();
+      },
+    },
+  });
 
   useInput(
     function handleCardKey(input, key) {
-      if (!isPressKey(input, key)) return;
-      void triggerAction(item.label, formName, withItemContext(action, item.context));
+      if (isPressKey(input, key)) press();
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
 
   return (
     <Box
+      ref={focusable.ref}
       flexDirection="column"
       borderStyle="single"
       borderColor={focusable.isFocused ? theme.accent : undefined}

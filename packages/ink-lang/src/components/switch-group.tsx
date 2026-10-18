@@ -28,6 +28,8 @@ function SwitchGroupRenderer({ props }: ComponentRenderProps<SwitchGroupProps>) 
 
   const group = useOptionGroup({
     count: items.length,
+    orientation: "vertical",
+    name: field.name,
     onPress: function toggle(index) {
       const item = items[index];
       if (item === undefined) return;
@@ -48,6 +50,9 @@ function SwitchGroupRenderer({ props }: ComponentRenderProps<SwitchGroupProps>) 
         label={item.label}
         description={item.description}
         isCursor={group.isFocused && index === group.cursor}
+        onPress={function pressThis() {
+          group.pressAt(index);
+        }}
       />,
     );
   }
@@ -55,6 +60,7 @@ function SwitchGroupRenderer({ props }: ComponentRenderProps<SwitchGroupProps>) 
     props.variant === "card" ? "round" : props.variant === "sunk" ? "single" : undefined;
   return (
     <Box
+      ref={group.ref}
       flexDirection="column"
       borderStyle={borderStyle}
       borderColor={props.variant === "card" ? theme.accent : undefined}

@@ -1,9 +1,11 @@
-import { Box, Text, useInput } from "ink";
-import { useState } from "react";
+import { Box, Text, useInput, type DOMElement } from "ink";
+import { useRef, useState } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
+import { elementRect } from "../focus/element-rect";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { CarouselSchema } from "../schemas/carousel-schema";
 import { useTheme } from "../theme";
 import { horizontalStep } from "./arrow-keys";
@@ -23,7 +25,22 @@ interface CarouselStripProps {
  */
 function CarouselStrip({ index, count, onStep }: CarouselStripProps) {
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const strip = `◂ ${index + 1} / ${count} ▸`;
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: `${index + 1} / ${count}`,
+    arrows: { horizontal: true },
+    mouse: {
+      // The left arrow glyph steps back, the right one forward.
+      onClick: function handleClick(event) {
+        const element = focusable.ref.current;
+        if (element === null || isStreaming) return;
+        const offset = event.x - elementRect(element).x;
+        if (offset <= 0) onStep(-1);
+        else if (offset >= strip.length - 1) onStep(1);
+      },
+    },
+  });
 
   useInput(
     function handleCarouselKey(_input, key) {
@@ -34,18 +51,22 @@ function CarouselStrip({ index, count, onStep }: CarouselStripProps) {
   );
 
   return (
-    <Text inverse={focusable.isFocused} dimColor={!focusable.isFocused}>
-      {`◂ ${index + 1} / ${count} ▸`}
-    </Text>
+    <Box ref={focusable.ref}>
+      <Text inverse={focusable.isFocused} dimColor={!focusable.isFocused}>
+        {strip}
+      </Text>
+    </Box>
   );
 }
 
 /** One item visible at a time; Left and Right move while the indicator is focused. */
 function CarouselRenderer({ props, renderNode }: ComponentRenderProps<CarouselProps>) {
   const theme = useTheme();
+  const isStreaming = useIsStreaming();
   const items = Array.isArray(props.children) ? props.children : [];
   const [index, setIndex] = useState(0);
   const current = clampIndex(index, items.length);
+  const carouselRef = useRef<DOMElement | null>(null);
 
   function step(delta: number): void {
     setIndex(function move(previous) {
@@ -53,11 +74,20 @@ function CarouselRenderer({ props, renderNode }: ComponentRenderProps<CarouselPr
     });
   }
 
+  // The wheel anywhere over the carousel moves between its items.
+  useMouse(carouselRef, {
+    onWheel: function handleWheel(event) {
+      if (isStreaming) return;
+      step(event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks);
+    },
+  });
+
   if (items.length === 0) return null;
   const borderStyle =
     props.variant === "card" ? "round" : props.variant === "sunk" ? "single" : undefined;
   return (
     <Box
+      ref={carouselRef}
       flexDirection="column"
       borderStyle={borderStyle}
       borderColor={props.variant === "card" ? theme.accent : undefined}

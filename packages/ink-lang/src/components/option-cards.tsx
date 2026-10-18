@@ -1,7 +1,8 @@
-import { Box, Text } from "ink";
+import { Box, Text, type DOMElement } from "ink";
 import { useRef, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { OptionCardsSchema } from "../schemas/option-cards-schema";
 import { useTheme } from "../theme";
 import { useFieldValidation } from "../use-field-validation";
@@ -27,13 +28,21 @@ interface OptionCardBoxProps {
   isSelected: boolean;
   isCursor: boolean;
   topContent: ReactNode;
+  onPress: () => void;
 }
 
-/** A bordered card: the top content, a marked title (inverse under the cursor) and a dim subtitle. */
-function OptionCardBox({ item, isSelected, isCursor, topContent }: OptionCardBoxProps) {
+/** A bordered card: the top content, a marked title (inverse under the cursor) and a dim subtitle. A click presses it. */
+function OptionCardBox({ item, isSelected, isCursor, topContent, onPress }: OptionCardBoxProps) {
   const theme = useTheme();
+  const cardRef = useRef<DOMElement | null>(null);
+  useMouse(cardRef, {
+    onClick: function handleClick() {
+      onPress();
+    },
+  });
   return (
     <Box
+      ref={cardRef}
       flexDirection="column"
       borderStyle={isSelected ? "round" : "single"}
       borderColor={isSelected ? theme.accent : undefined}
@@ -67,6 +76,8 @@ function OptionCardsRenderer({ props, renderNode }: ComponentRenderProps<OptionC
 
   const group = useOptionGroup({
     count: items.length,
+    orientation: "vertical",
+    name: field.name,
     onPress: function toggle(index) {
       const item = items[index];
       if (item === undefined || item.disabled) return;
@@ -97,10 +108,17 @@ function OptionCardsRenderer({ props, renderNode }: ComponentRenderProps<OptionC
         isSelected={selection.includes(item.value)}
         isCursor={group.isFocused && index === group.cursor}
         topContent={item.topContent === undefined ? null : renderNode(item.topContent)}
+        onPress={function pressThis() {
+          group.pressAt(index);
+        }}
       />,
     );
   }
-  return <Box flexDirection="column">{cards}</Box>;
+  return (
+    <Box ref={group.ref} flexDirection="column">
+      {cards}
+    </Box>
+  );
 }
 
 export const OptionCards = defineComponent({

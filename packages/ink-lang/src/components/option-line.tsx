@@ -1,4 +1,6 @@
-import { Box, Text } from "ink";
+import { Box, Text, type DOMElement } from "ink";
+import { useRef } from "react";
+import { useMouse } from "../mouse/use-mouse";
 
 export interface OptionLineProps {
   /** The glyph before the label: `[x]`, `( )`, `[on ]`... */
@@ -7,12 +9,20 @@ export interface OptionLineProps {
   description: string;
   /** Inverse video on the label while the group's cursor is here. */
   isCursor: boolean;
+  /** Called when the line is clicked. */
+  onPress: () => void;
 }
 
-/** `mark label` and, under it, the dim description indented past the mark. */
-export function OptionLine({ mark, label, description, isCursor }: OptionLineProps) {
+/** `mark label` and, under it, the dim description indented past the mark; a click presses it. */
+export function OptionLine({ mark, label, description, isCursor, onPress }: OptionLineProps) {
+  const lineRef = useRef<DOMElement | null>(null);
+  useMouse(lineRef, {
+    onClick: function handleClick() {
+      onPress();
+    },
+  });
   return (
-    <Box flexDirection="column">
+    <Box ref={lineRef} flexDirection="column">
       <Text>
         {mark + " "}
         <Text inverse={isCursor}>{label}</Text>

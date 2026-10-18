@@ -76,8 +76,18 @@ interface TabStripProps {
  */
 function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming });
-  const stripRef = useRef<DOMElement | null>(null);
+  const active = items[activeIndex];
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: active === undefined ? "" : triggerText(active),
+    arrows: { horizontal: true },
+    mouse: {
+      onWheel: function handleWheel(event) {
+        if (isStreaming) return;
+        onStep(event.direction === "up" || event.direction === "left" ? -1 : 1);
+      },
+    },
+  });
 
   useInput(
     function handleTabsKey(_input, key) {
@@ -93,13 +103,6 @@ function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
     onSelect(index);
   }
 
-  useMouse(stripRef, {
-    onWheel: function handleWheel(event) {
-      if (isStreaming) return;
-      onStep(event.direction === "up" || event.direction === "left" ? -1 : 1);
-    },
-  });
-
   const triggers: ReactNode[] = [];
   for (let index = 0; index < items.length; index += 1) {
     triggers.push(
@@ -114,7 +117,7 @@ function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
     );
   }
   return (
-    <Box ref={stripRef} flexDirection="row">
+    <Box ref={focusable.ref} flexDirection="row">
       {triggers}
     </Box>
   );

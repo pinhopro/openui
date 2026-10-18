@@ -19,6 +19,7 @@ function makeTarget(name: string, log: Recorded[]): MouseTarget {
     "onMouseMove",
     "onMouseEnter",
     "onMouseLeave",
+    "onDoubleClick",
   ] as const;
   for (const handlerName of names) {
     handlers[handlerName] = function record(event: MouseEvent) {
@@ -64,7 +65,7 @@ describe("createMouseDispatcher", () => {
     expect(names(log)).toEqual(["onMouseDown:a", "onMouseUp:a", "onClick:a"]);
   });
 
-  it("does not click when the release lands on another target or on nothing", () => {
+  it("does not click when the release lands elsewhere; the pressed target still gets the release", () => {
     const log: Recorded[] = [];
     const a = makeTarget("a", log);
     const b = makeTarget("b", log);
@@ -73,7 +74,7 @@ describe("createMouseDispatcher", () => {
     dispatcher.handle(at("up", "left"), [b]);
     dispatcher.handle(at("down", "left"), [a]);
     dispatcher.handle(at("up", "left"), []);
-    expect(names(log)).toEqual(["onMouseDown:a", "onMouseUp:b", "onMouseDown:a"]);
+    expect(names(log)).toEqual(["onMouseDown:a", "onMouseUp:a", "onMouseDown:a", "onMouseUp:a"]);
   });
 
   it("fires contextmenu on a right button release and never a click", () => {
@@ -191,5 +192,67 @@ describe("createMouseDispatcher", () => {
     dispatcher.handle(at("move", "none"), [inner, strip]);
     dispatcher.handle(at("move", "none"), [strip]);
     expect(names(log)).toEqual(["onMouseMove:strip", "onMouseEnter:strip", "onMouseMove:strip"]);
+  });
+});
+
+describe("createMouseDispatcher capture and double click", () => {
+  it("routes moves and the release to the pressed target while the button is held", () => {
+    const log: Recorded[] = [];
+    const a = makeTarget("a", log);
+    const b = makeTarget("b", log);
+    const dispatcher = createMouseDispatcher();
+    dispatcher.handle(at("down", "left", 0, 0), [a]);
+    dispatcher.handle(at("move", "left", 5, 0), [b]);
+    dispatcher.handle(at("move", "left", 9, 0), []);
+    dispatcher.handle(at("up", "left", 9, 0), []);
+    expect(names(log)).toEqual([
+      "onMouseDown:a",
+      "onMouseEnter:b",
+      "onMouseMove:a",
+      "onMouseLeave:b",
+      "onMouseMove:a",
+      "onMouseUp:a",
+    ]);
+  });
+
+  it("fires double click after two clicks on one target within the threshold", () => {
+    const log: Recorded[] = [];
+    const a = makeTarget("a", log);
+    const b = makeTarget("b", log);
+    let time = 1000;
+    const dispatcher = createMouseDispatcher({
+      now: function now() {
+        return time;
+      },
+    });
+    dispatcher.handle(at("down", "left"), [a]);
+    dispatcher.handle(at("up", "left"), [a]);
+    time += 100;
+    dispatcher.handle(at("down", "left"), [a]);
+    dispatcher.handle(at("up", "left"), [a]);
+    expect(names(log)).toEqual([
+      "onMouseDown:a",
+      "onMouseUp:a",
+      "onClick:a",
+      "onMouseDown:a",
+      "onMouseUp:a",
+      "onClick:a",
+      "onDoubleClick:a",
+    ]);
+    log.length = 0;
+    time += 1000;
+    dispatcher.handle(at("down", "left"), [a]);
+    dispatcher.handle(at("up", "left"), [a]);
+    time += 100;
+    dispatcher.handle(at("down", "left"), [b]);
+    dispatcher.handle(at("up", "left"), [b]);
+    expect(names(log)).toEqual([
+      "onMouseDown:a",
+      "onMouseUp:a",
+      "onClick:a",
+      "onMouseDown:b",
+      "onMouseUp:b",
+      "onClick:b",
+    ]);
   });
 });

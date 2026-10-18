@@ -416,6 +416,11 @@ paging, braille line/area/scatter charts and opt-in mouse support. Nothing from 
 open. Combobox has no react-ui counterpart, so it reuses Select's schema and is the one
 terminal-only component; table paging is client-side with a fixed page of ten rows and a
 focusable pager footer rather than `contentOffsetY`.
+A later pass made the mouse reach every control (a press focuses any focus stop, option
+rows toggle on click, the Slider drags, the pressed box captures moves and the release),
+added arrow-key focus navigation by position on screen (`focus/`), and a browser-like UI
+event stream (`onUiEvent`: focus, blur, keydown, keyup, input, change and the mouse
+events) that the showcase lists in a scrollable panel.
 
 | Item                                   | One-line approach                                                                                                                                                                                                                |
 | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

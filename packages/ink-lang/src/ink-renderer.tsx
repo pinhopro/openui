@@ -1,8 +1,11 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { Box, Text } from "ink";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
 import { ErrorFooter } from "./error-footer";
+import { ArrowNavigator } from "./focus/arrow-navigator";
+import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
+import { KeyReporter } from "./focus/key-reporter";
 import type { Library } from "./library";
 import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
@@ -11,6 +14,7 @@ import { RenderNode } from "./render-node";
 import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
 import { resolveTheme, ThemeContext, type InkTheme } from "./theme";
+import { UiEventContext, type UiEvent } from "./ui-events";
 import { useOpenUIRuntime } from "./use-openui-runtime";
 
 export interface InkRendererProps {
@@ -41,6 +45,13 @@ export interface InkRendererProps {
    * line up with the terminal's.
    */
   mouse?: boolean | Partial<MouseOptions>;
+  /**
+   * Receives the browser-like UI events of every component: focus and blur,
+   * keydown and keyup, input and change, and the mouse events (mousedown,
+   * mouseup, click, dblclick, contextmenu, mouseenter, mouseleave, mousemove,
+   * wheel) when `mouse` is on.
+   */
+  onUiEvent?: (event: UiEvent) => void;
 }
 
 /** Renders a streaming OpenUI Lang program in the terminal. */
@@ -79,11 +90,19 @@ export function InkRenderer(props: InkRendererProps) {
     },
     [props.mouse],
   );
+  const onUiEventRef = useRef(props.onUiEvent);
+  onUiEventRef.current = props.onUiEvent;
+  const emitUiEvent = useCallback(function emitUiEvent(event: UiEvent) {
+    onUiEventRef.current?.(event);
+  }, []);
+  const focusRegistry = useMemo(createFocusRegistry, []);
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
   const tree = (
     <Box flexDirection="column">
+      <ArrowNavigator />
+      <KeyReporter />
       {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
       {showPlaceholder ? <Text dimColor>…</Text> : null}
       {isStreaming ? <Text dimColor>streaming…</Text> : null}
@@ -100,11 +119,15 @@ export function InkRenderer(props: InkRendererProps) {
   return (
     <OpenUIContext.Provider value={runtime.contextValue}>
       <ThemeContext.Provider value={theme}>
-        {mouseOptions === null ? (
-          tree
-        ) : (
-          <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
-        )}
+        <UiEventContext.Provider value={emitUiEvent}>
+          <FocusRegistryContext.Provider value={focusRegistry}>
+            {mouseOptions === null ? (
+              tree
+            ) : (
+              <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
+            )}
+          </FocusRegistryContext.Provider>
+        </UiEventContext.Provider>
       </ThemeContext.Provider>
     </OpenUIContext.Provider>
   );

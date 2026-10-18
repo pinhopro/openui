@@ -30,6 +30,8 @@ function CheckBoxGroupRenderer({ props }: ComponentRenderProps<CheckBoxGroupProp
 
   const group = useOptionGroup({
     count: items.length,
+    orientation: "vertical",
+    name: field.name,
     onPress: function toggle(index) {
       const item = items[index];
       if (item === undefined) return;
@@ -61,10 +63,17 @@ function CheckBoxGroupRenderer({ props }: ComponentRenderProps<CheckBoxGroupProp
         label={item.label}
         description={item.description}
         isCursor={group.isFocused && index === group.cursor}
+        onPress={function pressThis() {
+          group.pressAt(index);
+        }}
       />,
     );
   }
-  return <Box flexDirection="column">{lines}</Box>;
+  return (
+    <Box ref={group.ref} flexDirection="column">
+      {lines}
+    </Box>
+  );
 }
 
 export const CheckBoxGroup = defineComponent({

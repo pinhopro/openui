@@ -48,6 +48,8 @@ function RadioGroupRenderer({ props }: ComponentRenderProps<RadioGroupProps>) {
 
   const group = useOptionGroup({
     count: options.length,
+    orientation: "vertical",
+    name: field.name,
     onPress: function pick(index) {
       const option = options[index];
       if (option === undefined) return;
@@ -77,10 +79,17 @@ function RadioGroupRenderer({ props }: ComponentRenderProps<RadioGroupProps>) {
         label={option.label}
         description={option.description}
         isCursor={group.isFocused && index === group.cursor}
+        onPress={function pressThis() {
+          group.pressAt(index);
+        }}
       />,
     );
   }
-  return <Box flexDirection="column">{lines}</Box>;
+  return (
+    <Box ref={group.ref} flexDirection="column">
+      {lines}
+    </Box>
+  );
 }
 
 export const RadioGroup = defineComponent({

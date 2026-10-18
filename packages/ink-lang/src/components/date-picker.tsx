@@ -1,4 +1,4 @@
-import { Text, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import { useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
@@ -67,7 +67,11 @@ function DateText({ date, activeSegment }: DateTextProps) {
 function DatePickerRenderer({ props }: ComponentRenderProps<DatePickerProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: field.name,
+    arrows: { horizontal: true, vertical: true },
+  });
   const isRange = props.mode === "range";
   const dateCount = isRange ? 2 : 1;
   const segmentCount = SEGMENTS_PER_DATE * dateCount;
@@ -145,10 +149,12 @@ function DatePickerRenderer({ props }: ComponentRenderProps<DatePickerProps>) {
     );
   }
   return (
-    <Text>
-      {focusable.isFocused ? "> " : "  "}
-      {parts}
-    </Text>
+    <Box ref={focusable.ref}>
+      <Text>
+        {focusable.isFocused ? "> " : "  "}
+        {parts}
+      </Text>
+    </Box>
   );
 }
 

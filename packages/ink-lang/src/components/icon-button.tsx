@@ -1,5 +1,5 @@
 import type { ActionPlan } from "@openuidev/lang-core";
-import { Text, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import type { z } from "zod/v4";
 import { useIsStreaming, useTriggerAction } from "../context";
 import { buttonTextStyle } from "../focus/focus-style";
@@ -20,13 +20,26 @@ function IconButtonRenderer({ props }: ComponentRenderProps<IconButtonProps>) {
   const formName = useFormName();
   const isStreaming = useIsStreaming();
   const theme = useTheme();
-  const focusable = useFocusable({ isActive: !isStreaming });
   const name = displayText(props.name);
+
+  function press(): void {
+    void triggerAction(name, formName, props.action as unknown as ActionPlan | null | undefined);
+  }
+
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name,
+    hoverFocus: true,
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) press();
+      },
+    },
+  });
 
   useInput(
     function handleIconButtonKey(input, key) {
-      if (!isPressKey(input, key)) return;
-      void triggerAction(name, formName, props.action as unknown as ActionPlan | null | undefined);
+      if (isPressKey(input, key)) press();
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
@@ -41,9 +54,13 @@ function IconButtonRenderer({ props }: ComponentRenderProps<IconButtonProps>) {
   const icon = iconText(props.icon);
   const label = icon === "" ? name : icon + " " + name;
   return (
-    <Text inverse={style.inverse} bold={style.bold} dimColor={style.dimColor}>
-      [ {label} ]
-    </Text>
+    <Box>
+      <Box ref={focusable.ref}>
+        <Text inverse={style.inverse} bold={style.bold} dimColor={style.dimColor}>
+          [ {label} ]
+        </Text>
+      </Box>
+    </Box>
   );
 }
 

@@ -4,9 +4,11 @@ import type { MouseHandlers, MouseTarget, MouseWheelEvent } from "./mouse-target
 /**
  * Turns hit-tested mouse events into handler calls. Each event goes to the
  * nearest target in the chain (innermost first) that handles it: click from a
- * left press and release on one innermost box, contextmenu from a right
- * release, enter and leave from consecutive moves over the innermost box, and
- * wheel ticks coalesced until `flushWheel`.
+ * left press and release on one innermost box, dblclick from two such clicks
+ * in quick succession, contextmenu from a right release, enter and leave from
+ * consecutive moves over the innermost box, and wheel ticks coalesced until
+ * `flushWheel`. While the left button is held the pressed target captures the
+ * moves and the release, like a browser drag.
  */
 export interface MouseDispatcher {
   handle: (event: MouseEvent, chain: MouseTarget[]) => void;
@@ -16,15 +18,29 @@ export interface MouseDispatcher {
   forget: (target: MouseTarget) => void;
 }
 
+export interface MouseDispatcherOptions {
+  /** The clock for double clicks; defaults to `Date.now`. */
+  now?: () => number;
+}
+
+/** Two clicks on one target this close together make a double click. */
+export const DOUBLE_CLICK_MS = 400;
+
 interface PendingWheel {
   target: MouseTarget;
   event: MouseWheelEvent;
+}
+
+interface LastClick {
+  target: MouseTarget;
+  time: number;
 }
 
 type EventHandlerName =
   | "onMouseDown"
   | "onMouseUp"
   | "onClick"
+  | "onDoubleClick"
   | "onContextMenu"
   | "onMouseMove"
   | "onMouseEnter"
@@ -42,6 +58,10 @@ function callNearest(chain: MouseTarget[], name: EventHandlerName, event: MouseE
   if (target !== null) target.handlers[name]?.(event);
 }
 
+function innermostOf(chain: MouseTarget[]): MouseTarget | null {
+  return chain.length === 0 ? null : (chain[0] as MouseTarget);
+}
+
 function sameWheel(pending: PendingWheel, target: MouseTarget, event: MouseEvent): boolean {
   if (pending.target !== target) return false;
   if (pending.event.direction !== event.wheelDirection) return false;
@@ -50,34 +70,66 @@ function sameWheel(pending: PendingWheel, target: MouseTarget, event: MouseEvent
   return pending.event.ctrl === event.ctrl;
 }
 
-export function createMouseDispatcher(): MouseDispatcher {
+function defaultNow(): number {
+  return Date.now();
+}
+
+export function createMouseDispatcher(options: MouseDispatcherOptions = {}): MouseDispatcher {
+  const now = options.now ?? defaultNow;
   let hovered: MouseTarget | null = null;
+  /** The innermost target under a left press, which captures moves and the release. */
   let pressed: MouseTarget | null = null;
+  /** The chain at that press, so captured events still bubble the same way. */
+  let pressedChain: MouseTarget[] = [];
+  let lastClick: LastClick | null = null;
   let pendingWheel: PendingWheel[] = [];
 
   function handleMove(event: MouseEvent, chain: MouseTarget[]): void {
-    const innermost = chain.length === 0 ? null : (chain[0] as MouseTarget);
+    const innermost = innermostOf(chain);
     if (innermost !== hovered) {
       if (hovered !== null) hovered.handlers.onMouseLeave?.(event);
       hovered = innermost;
       if (innermost !== null) innermost.handlers.onMouseEnter?.(event);
     }
-    callNearest(chain, "onMouseMove", event);
+    callNearest(pressed === null ? chain : pressedChain, "onMouseMove", event);
   }
 
   function handleDown(event: MouseEvent, chain: MouseTarget[]): void {
-    if (event.button === "left") pressed = chain.length === 0 ? null : (chain[0] as MouseTarget);
+    if (event.button === "left") {
+      pressed = innermostOf(chain);
+      pressedChain = chain;
+    }
     callNearest(chain, "onMouseDown", event);
   }
 
-  function handleUp(event: MouseEvent, chain: MouseTarget[]): void {
-    callNearest(chain, "onMouseUp", event);
-    if (event.button === "left") {
-      const innermost = chain.length === 0 ? null : (chain[0] as MouseTarget);
-      if (innermost !== null && innermost === pressed) callNearest(chain, "onClick", event);
-      pressed = null;
+  function handleClick(event: MouseEvent, chain: MouseTarget[], target: MouseTarget): void {
+    callNearest(chain, "onClick", event);
+    const time = now();
+    const isDouble =
+      lastClick !== null && lastClick.target === target && time - lastClick.time <= DOUBLE_CLICK_MS;
+    if (isDouble) {
+      callNearest(chain, "onDoubleClick", event);
+      lastClick = null;
       return;
     }
+    lastClick = { target, time };
+  }
+
+  function handleUp(event: MouseEvent, chain: MouseTarget[]): void {
+    if (event.button === "left") {
+      const captured = pressed;
+      const capturedChain = pressedChain;
+      pressed = null;
+      pressedChain = [];
+      if (captured !== null) {
+        callNearest(capturedChain, "onMouseUp", event);
+        if (innermostOf(chain) === captured) handleClick(event, chain, captured);
+        return;
+      }
+      callNearest(chain, "onMouseUp", event);
+      return;
+    }
+    callNearest(chain, "onMouseUp", event);
     if (event.button === "right") callNearest(chain, "onContextMenu", event);
   }
 
@@ -122,7 +174,11 @@ export function createMouseDispatcher(): MouseDispatcher {
 
   function forget(target: MouseTarget): void {
     if (hovered === target) hovered = null;
-    if (pressed === target) pressed = null;
+    if (pressed === target) {
+      pressed = null;
+      pressedChain = [];
+    }
+    if (lastClick !== null && lastClick.target === target) lastClick = null;
     const kept: PendingWheel[] = [];
     for (const pending of pendingWheel) {
       if (pending.target !== target) kept.push(pending);

@@ -342,10 +342,23 @@ export type { CursorSplit, EditorState } from "./components/text-editing";
 export { useOptionGroup } from "./components/use-option-group";
 export type { OptionGroup, OptionGroupOptions } from "./components/use-option-group";
 export { variantColor } from "./components/variant-color";
+export { ElementTypeContext, useElementType } from "./element-type-context";
+export { ArrowNavigator } from "./focus/arrow-navigator";
+export { elementRect } from "./focus/element-rect";
+export type { CellRect as ElementRect } from "./focus/element-rect";
+export { arrowDirection, claimsDirection, nextInDirection } from "./focus/focus-navigation";
+export type { ArrowClaims, ArrowDirection, NavigationCandidate } from "./focus/focus-navigation";
+export { FocusRegistryContext, createFocusRegistry } from "./focus/focus-registry";
+export type { FocusEntry, FocusRegistry } from "./focus/focus-registry";
 export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
 export type { ButtonTextStyle } from "./focus/focus-style";
+export { keyName } from "./focus/key-name";
+export { KeyReporter } from "./focus/key-reporter";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
+export { UiEventContext, useUiEvents } from "./ui-events";
+export type { UiEvent, UiEventListener, UiEventType } from "./ui-events";
+export { useInputEvent } from "./use-input-event";
 
 // Mouse support
 export { measureTargets, targetsUnderCell } from "./mouse/hit-test";

@@ -78,7 +78,6 @@ function OptionList({ options, selectedIndex, cursor, onPick }: OptionListProps)
 function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
-  const focusable = useFocusable({ isActive: !isStreaming });
   const options = selectOptions(props.items);
   const selectedIndex = indexOfOption(options, field.value);
   // null until the user moves: the cursor then follows the stored value.
@@ -88,8 +87,22 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   // Several keys can arrive in one stdin chunk before React re-renders.
   const cursorRef = useRef(cursor);
   cursorRef.current = cursor;
+  // A press on the summary line focuses (and so opens) it; the wheel moves the cursor.
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: field.name,
+    arrows: { vertical: true },
+    mouse: {
+      onWheel: function handleWheel(event) {
+        if (isStreaming) return;
+        focusable.focus();
+        moveCursor(
+          event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
+        );
+      },
+    },
+  });
   const canUse = focusable.isFocused && !isStreaming;
-  const boxRef = useRef<DOMElement | null>(null);
 
   function moveCursor(delta: number): void {
     const next = stepIndex(cursorRef.current, options.length, delta);
@@ -117,19 +130,6 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
     { isActive: canUse },
   );
 
-  useMouse(boxRef, {
-    onClick: function handleClick() {
-      if (!isStreaming) focusable.focus();
-    },
-    onWheel: function handleWheel(event) {
-      if (isStreaming) return;
-      focusable.focus();
-      moveCursor(
-        event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
-      );
-    },
-  });
-
   function pickWithMouse(index: number): void {
     if (!isStreaming) pick(index);
   }
@@ -145,7 +145,7 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
     );
 
   return (
-    <Box ref={boxRef} flexDirection="column">
+    <Box ref={focusable.ref} flexDirection="column">
       <Text>
         {prefix + "▾ "}
         {summary}

@@ -1,4 +1,4 @@
-import { Text, useAnimation, useInput } from "ink";
+import { Box, Text, useAnimation, useInput } from "ink";
 import { isPressKey } from "./components/button-keys";
 import { buttonTextStyle } from "./focus/focus-style";
 import { useFocusable } from "./focus/use-focusable";
@@ -29,7 +29,15 @@ interface RetryButtonProps {
 /** A focusable `[ retry ]` that re-runs the failed queries. */
 function RetryButton({ isStreaming, onRetry }: RetryButtonProps) {
   const theme = useTheme();
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: "retry",
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) onRetry();
+      },
+    },
+  });
   useInput(
     function handleRetryKey(input, key) {
       if (!isPressKey(input, key)) return;
@@ -39,9 +47,13 @@ function RetryButton({ isStreaming, onRetry }: RetryButtonProps) {
   );
   const style = buttonTextStyle(focusable.isFocused, isStreaming, "secondary", undefined);
   return (
-    <Text inverse={style.inverse} dimColor={style.dimColor} color={theme.danger}>
-      [ retry ]
-    </Text>
+    <Box>
+      <Box ref={focusable.ref}>
+        <Text inverse={style.inverse} dimColor={style.dimColor} color={theme.danger}>
+          [ retry ]
+        </Text>
+      </Box>
+    </Box>
   );
 }
 

@@ -39,3 +39,22 @@ export function sliderTrack(value: number, min: number, max: number, width: numb
   }
   return track + "┤";
 }
+
+/** The value for the knob when the pointer is `cell` cells from the track's start (0 is `├`). */
+export function sliderValueAtCell(
+  cell: number,
+  width: number,
+  min: number,
+  max: number,
+  step: number,
+): number {
+  const inner = Math.max(1, width - 2);
+  const index = Math.min(inner - 1, Math.max(0, cell - 1));
+  const ratio = inner <= 1 ? 0 : index / (inner - 1);
+  const raw = min + ratio * (max - min);
+  const size = step > 0 ? step : 1;
+  const snapped = min + Math.round((raw - min) / size) * size;
+  if (snapped < min) return min;
+  if (snapped > max) return max;
+  return snapped;
+}

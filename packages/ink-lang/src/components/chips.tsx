@@ -1,7 +1,8 @@
-import { Box, Text } from "ink";
+import { Box, Text, type DOMElement } from "ink";
 import { useRef, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useMouse } from "../mouse/use-mouse";
 import { ChipsSchema } from "../schemas/chips-schema";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
@@ -25,17 +26,26 @@ interface ChipProps {
   item: SelectionItem;
   isSelected: boolean;
   isCursor: boolean;
+  onPress: () => void;
 }
 
-/** `[✓ label]` when selected, `[ label ]` otherwise; dim when disabled. */
-function Chip({ item, isSelected, isCursor }: ChipProps) {
+/** `[✓ label]` when selected, `[ label ]` otherwise; dim when disabled. A click presses it. */
+function Chip({ item, isSelected, isCursor, onPress }: ChipProps) {
+  const chipRef = useRef<DOMElement | null>(null);
+  useMouse(chipRef, {
+    onClick: function handleClick() {
+      onPress();
+    },
+  });
   const icon = iconText(item.icon);
   const label = icon === "" ? item.label : icon + " " + item.label;
   const text = isSelected ? "[" + SELECTED_MARK + label + "]" : "[ " + label + " ]";
   return (
-    <Text inverse={isCursor} bold={isSelected} dimColor={item.disabled}>
-      {text}
-    </Text>
+    <Box ref={chipRef}>
+      <Text inverse={isCursor} bold={isSelected} dimColor={item.disabled}>
+        {text}
+      </Text>
+    </Box>
   );
 }
 
@@ -54,6 +64,8 @@ function ChipsRenderer({ props }: ComponentRenderProps<ChipsProps>) {
 
   const group = useOptionGroup({
     count: items.length,
+    orientation: "horizontal",
+    name: field.name,
     onPress: function toggle(index) {
       const item = items[index];
       if (item === undefined || item.disabled) return;
@@ -83,11 +95,14 @@ function ChipsRenderer({ props }: ComponentRenderProps<ChipsProps>) {
         item={item}
         isSelected={selection.includes(item.value)}
         isCursor={group.isFocused && index === group.cursor}
+        onPress={function pressThis() {
+          group.pressAt(index);
+        }}
       />,
     );
   }
   return (
-    <Box flexDirection="row" flexWrap="wrap" gap={1}>
+    <Box ref={group.ref} flexDirection="row" flexWrap="wrap" gap={1}>
       {chips}
     </Box>
   );

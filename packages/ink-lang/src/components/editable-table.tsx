@@ -58,6 +58,7 @@ function EditableTableRenderer({ props }: ComponentRenderProps<EditableTableProp
       cells.push(
         <EditableCell
           key={columnIndex}
+          name={field.name}
           column={column}
           value={row.values[columnIndex]}
           width={widths[columnIndex] ?? 1}

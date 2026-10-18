@@ -6,6 +6,7 @@ import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { TextAreaSchema } from "../schemas/text-area-schema";
 import { useFieldValidation } from "../use-field-validation";
+import { useInputEvent } from "../use-input-event";
 import { useStateField } from "../use-state-field";
 import { applyKeyToMultilineEditor, linePosition } from "./multiline-editing";
 import { displayText } from "./pad";
@@ -62,7 +63,12 @@ function TextAreaLines({ value, cursor, rows, isFocused, placeholder }: TextArea
 function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
-  const focusable = useFocusable({ isActive: !isStreaming });
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: field.name,
+    arrows: { horizontal: true, vertical: true },
+  });
+  const reportInput = useInputEvent(field.name);
   const value = displayText(field.value);
   const valueRef = useRef(value);
   valueRef.current = value;
@@ -87,6 +93,7 @@ function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
       editorRef.current = next;
       setEditor(next);
       if (next.value !== previous.value) {
+        reportInput(next.value);
         field.setValue(next.value);
         validation.clearError();
       }
@@ -96,13 +103,15 @@ function TextAreaRenderer({ props }: ComponentRenderProps<TextAreaProps>) {
 
   const rows = typeof props.rows === "number" && props.rows > 0 ? props.rows : DEFAULT_ROWS;
   return (
-    <TextAreaLines
-      value={value}
-      cursor={current.cursor}
-      rows={rows}
-      isFocused={focusable.isFocused}
-      placeholder={displayText(props.placeholder)}
-    />
+    <Box ref={focusable.ref} flexDirection="column">
+      <TextAreaLines
+        value={value}
+        cursor={current.cursor}
+        rows={rows}
+        isFocused={focusable.isFocused}
+        placeholder={displayText(props.placeholder)}
+      />
+    </Box>
   );
 }
 

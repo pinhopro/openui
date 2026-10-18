@@ -33,24 +33,38 @@ function listItems(items: unknown): ElementNode[] {
 function ActionableEntry({ item, marker }: ListEntryProps) {
   const triggerAction = useTriggerAction();
   const isStreaming = useIsStreaming();
-  const focusable = useFocusable({ isActive: !isStreaming });
   const title = displayText(item.props["title"]);
   const actionLabel = displayText(item.props["actionLabel"]);
 
+  function press(): void {
+    void triggerAction(title, undefined, item.props["action"] as ActionPlan | undefined);
+  }
+
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: title,
+    mouse: {
+      onClick: function handleClick() {
+        if (!isStreaming) press();
+      },
+    },
+  });
+
   useInput(
     function handleEntryKey(input, key) {
-      if (!isPressKey(input, key)) return;
-      void triggerAction(title, undefined, item.props["action"] as ActionPlan | undefined);
+      if (isPressKey(input, key)) press();
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
 
   return (
-    <Text>
-      {marker + " "}
-      <Text inverse={focusable.isFocused}>{title}</Text>
-      {actionLabel === "" ? null : <Text dimColor>{"  (" + actionLabel + ")"}</Text>}
-    </Text>
+    <Box ref={focusable.ref}>
+      <Text>
+        {marker + " "}
+        <Text inverse={focusable.isFocused}>{title}</Text>
+        {actionLabel === "" ? null : <Text dimColor>{"  (" + actionLabel + ")"}</Text>}
+      </Text>
+    </Box>
   );
 }
 

@@ -121,7 +121,21 @@ function FilterLine({ editor, fallback }: FilterLineProps) {
 function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const isStreaming = useIsStreaming();
   const field = useStateField<unknown>(props.name, props.value);
-  const focusable = useFocusable({ isActive: !isStreaming });
+  // A press focuses (and so opens) it; the wheel moves the highlight.
+  const focusable = useFocusable({
+    isActive: !isStreaming,
+    name: field.name,
+    arrows: { horizontal: true, vertical: true },
+    mouse: {
+      onWheel: function handleWheel(event) {
+        if (isStreaming) return;
+        focusable.focus();
+        moveHighlight(
+          event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
+        );
+      },
+    },
+  });
   const valueRef = useRef<unknown>(field.value);
   valueRef.current = field.value;
   const validation = useFieldValidation({
@@ -143,7 +157,6 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const highlightRef = useRef(cursor);
   highlightRef.current = cursor;
   const canUse = focusable.isFocused && !isStreaming;
-  const boxRef = useRef<DOMElement | null>(null);
 
   function resetFilter(): void {
     editorRef.current = EMPTY_EDITOR;
@@ -206,19 +219,6 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
     { isActive: canUse },
   );
 
-  useMouse(boxRef, {
-    onClick: function handleClick() {
-      if (!isStreaming) focusable.focus();
-    },
-    onWheel: function handleWheel(event) {
-      if (isStreaming) return;
-      focusable.focus();
-      moveHighlight(
-        event.direction === "up" || event.direction === "left" ? -event.ticks : event.ticks,
-      );
-    },
-  });
-
   function pickWithMouse(index: number): void {
     if (!isStreaming) pick(index);
   }
@@ -237,7 +237,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
 
   if (!focusable.isFocused) {
     return (
-      <Box ref={boxRef}>
+      <Box ref={focusable.ref}>
         <Text>
           {"  ▾ "}
           {summary}
@@ -247,7 +247,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   }
 
   return (
-    <Box ref={boxRef} flexDirection="column">
+    <Box ref={focusable.ref} flexDirection="column">
       <FilterLine editor={editor} fallback={summary} />
       <FilteredList
         options={filtered}
