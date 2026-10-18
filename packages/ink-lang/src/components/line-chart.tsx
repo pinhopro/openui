@@ -1,17 +1,18 @@
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { LineChartSchema } from "../schemas/line-chart-schema";
-import { SeriesSparklines } from "./series-sparklines";
+import { BrailleSeriesChart } from "./braille-series-chart";
 
 type LineChartProps = z.infer<typeof LineChartSchema>;
 
 function LineChartRenderer({ props }: ComponentRenderProps<LineChartProps>) {
   return (
-    <SeriesSparklines
+    <BrailleSeriesChart
       labels={props.labels}
       series={props.series}
       xLabel={props.xLabel}
       yLabel={props.yLabel}
+      filled={false}
     />
   );
 }

@@ -155,6 +155,18 @@ export { TextContentSchema } from "./schemas/text-content-schema";
 
 // Building blocks for custom terminal components
 export { horizontalStep, verticalStep } from "./components/arrow-keys";
+export {
+  createBrailleCanvas,
+  dotColumns,
+  dotRows,
+  fillBelow,
+  plot,
+  plotArea,
+  plotLine,
+  projectValue,
+  toLines,
+} from "./components/braille-canvas";
+export type { BrailleCanvas } from "./components/braille-canvas";
 export { buildSeriesRows, buildSlices, seriesNames } from "./components/chart-data";
 export type { ChartSlice, SeriesRow } from "./components/chart-data";
 export {
@@ -170,6 +182,8 @@ export { flexBoxProps } from "./components/flex-box-props";
 export type { FlexBoxProps, FlexProps } from "./components/flex-box-props";
 export { hasMarkdown, parseInline, parseMarkdown } from "./components/markdown";
 export type { MarkdownLine, MarkdownLineKind, MarkdownSegment } from "./components/markdown";
+export { readScatterDatasets } from "./components/scatter-data";
+export type { ScatterDataset, ScatterPoint } from "./components/scatter-data";
 export { indexOfOption, selectOptions } from "./components/select-options";
 export type { SelectOption } from "./components/select-options";
 export { clampIndex, stepIndex } from "./components/step-index";

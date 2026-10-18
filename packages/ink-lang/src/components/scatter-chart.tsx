@@ -1,85 +1,65 @@
-import { Box, Text } from "ink";
-import type { ReactNode } from "react";
 import type { z } from "zod/v4";
-import { isElementValue } from "../element-node";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { ScatterChartSchema } from "../schemas/scatter-chart-schema";
-import { AxisLabels } from "./axis-labels";
+import {
+  createBrailleCanvas,
+  dotColumns,
+  dotRows,
+  plot,
+  projectValue,
+  toLines,
+} from "./braille-canvas";
+import { BraillePlot } from "./braille-plot";
 import { formatNumber } from "./chart-text";
+import { readScatterDatasets } from "./scatter-data";
 
 type ScatterChartProps = z.infer<typeof ScatterChartSchema>;
 
-interface DatasetSummary {
-  name: string;
-  count: number;
-  minX: number;
-  maxX: number;
-  minY: number;
-  maxY: number;
-}
+const CANVAS_WIDTH = 40;
+const CANVAS_HEIGHT = 6;
+const POINT_MARK = "••";
 
-function readProps(value: unknown): Record<string, unknown> | null {
-  if (isElementValue(value)) return value.props;
-  if (typeof value === "object" && value !== null) return value as Record<string, unknown>;
-  return null;
-}
-
-function toNumber(value: unknown): number {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-/** Points, counts and ranges per dataset; a scatter plot has no faithful text shape. */
-export function summarizeDatasets(datasets: unknown): DatasetSummary[] {
-  const list = Array.isArray(datasets) ? datasets : [];
-  const summaries: DatasetSummary[] = [];
-  for (const dataset of list) {
-    const props = readProps(dataset);
-    if (props === null) continue;
-    const points = Array.isArray(props["points"]) ? props["points"] : [];
-    const summary: DatasetSummary = {
-      name: typeof props["name"] === "string" ? props["name"] : "",
-      count: 0,
-      minX: Infinity,
-      maxX: -Infinity,
-      minY: Infinity,
-      maxY: -Infinity,
-    };
-    for (const point of points) {
-      const pointProps = readProps(point);
-      if (pointProps === null) continue;
-      const x = toNumber(pointProps["x"]);
-      const y = toNumber(pointProps["y"]);
-      summary.count += 1;
-      summary.minX = Math.min(summary.minX, x);
-      summary.maxX = Math.max(summary.maxX, x);
-      summary.minY = Math.min(summary.minY, y);
-      summary.maxY = Math.max(summary.maxY, y);
-    }
-    if (summary.count > 0) summaries.push(summary);
-  }
-  return summaries;
-}
-
+/** Every dataset's points on one braille canvas, with a legend line per dataset. */
 function ScatterChartRenderer({ props }: ComponentRenderProps<ScatterChartProps>) {
-  const summaries = summarizeDatasets(props.datasets);
-  if (summaries.length === 0) return null;
-  const lines: ReactNode[] = [];
-  for (const summary of summaries) {
-    const pointWord = summary.count === 1 ? "point" : "points";
-    lines.push(
-      <Text key={summary.name}>
-        <Text bold>{summary.name}</Text>: {summary.count} {pointWord}, x{" "}
-        {formatNumber(summary.minX)}
-        ..{formatNumber(summary.maxX)}, y {formatNumber(summary.minY)}..{formatNumber(summary.maxY)}
-      </Text>,
-    );
+  const datasets = readScatterDatasets(props.datasets);
+  if (datasets.length === 0) return null;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const dataset of datasets) {
+    for (const point of dataset.points) {
+      if (point.x < minX) minX = point.x;
+      if (point.x > maxX) maxX = point.x;
+      if (point.y < minY) minY = point.y;
+      if (point.y > maxY) maxY = point.y;
+    }
+  }
+  const canvas = createBrailleCanvas(CANVAS_WIDTH, CANVAS_HEIGHT);
+  const columns = dotColumns(canvas);
+  const lastRow = dotRows(canvas) - 1;
+  const legend: string[] = [];
+  for (const dataset of datasets) {
+    for (const point of dataset.points) {
+      const x = projectValue(point.x, minX, maxX, columns);
+      const y = lastRow - projectValue(point.y, minY, maxY, lastRow + 1);
+      plot(canvas, x, y);
+    }
+    const count = dataset.points.length;
+    const pointWord = count === 1 ? "point" : "points";
+    legend.push(POINT_MARK + " " + dataset.name + " (" + String(count) + " " + pointWord + ")");
   }
   return (
-    <Box flexDirection="column">
-      {lines}
-      <AxisLabels xLabel={props.xLabel} yLabel={props.yLabel} />
-    </Box>
+    <BraillePlot
+      lines={toLines(canvas)}
+      yMin={minY}
+      yMax={maxY}
+      xFirst={formatNumber(minX)}
+      xLast={formatNumber(maxX)}
+      legend={legend}
+      xLabel={props.xLabel}
+      yLabel={props.yLabel}
+    />
   );
 }
 
