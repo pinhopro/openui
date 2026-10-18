@@ -1,14 +1,17 @@
 import { Box, Text } from "ink";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { TableSchema } from "../schemas/table-schema";
 import { cellText, tableLayout, type TableColumn } from "./table-layout";
+import { TablePager } from "./table-pager";
+import { pageBounds } from "./table-paging";
 
 type TableProps = z.infer<typeof TableSchema>;
 
 const COLUMN_GAP = 2;
 const RULE = "─";
+const PAGE_SIZE = 10;
 
 interface CellProps {
   column: TableColumn;
@@ -88,12 +91,28 @@ function DataRow({ columns, rowIndex, renderNode }: DataRowProps) {
   );
 }
 
-/** Column-oriented table: bold header, a dim rule, then one line per row. */
+/**
+ * Column-oriented table: bold header, a dim rule, then one line per row. A
+ * table longer than a page shows one page at a time with a pager footer.
+ */
 function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) {
   const layout = tableLayout(Array.isArray(props.columns) ? props.columns : []);
+  const [page, setPage] = useState(0);
   if (layout.columns.length === 0) return null;
+  // Clamped on every render: rows can still arrive or shrink while streaming.
+  const bounds = pageBounds(layout.rowCount, PAGE_SIZE, page);
+  const isPaged = layout.rowCount > PAGE_SIZE;
+  const rowCount = layout.rowCount;
+
+  // Several presses can arrive in one stdin chunk, so step from the latest page.
+  function stepPage(delta: number): void {
+    setPage(function movePage(previous) {
+      const current = pageBounds(rowCount, PAGE_SIZE, previous);
+      return pageBounds(rowCount, PAGE_SIZE, current.page + delta).page;
+    });
+  }
   const rows: ReactNode[] = [];
-  for (let rowIndex = 0; rowIndex < layout.rowCount; rowIndex += 1) {
+  for (let rowIndex = bounds.start; rowIndex < bounds.end; rowIndex += 1) {
     rows.push(
       <DataRow
         key={rowIndex}
@@ -108,6 +127,7 @@ function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) 
       <HeaderRow columns={layout.columns} />
       <RuleRow columns={layout.columns} />
       {rows}
+      {isPaged ? <TablePager bounds={bounds} rowCount={layout.rowCount} onStep={stepPage} /> : null}
     </Box>
   );
 }

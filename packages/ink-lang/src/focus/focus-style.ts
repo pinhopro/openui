@@ -22,3 +22,12 @@ export function buttonTextStyle(
   if (disabled) return { inverse: false, bold, dimColor: true, color };
   return { inverse: isFocused, bold, dimColor: false, color };
 }
+
+/**
+ * Focus ring for a pager control (`[ prev ]`, `[ next ]`): inverse when focused,
+ * dim when disabled. Unlike a button it keeps the ring while disabled, so Tab
+ * never lands on an invisible control at the end of a table.
+ */
+export function pagerTextStyle(isFocused: boolean, disabled: boolean): ButtonTextStyle {
+  return { inverse: isFocused, bold: false, dimColor: disabled, color: undefined };
+}
