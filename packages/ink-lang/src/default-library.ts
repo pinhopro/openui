@@ -2,6 +2,7 @@ import { Accordion } from "./components/accordion";
 import { AccordionItem } from "./components/accordion-item";
 import { AreaChart } from "./components/area-chart";
 import { BarChart } from "./components/bar-chart";
+import { BoldText } from "./components/bold-text";
 import { Button } from "./components/button";
 import { Buttons } from "./components/buttons";
 import { Callout } from "./components/callout";
@@ -14,6 +15,10 @@ import { ChipItem } from "./components/chip-item";
 import { Chips } from "./components/chips";
 import { CodeBlock } from "./components/code-block";
 import { Col } from "./components/col";
+import { CompositeCardBlock } from "./components/composite-card-block";
+import { CompositeCardItem } from "./components/composite-card-item";
+import { ContextCardBlock } from "./components/context-card-block";
+import { ContextCardItem } from "./components/context-card-item";
 import { DatePicker } from "./components/date-picker";
 import { EditableTable } from "./components/editable-table";
 import { EntityList } from "./components/entity-list";
@@ -21,17 +26,26 @@ import { Form } from "./components/form";
 import { FormControl } from "./components/form-control";
 import { HorizontalBarChart } from "./components/horizontal-bar-chart";
 import { Icon } from "./components/icon";
+import { IconButton } from "./components/icon-button";
+import { IconText } from "./components/icon-text";
 import { Image } from "./components/image";
 import { ImageBlock } from "./components/image-block";
 import { ImageGallery } from "./components/image-gallery";
+import { ImageText } from "./components/image-text";
+import { ImageTextLarge } from "./components/image-text-large";
 import { InlineHeader } from "./components/inline-header";
 import { Label } from "./components/label";
 import { LineChart } from "./components/line-chart";
 import { ListBlock } from "./components/list-block";
 import { ListItem } from "./components/list-item";
 import { MarkDownRenderer } from "./components/mark-down-renderer";
+import { MetricIndicatorInline } from "./components/metric-indicator-inline";
+import { MetricIndicatorWithStrikethrough } from "./components/metric-indicator-with-strikethrough";
+import { Modal } from "./components/modal";
 import { OptionCard } from "./components/option-card";
 import { OptionCards } from "./components/option-cards";
+import { OverviewCardBlock } from "./components/overview-card-block";
+import { OverviewCardItem } from "./components/overview-card-item";
 import { PieChart } from "./components/pie-chart";
 import { Point } from "./components/point";
 import { RadarChart } from "./components/radar-chart";
@@ -47,6 +61,8 @@ import { Series } from "./components/series";
 import { SingleStackedBarChart } from "./components/single-stacked-bar-chart";
 import { Slice } from "./components/slice";
 import { Slider } from "./components/slider";
+import { SnippetCardBlock } from "./components/snippet-card-block";
+import { SnippetCardItem } from "./components/snippet-card-item";
 import { Stack } from "./components/stack";
 import { Steps } from "./components/steps";
 import { StepsItem } from "./components/steps-item";
@@ -57,10 +73,13 @@ import { Table } from "./components/table";
 import { Tabs } from "./components/tabs";
 import { Tag } from "./components/tag";
 import { TagBlock } from "./components/tag-block";
+import { Text } from "./components/text";
 import { TextArea } from "./components/text-area";
 import { TextCallout } from "./components/text-callout";
 import { TextContent } from "./components/text-content";
 import { Input } from "./components/text-input";
+import { VisualCardBlock } from "./components/visual-card-block";
+import { VisualCardItem } from "./components/visual-card-item";
 import { createLibrary, type ComponentGroup, type Library } from "./library";
 
 /** Prompt sections for the terminal library; the notes mirror the React default library. */
@@ -77,12 +96,14 @@ export const inkComponentGroups: ComponentGroup[] = [
       "StepsItem",
       "Carousel",
       "Separator",
+      "Modal",
     ],
     notes: [
       '- For grid-like layouts, use Stack with direction "row" and wrap set to true.',
       "- Use nested Stacks when you need explicit rows/sections.",
       "- Give each TabItem a unique value; the trigger is the label shown in the tab strip.",
       "- Carousel shows one item at a time; Left and Right move between items.",
+      '- Modal: Modal("Title", $showModal, [content]) - $showModal is boolean, the [ x ] button closes it. Put Form with its own buttons inside children.',
     ],
   },
   {
@@ -184,7 +205,10 @@ export const inkComponentGroups: ComponentGroup[] = [
   },
   {
     name: "Buttons",
-    components: ["Button", "Buttons"],
+    components: ["Button", "Buttons", "IconButton"],
+    notes: [
+      "- IconButton shows its icon name and its name as a button; the name is also the action label.",
+    ],
   },
   {
     name: "Data Display",
@@ -194,6 +218,37 @@ export const inkComponentGroups: ComponentGroup[] = [
       "- EntityList is a compact two-column list of { left, right } rows (e.g. name / value). size='default' also supports a header and footer row; size='small' does not.",
       "- ListBlock is a numbered or image list of ListItem references. An action on ListItem is optional.",
       "- Icons have no glyphs in the terminal: an Icon shows as its name in angle brackets.",
+    ],
+  },
+  {
+    name: "Cards",
+    components: [
+      "SnippetCardBlock",
+      "SnippetCardItem",
+      "OverviewCardBlock",
+      "OverviewCardItem",
+      "ContextCardBlock",
+      "ContextCardItem",
+      "CompositeCardBlock",
+      "CompositeCardItem",
+      "VisualCardBlock",
+      "VisualCardItem",
+      "Text",
+      "BoldText",
+      "IconText",
+      "ImageText",
+      "ImageTextLarge",
+      "MetricIndicatorInline",
+      "MetricIndicatorWithStrikethrough",
+    ],
+    notes: [
+      "- Card blocks stack their items as bordered text blocks. Every item in a block must have the same structure.",
+      "- SnippetCardItem: small card with lhs (IconText | ImageText) and optional rhs (Text | BoldText) - good for key/value facts.",
+      "- OverviewCardItem: small card with top (IconText | ImageText | Text) and optional bottom MetricIndicatorInline - good for KPIs.",
+      "- ContextCardItem: medium card with a title (string or Tag), body text and optional background image - good for summaries.",
+      "- CompositeCardItem: rich card with header, body array (Text, BoldText, MetricIndicatorInline, IconText, Image, charts, ListBlock, TagBlock, EntityList) and footer (price + Button) - good for products/offers.",
+      "- VisualCardItem: image-first card with a BoldText body and optional Tag.",
+      "- Text / BoldText / IconText / ImageText / ImageTextLarge / MetricIndicator* are the inline building blocks used INSIDE card items; do not place them directly in the root Card.",
     ],
   },
 ];
@@ -257,6 +312,25 @@ export const inkLibrary: Library = createLibrary({
     OptionCards,
     Button,
     Buttons,
+    IconButton,
+    Text,
+    BoldText,
+    IconText,
+    ImageText,
+    ImageTextLarge,
+    MetricIndicatorInline,
+    MetricIndicatorWithStrikethrough,
+    SnippetCardItem,
+    SnippetCardBlock,
+    OverviewCardItem,
+    OverviewCardBlock,
+    ContextCardItem,
+    ContextCardBlock,
+    CompositeCardItem,
+    CompositeCardBlock,
+    VisualCardItem,
+    VisualCardBlock,
+    Modal,
     BarChart,
     LineChart,
     AreaChart,

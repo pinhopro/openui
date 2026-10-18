@@ -79,6 +79,25 @@ const SHARED = [
   "ChipItem",
   "OptionCards",
   "OptionCard",
+  "IconButton",
+  "Modal",
+  "Text",
+  "BoldText",
+  "IconText",
+  "ImageText",
+  "ImageTextLarge",
+  "MetricIndicatorInline",
+  "MetricIndicatorWithStrikethrough",
+  "SnippetCardItem",
+  "SnippetCardBlock",
+  "OverviewCardItem",
+  "OverviewCardBlock",
+  "ContextCardItem",
+  "ContextCardBlock",
+  "CompositeCardItem",
+  "CompositeCardBlock",
+  "VisualCardItem",
+  "VisualCardBlock",
 ];
 
 /** The props whose union of child components is a deliberate subset in the terminal library. */
@@ -88,6 +107,7 @@ const UNION_PROPS: Record<string, string[]> = {
   TabItem: ["content"],
   AccordionItem: ["content"],
   Carousel: ["children"],
+  Modal: ["children"],
 };
 
 function loadSpec(): LibrarySpecFile {
