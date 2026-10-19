@@ -118,6 +118,19 @@ describe("overlayFits", () => {
     expect(overlayFits({ ...input, bounds: short, placement: "left" })).toBe(false);
   });
 
+  it("needs horizontal room on one side of the anchor for a left or right overlay", () => {
+    // 16 columns, anchor at 5..10, gap 1: 4 free cells left of it, 4 right of it; the box is 10 wide.
+    const narrow: CellRect = { x: 0, y: 0, width: 16, height: 10 };
+    const input = { anchor: anchorAt(5, 2), size: SIZE, gap: 1, bounds: narrow };
+    expect(overlayFits({ ...input, placement: "right" })).toBe(false);
+    expect(overlayFits({ ...input, placement: "left" })).toBe(false);
+    // Anchor at 14..19 in 22 columns, gap 1: 13 free cells left of it, 1 right of it.
+    const roomLeft: CellRect = { x: 0, y: 0, width: 22, height: 10 };
+    const pushed = { anchor: anchorAt(14, 2), size: SIZE, gap: 1, bounds: roomLeft };
+    expect(overlayFits({ ...pushed, placement: "right" })).toBe(true);
+    expect(overlayFits({ ...pushed, placement: "left" })).toBe(true);
+  });
+
   it("always fits a center overlay", () => {
     const short: CellRect = { x: 0, y: 0, width: 40, height: 1 };
     const input = { anchor: anchorAt(4, 0), size: SIZE, gap: 0, bounds: short };

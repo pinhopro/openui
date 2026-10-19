@@ -10,6 +10,7 @@ import {
 } from "react";
 import { elementRect, type CellRect } from "../focus/element-rect";
 import { MouseLayerContext } from "../mouse/mouse-layer";
+import { clippedBy, rectsIntersect } from "./clip-rect";
 import { BridgedContexts } from "./context-bridge";
 import { OverlayFill } from "./overlay-fill";
 import { OverlayMouseShield } from "./overlay-mouse-shield";
@@ -35,7 +36,7 @@ interface PlacedOverlay {
 }
 
 /**
- * Each overlay's placement by id, or null when its anchor is missing or empty
+ * Each overlay's placement by id, or null when its anchor is missing, empty or clipped out
  * (nothing is drawn).
  */
 type Placements = Map<string, PlacedOverlay | null>;
@@ -60,12 +61,17 @@ function useOverlayList(registry: OverlayRegistry | null): Overlay[] {
   return useSyncExternalStore(subscribe, list, list);
 }
 
-/** The anchor's cells, or null while it is unmounted or takes no cells. */
+/**
+ * The anchor's cells, or null while it is unmounted, takes no cells or is
+ * clipped out of sight (scrolled out of a pane that hides its overflow).
+ */
 function anchorRect(overlay: Overlay): CellRect | null {
   const anchor = overlay.anchorRef.current;
   if (anchor === null) return null;
   const rect = elementRect(anchor);
   if (rect.width === 0 || rect.height === 0) return null;
+  const clip = clippedBy(anchor);
+  if (clip !== null && !rectsIntersect(rect, clip)) return null;
   return rect;
 }
 

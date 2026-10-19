@@ -423,6 +423,7 @@ export { SequencePathContext, useSequencePath } from "./focus/sequence-path";
 export type { RenderNodeOptions, SequencedRenderNode } from "./focus/sequenced-render";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
+export { clippedBy, rectsIntersect } from "./overlay/clip-rect";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
 export { OverlayHost } from "./overlay/overlay-host";

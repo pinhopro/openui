@@ -120,21 +120,26 @@ export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
   return { x, y: shiftInto(position.y, input.size.height, bounds.y, bounds.height) };
 }
 
+/** True when the overlay fits whole on the asked side of its anchor or on the opposite one. */
+function fitsEitherSide(input: PlaceOverlayInput): boolean {
+  const placement = input.placement;
+  if (fitsSide(input, placement, sidePosition(input, placement))) return true;
+  const opposite = oppositeOf(placement);
+  return fitsSide(input, opposite, sidePosition(input, opposite));
+}
+
 /**
- * True when the overlay can be shown whole at its placement: a top or bottom
- * one fits on one side of its anchor or the other, a left or right one is no
- * taller than the bounds, a center one always fits. An owner with a compact
+ * True when the overlay can be shown whole at its placement without covering
+ * its anchor: a top or bottom one fits on one side of its anchor or the other,
+ * a left or right one is no taller than the bounds and fits beside its anchor
+ * on one side or the other, a center one always fits. An owner with a compact
  * form shows that one instead when this is false.
  */
 export function overlayFits(input: PlaceOverlayInput): boolean {
   const placement = input.placement;
-  if (isVertical(placement)) {
-    if (fitsSide(input, placement, sidePosition(input, placement))) return true;
-    const opposite = oppositeOf(placement);
-    return fitsSide(input, opposite, sidePosition(input, opposite));
-  }
   if (placement === "center") return true;
-  return input.size.height <= input.bounds.height;
+  if (isVertical(placement)) return fitsEitherSide(input);
+  return input.size.height <= input.bounds.height && fitsEitherSide(input);
 }
 
 export interface PlaceCompactInput {

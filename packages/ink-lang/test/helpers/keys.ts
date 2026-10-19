@@ -9,4 +9,6 @@ export const KEYS = {
   RIGHT: "\u001b[C",
   UP: "\u001b[A",
   DOWN: "\u001b[B",
+  PAGE_UP: "\u001b[5~",
+  PAGE_DOWN: "\u001b[6~",
 };

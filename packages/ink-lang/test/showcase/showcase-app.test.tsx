@@ -4,6 +4,7 @@ import type { ShowcasePage } from "../../examples/showcase/pages";
 import { ShowcaseApp } from "../../examples/showcase/showcase-app";
 import { createShowcaseTools } from "../../examples/showcase/showcase-tools";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
+import { findCell } from "../helpers/find-cell";
 import { KEYS } from "../helpers/keys";
 import { MOUSE } from "../helpers/mouse";
 import { settle } from "../helpers/settle";
@@ -179,6 +180,93 @@ describe("ShowcaseApp keeps the focused stop in view", () => {
     instance.stdin.write(KEYS.TAB);
     await settle(40);
     expect(lastFrame(instance.frames)).toContain("[ Bottom ]");
+    instance.unmount();
+  });
+});
+
+/** Forty lines of text, as program arguments. */
+function textLines(prefix: string): string {
+  return Array.from({ length: 40 }, (_, index) => `TextContent("${prefix} ${index}")`).join(", ");
+}
+
+/** Renders one page in the showcase with the keyboard only. */
+function mountPage(page: ShowcasePage) {
+  return render(
+    <ShowcaseApp
+      pages={[page]}
+      tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+      mouse={false}
+      stream={{ chunkSize: 5000, intervalMs: 1 }}
+    />,
+  );
+}
+
+/** The row of the page pane's bottom border: the first row with a "╰" corner. */
+function paneBottomRow(frame: string): number {
+  const lines = frame.split("\n");
+  for (let y = 0; y < lines.length; y += 1) {
+    if ((lines[y] ?? "").includes("╰")) return y;
+  }
+  throw new Error(`no bottom border in the frame:\n${frame}`);
+}
+
+describe("ShowcaseApp floats tooltips over the page pane", () => {
+  it("shows the bubble of a trigger on the pane's last visible row over the pane's bottom border", async () => {
+    const page: ShowcasePage = {
+      id: "deep",
+      title: "Deep",
+      program:
+        'root = Stack([CardHeader("Deep"), ' +
+        textLines("above") +
+        ', Tooltip(Button("Deploy", @ToAssistant("Deploy")), "Ships the build", "bottom"), ' +
+        textLines("below") +
+        "])",
+    };
+    const instance = mountPage(page);
+    await settle(40);
+    expect(lastFrame(instance.frames)).not.toContain("Deploy");
+    // The sidebar starts focused: Tab reaches the theme select, then the page's only stop.
+    instance.stdin.write(KEYS.TAB);
+    await settle(10);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    const frame = lastFrame(instance.frames);
+    const trigger = findCell(frame, "[ Deploy ]");
+    const border = paneBottomRow(frame);
+    // Scrolled into view on the pane's last visible row, right above its bottom border.
+    expect(trigger.y).toBe(border - 1);
+    // The bubble's top edge covers the border row; its text sits on the row under it.
+    expect(findCell(frame, "Ships the build").y).toBe(border + 1);
+    instance.unmount();
+  });
+
+  it("hides the bubble while its trigger is scrolled out of the pane and shows it when it comes back", async () => {
+    const page: ShowcasePage = {
+      id: "top",
+      title: "Top",
+      program:
+        'root = Stack([CardHeader("Top"), ' +
+        'Tooltip(Button("Deploy", @ToAssistant("Deploy")), "Ships the build", "bottom"), ' +
+        textLines("line") +
+        "])",
+    };
+    const instance = mountPage(page);
+    await settle(40);
+    instance.stdin.write(KEYS.TAB);
+    await settle(10);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(lastFrame(instance.frames)).toContain("Ships the build");
+    instance.stdin.write(KEYS.PAGE_DOWN);
+    await settle(40);
+    const scrolled = lastFrame(instance.frames);
+    expect(scrolled).not.toContain("[ Deploy ]");
+    expect(scrolled).not.toContain("Ships the build");
+    instance.stdin.write(KEYS.PAGE_UP);
+    await settle(40);
+    const back = lastFrame(instance.frames);
+    expect(back).toContain("[ Deploy ]");
+    expect(back).toContain("Ships the build");
     instance.unmount();
   });
 });
