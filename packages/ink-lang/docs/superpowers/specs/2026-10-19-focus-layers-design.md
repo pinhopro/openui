@@ -119,7 +119,7 @@ While `isStreaming` is true the stops of the program are inactive, overlays incl
 
 ### UI events
 
-Added to the browser-like event stream: `cancel` (backdrop click or Escape on a modal), `open` and `close` of an overlay layer, `dragstart`, `drag`, `dragend`. Existing `focus`, `blur`, `keydown`, mouse events are unchanged.
+Added to the browser-like event stream: `cancel` (backdrop click or Escape on a modal), `open` and `close` of an overlay layer, `dragstart`, `drag`, `dragend` (the pointer's cell and the dialog box's drawn top-left, `left` and `top`). Existing `focus`, `blur`, `keydown`, mouse events are unchanged.
 
 ### Focus map
 
@@ -146,9 +146,9 @@ Every rule above gets an `ink-testing-library` test before its code: order of a 
 
 Four steps, each with its tests, docs (README "Focus order", AGENTS module table) and its own commit:
 
-1. Sequence paths in `renderNode` and the registry; `focusOrder` by sequence path; Tab, Shift+Tab, Escape and autoFocus owned by the library; audit of every container's sequence; `FocusScope.order` for the host; the showcase placing its sidebar and theme select through it.
-2. `OverlayHost` and the floating `Tooltip`; `FocusScope.portal`; tmux check of painting. (`portal` is superseded: the scope always hosts overlays, and `OverlayHost` plus `OverlayRegistryContext` are exported for a manual portal.)
-3. Backdrop and `cancel`, `Dialog`, auto focus, priority by hover or focus-within, layer-aware Tab, arrows and mouse hit-test, nested overlays, streaming rule, dim-behind context.
+1. Sequence paths in `renderNode` and the registry; `focusOrder` by sequence path; Tab, Shift+Tab, Escape and autoFocus owned by the library; audit of every container's sequence; `FocusScope.order` for the host; the showcase placing its sidebar and theme select through it. Done.
+2. `OverlayHost` and the floating `Tooltip`; `FocusScope.portal`; tmux check of painting. (`portal` is superseded: the scope always hosts overlays, and `OverlayHost` plus `OverlayRegistryContext` are exported for a manual portal.) Done.
+3. Backdrop and `cancel`, `Dialog`, auto focus, priority by hover or focus-within, layer-aware Tab, arrows and mouse hit-test, nested overlays, streaming rule, dim-behind context. Done.
 4. Drag (mouse and Ctrl+arrows), re-anchoring on drop, resize behaviour, the focus map's `layer` and `anchor`, drag events. Done.
 
 ## Out of scope
