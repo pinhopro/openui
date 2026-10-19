@@ -240,6 +240,26 @@ describe("Tooltip", () => {
     rendered.unmount();
   });
 
+  it("shows no frame with the bubble or the label over the trigger while it is measured", async () => {
+    for (const program of [BOTTOM_TIP, shortRowProgram("bottom")]) {
+      const rendered = await renderProgram(inkLibrary, program);
+      const icon = findCell(stripAnsi(rendered.frame()), "<info>");
+      const firstNew = rendered.instance.frames.length;
+      rendered.instance.stdin.write(KEYS.TAB);
+      await settle();
+      const frames = rendered.instance.frames.slice(firstNew).map(stripAnsi);
+      const last = stripAnsi(rendered.frame());
+      const text = last.includes("View certificate details") ? "View certificate details" : "More";
+      const placed = findCell(last, text);
+      for (const frame of frames) {
+        if (frame.trim() === "") continue;
+        expect(cellsAt(frame, icon.y, icon.x, "<info>".length)).toBe("<info>");
+        if (frame.includes(text)) expect(findCell(frame, text)).toEqual(placed);
+      }
+      rendered.unmount();
+    }
+  });
+
   for (const placement of ["bottom", "top", "right"]) {
     it(`shows a one-row label beside the trigger when a ${placement} bubble has no room`, async () => {
       const rendered = await renderProgram(inkLibrary, shortRowProgram(placement));

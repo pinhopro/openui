@@ -148,6 +148,26 @@ describe("overlay host", () => {
     expect(open.split("\n").length).toBe(closed.split("\n").length);
   });
 
+  it("never draws an overlay before it is placed: no frame shows it over its anchor", async () => {
+    const rendered = await renderProgram(overlayLibrary, floaterProgram('Floater("anchor", true)'));
+    const closed = stripAnsi(rendered.frame());
+    const anchor = findCell(closed, "anchor");
+    const firstNew = rendered.instance.frames.length;
+    await rendered.update({ response: floaterProgram('Floater("anchor")') });
+    const frames = rendered.instance.frames.slice(firstNew).map(stripAnsi);
+    expect(frames.length).toBeGreaterThan(0);
+    const placed = { x: anchor.x + 1, y: anchor.y + 2 };
+    for (const frame of frames) {
+      if (frame.trim() === "") continue;
+      // The anchor keeps its cells in every frame; the overlay shows only where it belongs.
+      expect(frame.split("\n")[anchor.y]?.slice(anchor.x, anchor.x + 6)).toBe("anchor");
+      if (frame.includes("OVERLAY anchor"))
+        expect(findCell(frame, "OVERLAY anchor")).toEqual(placed);
+    }
+    expect(findCell(stripAnsi(rendered.frame()), "OVERLAY anchor")).toEqual(placed);
+    rendered.unmount();
+  });
+
   it("draws nothing for an overlay whose anchor is null", async () => {
     const closed = await plainFrame(floaterProgram('Floater("anchor", true)'));
     const detached = await plainFrame(floaterProgram('Floater("anchor", false, "bottom", true)'));
