@@ -436,8 +436,10 @@ export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-b
 export {
   OverlayIdContext,
   OverlayVisibleContext,
+  OverlayWidthLimitContext,
   useOverlayId,
   useOverlayVisible,
+  useOverlayWidthLimit,
 } from "./overlay/overlay-content-context";
 export { OverlayHost } from "./overlay/overlay-host";
 export type { OverlayHostProps } from "./overlay/overlay-host";

@@ -1,6 +1,7 @@
 import type { ActionEvent } from "@openuidev/lang-core";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
+import { InkRenderer } from "../src/ink-renderer";
 import type { UiEvent } from "../src/ui-events";
 import { inverseSegments, RED_ON, stripAnsi } from "./helpers/ansi";
 import { fillerRows, wholeFillerRows } from "./helpers/filler-rows";
@@ -8,6 +9,7 @@ import { findCell } from "./helpers/find-cell";
 import { KEYS } from "./helpers/keys";
 import { MOUSE } from "./helpers/mouse";
 import { renderProgram } from "./helpers/render-program";
+import { renderTerminal } from "./helpers/render-terminal";
 import { settle } from "./helpers/settle";
 
 const ESCAPE = "\u001b";
@@ -51,6 +53,26 @@ async function mount(source = program(true), mouse = false) {
     },
   });
   return { rendered, actions, states, events };
+}
+
+/** The showcase's destructive dialog body: long enough to wrap at 60 cells. */
+const SHOWCASE_BODY =
+  "Carlos Ruiz will no longer appear in your contacts. The conversation history and shared groups will be kept. You can add him again anytime.";
+
+/**
+ * The text of every row inside the dialog's box that has any, between its
+ * side borders and without the one cell of padding on the left.
+ */
+function boxTexts(frame: string): string[] {
+  const texts: string[] = [];
+  for (const line of frame.split("\n")) {
+    const left = line.indexOf("│");
+    const right = line.lastIndexOf("│");
+    if (left === -1 || right <= left) continue;
+    const inner = line.slice(left + 2, right);
+    if (inner.trim() !== "") texts.push(inner.trimEnd());
+  }
+  return texts;
 }
 
 function ofType(events: UiEvent[], type: string): UiEvent[] {
@@ -124,6 +146,41 @@ describe("ModalDialog", () => {
     expect(width).toBeGreaterThan(50);
     expect(frame).not.toContain(long);
     rendered.unmount();
+  });
+
+  it("wraps its body between words: no line inside the box starts with a space", async () => {
+    const { rendered } = await mount(
+      [
+        "$confirm = true",
+        `root = Stack([dialog, ${fillerRows(ROWS)}], "column", "none")`,
+        `dialog = ModalDialog("destructive", "${TITLE}", "${SHOWCASE_BODY}", "Cancel", "Delete contact", $confirm)`,
+      ].join("\n"),
+    );
+    const inside = boxTexts(stripAnsi(rendered.frame()));
+    expect(inside.length).toBeGreaterThan(3);
+    for (const text of inside) expect(text.startsWith(" ")).toBe(false);
+    expect(inside.join(" ")).toContain(SHOWCASE_BODY);
+    rendered.unmount();
+  });
+
+  it("wraps its body inside a terminal narrower than its 60 cells, losing no word", async () => {
+    const terminal = renderTerminal(
+      <InkRenderer
+        response={[
+          "$confirm = true",
+          `root = Stack([dialog, ${fillerRows(ROWS)}], "column", "none")`,
+          `dialog = ModalDialog("destructive", "${TITLE}", "${SHOWCASE_BODY}", "Cancel", "Delete contact", $confirm)`,
+        ].join("\n")}
+        library={inkLibrary}
+        isStreaming={false}
+      />,
+      40,
+    );
+    await settle();
+    const inside = boxTexts(stripAnsi(terminal.lastFrame()));
+    for (const text of inside) expect(text.startsWith(" ")).toBe(false);
+    expect(inside.join(" ")).toContain(SHOWCASE_BODY);
+    terminal.unmount();
   });
 
   it("takes no rows of the page while closed, even in a stack with a gap", async () => {

@@ -2,7 +2,11 @@ import { Box, type DOMElement } from "ink";
 import type { ReactNode, RefObject } from "react";
 import { MouseLayerContext } from "../mouse/mouse-layer";
 import { BridgedContexts, type CapturedContexts } from "./context-bridge";
-import { OverlayIdContext, OverlayVisibleContext } from "./overlay-content-context";
+import {
+  OverlayIdContext,
+  OverlayVisibleContext,
+  OverlayWidthLimitContext,
+} from "./overlay-content-context";
 import { OverlayFill } from "./overlay-fill";
 import type { FormSpot } from "./overlay-measure";
 import { OverlayMouseShield } from "./overlay-mouse-shield";
@@ -58,7 +62,8 @@ function OverlayContent({ render }: OverlayContentProps) {
  * (below the root) it does neither and its content is inert: told so through
  * `OverlayVisibleContext`, its focus stops leave the Tab cycle and its mouse
  * targets take nothing. The content knows its overlay through
- * `OverlayIdContext`; both are provided below the bridged contexts. A shown
+ * `OverlayIdContext` and its width limit through `OverlayWidthLimitContext`;
+ * all three are provided below the bridged contexts. A shown
  * form of a non-modal dialog also tracks the pointer over its box
  * (`PriorityTracker`), which gives the dialog Tab and the arrows. The fill,
  * the shield and the tracker keep their slots, so the content never
@@ -90,13 +95,15 @@ export function OverlayBox(props: OverlayBoxProps) {
         <MouseLayerContext.Provider value={props.layer}>
           <OverlayIdContext.Provider value={props.overlayId}>
             <OverlayVisibleContext.Provider value={spot.visible}>
-              {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
-              {spot.visible && props.kind === "dialog" ? (
-                <PriorityTracker overlayId={props.overlayId} boxRef={props.boxRef} />
-              ) : null}
-              <Box flexDirection="column" flexGrow={spot.cover ? 1 : 0}>
-                <OverlayContent render={props.render} />
-              </Box>
+              <OverlayWidthLimitContext.Provider value={spot.maxWidth}>
+                {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
+                {spot.visible && props.kind === "dialog" ? (
+                  <PriorityTracker overlayId={props.overlayId} boxRef={props.boxRef} />
+                ) : null}
+                <Box flexDirection="column" flexGrow={spot.cover ? 1 : 0}>
+                  <OverlayContent render={props.render} />
+                </Box>
+              </OverlayWidthLimitContext.Provider>
             </OverlayVisibleContext.Provider>
           </OverlayIdContext.Provider>
         </MouseLayerContext.Provider>

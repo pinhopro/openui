@@ -15,6 +15,14 @@ export const OverlayIdContext: Context<string | null> = createContext<string | n
  */
 export const OverlayVisibleContext: Context<boolean> = createContext<boolean>(true);
 
+/**
+ * The widest the overlay form the content renders in may be (its bounds'
+ * width, or the room beside the anchor for a compact form); null outside any
+ * overlay. Provided by the overlay host like `OverlayIdContext`, so content
+ * that wraps its own text (a dialog's body) wraps it inside the bounds.
+ */
+export const OverlayWidthLimitContext: Context<number | null> = createContext<number | null>(null);
+
 /** The id of the overlay the calling component renders in; null outside any overlay. */
 export function useOverlayId(): string | null {
   return useContext(OverlayIdContext);
@@ -23,4 +31,9 @@ export function useOverlayId(): string | null {
 /** False while the calling component renders in an overlay form that is hidden. */
 export function useOverlayVisible(): boolean {
   return useContext(OverlayVisibleContext);
+}
+
+/** The widest the calling component's overlay form may be; null outside any overlay. */
+export function useOverlayWidthLimit(): number | null {
+  return useContext(OverlayWidthLimitContext);
 }
