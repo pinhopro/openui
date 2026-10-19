@@ -2,6 +2,7 @@ import { useFocusManager, useInput, type Key } from "ink";
 import { useContext, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { elementRect, type CellRect } from "./element-rect";
 import { FocusCommandsContext, type FocusCommands } from "./focus-commands";
+import { FocusCycleContext, type FocusCycleOrder } from "./focus-cycle";
 import {
   arrowDirection,
   claimsDirection,
@@ -19,30 +20,47 @@ interface FocusTarget {
 }
 
 /**
- * The Tab cycle: the host's stops in registration order, then the program's
- * stops in document order. Both leave out inactive stops; the modal layers
- * belong to the scope (see `FocusScope`), so while a modal is open every stop
- * outside it, the host's included, is inactive and only the modal's own
- * stops are in the cycle.
+ * The Tab cycle: the ids `order` returns for the program's stops in document
+ * order and the host's stops in registration order (see `FocusScope`). Both
+ * lists leave out inactive stops; the modal layers belong to the scope, so
+ * while a modal is open every stop outside it, the host's included, is
+ * inactive and only the modal's own stops are in the cycle. An id `order`
+ * returns that is not among the stops it was given (one kept from an earlier
+ * cycle, say) is skipped, so it can neither stall Tab nor reach past a modal.
  */
-function tabCycle(registry: FocusRegistry): CycleStop[] {
+function tabCycle(registry: FocusRegistry, order: FocusCycleOrder): CycleStop[] {
+  const program = focusOrder(registry);
+  const host = hostStops(registry);
+  const offered = new Set<string>();
+  for (const stop of program) offered.add(stop.id);
+  for (const entry of host) offered.add(entry.id);
   const cycle: CycleStop[] = [];
-  for (const entry of hostStops(registry)) cycle.push(entry);
-  for (const stop of focusOrder(registry)) cycle.push(stop);
+  for (const id of order(program, host)) {
+    if (offered.has(id)) cycle.push({ id });
+  }
   return cycle;
 }
 
 /** Moves focus one step along the Tab cycle from the focused stop. */
-function stepCycle(registry: FocusRegistry | null, target: FocusTarget, delta: 1 | -1): void {
+function stepCycle(
+  registry: FocusRegistry | null,
+  order: FocusCycleOrder,
+  target: FocusTarget,
+  delta: 1 | -1,
+): void {
   if (registry === null) return;
-  const next = nextInOrder(tabCycle(registry), target.activeId, delta);
+  const next = nextInOrder(tabCycle(registry, order), target.activeId, delta);
   if (next !== null) target.focus(next);
 }
 
 /** Focuses the first stop of the Tab cycle. */
-function focusFirstStop(registry: FocusRegistry | null, target: FocusTarget): void {
+function focusFirstStop(
+  registry: FocusRegistry | null,
+  order: FocusCycleOrder,
+  target: FocusTarget,
+): void {
   if (registry === null) return;
-  const first = tabCycle(registry)[0];
+  const first = tabCycle(registry, order)[0];
   if (first !== undefined) target.focus(first.id);
 }
 
@@ -81,7 +99,8 @@ export interface FocusNavigatorProps {
  * Owns keyboard focus movement over the registered stops. On mount it turns
  * Ink's own focus handling off, so Ink never moves focus first: Tab and
  * Shift+Tab follow the Tab cycle (deterministic, whatever order components
- * mounted in), Escape drops focus, and the arrows move to the nearest stop
+ * mounted in; the `order` of the `FocusScope` above, or `defaultCycle`
+ * without one), Escape drops focus, and the arrows move to the nearest stop
  * in their direction whenever the focused component does not use that arrow
  * itself (or has nowhere further to go). Provides `FocusCommands` to its
  * children. Without a focus registry above it there are no stops to move
@@ -89,6 +108,7 @@ export interface FocusNavigatorProps {
  */
 export function FocusNavigator({ children }: FocusNavigatorProps) {
   const registry = useContext(FocusRegistryContext);
+  const order = useContext(FocusCycleContext);
   const manager = useFocusManager();
   const managerRef = useRef(manager);
   managerRef.current = manager;
@@ -114,23 +134,23 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
     function buildCommands(): FocusCommands {
       return {
         focusFirst: function focusFirst() {
-          focusFirstStop(registry, managerRef.current);
+          focusFirstStop(registry, order, managerRef.current);
         },
         focusNext: function focusNext() {
-          stepCycle(registry, managerRef.current, 1);
+          stepCycle(registry, order, managerRef.current, 1);
         },
         focusPrevious: function focusPrevious() {
-          stepCycle(registry, managerRef.current, -1);
+          stepCycle(registry, order, managerRef.current, -1);
         },
       };
     },
-    [registry],
+    [registry, order],
   );
 
   useInput(function handleKey(_input, key) {
     if (registry === null || key.eventType === "release") return;
     if (key.tab && isUnmodified(key)) {
-      stepCycle(registry, manager, key.shift ? -1 : 1);
+      stepCycle(registry, order, manager, key.shift ? -1 : 1);
       return;
     }
     if (key.escape && !key.shift && isUnmodified(key)) {

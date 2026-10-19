@@ -391,6 +391,8 @@ export { elementRect } from "./focus/element-rect";
 export type { CellRect as ElementRect } from "./focus/element-rect";
 export { FocusCommandsContext, useFocusCommands } from "./focus/focus-commands";
 export type { FocusCommands } from "./focus/focus-commands";
+export { FocusCycleContext, defaultCycle } from "./focus/focus-cycle";
+export type { FocusCycleOrder } from "./focus/focus-cycle";
 export { arrowDirection, claimsDirection, nextInDirection } from "./focus/focus-navigation";
 export type {
   ArrowClaimFn,
@@ -416,6 +418,10 @@ export type { FocusScopeProps } from "./focus/focus-scope";
 export { buttonTextStyle, pagerTextStyle } from "./focus/focus-style";
 export { keyName } from "./focus/key-name";
 export { KeyReporter } from "./focus/key-reporter";
+export { SequenceLevel } from "./focus/sequence-level";
+export type { SequenceLevelProps } from "./focus/sequence-level";
+export { SequencePathContext, useSequencePath } from "./focus/sequence-path";
+export type { RenderNodeOptions, SequencedRenderNode } from "./focus/sequenced-render";
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
 export { UiEventContext, useUiEvents } from "./ui-events";

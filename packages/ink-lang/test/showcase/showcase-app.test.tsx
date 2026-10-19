@@ -25,6 +25,16 @@ const pages: ShowcasePage[] = [
   },
 ];
 
+// One page whose program has two stops, for the ends of the Tab cycle.
+const twoStopPages: ShowcasePage[] = [
+  {
+    id: "gamma",
+    title: "Gamma",
+    program:
+      'root = Stack([CardHeader("Gamma"), Buttons([Button("Ping", @ToAssistant("Ping")), Button("Pong", @ToAssistant("Pong"))])])',
+  },
+];
+
 function lastFrame(frames: string[]): string {
   for (let index = frames.length - 1; index >= 0; index -= 1) {
     const frame = frames[index] ?? "";
@@ -33,10 +43,10 @@ function lastFrame(frames: string[]): string {
   return "";
 }
 
-function mount() {
+function mount(list: ShowcasePage[] = pages) {
   return render(
     <ShowcaseApp
-      pages={pages}
+      pages={list}
       tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
       mouse={false}
       stream={{ chunkSize: 1000, intervalMs: 1 }}
@@ -78,6 +88,29 @@ describe("ShowcaseApp", () => {
     instance.stdin.write(KEYS.DOWN);
     await settle(40);
     expect(inverseSegments(instance.lastFrame() ?? "")[0]).toContain("Default ▾");
+    instance.unmount();
+  });
+
+  it("moves on from the theme select to the page's first stop with Tab", async () => {
+    const instance = mount(twoStopPages);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["▸ Gamma"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")[0]).toContain("Default ▾");
+    instance.stdin.write(KEYS.TAB);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["[ Ping ]"]);
+    instance.unmount();
+  });
+
+  it("wraps Shift+Tab from the sidebar to the page's last stop", async () => {
+    const instance = mount(twoStopPages);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["▸ Gamma"]);
+    instance.stdin.write(KEYS.SHIFT_TAB);
+    await settle(40);
+    expect(inverseSegments(instance.lastFrame() ?? "")).toEqual(["[ Pong ]"]);
     instance.unmount();
   });
 

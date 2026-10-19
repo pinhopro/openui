@@ -13,7 +13,8 @@ import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { inkLibrary } from "../../src/default-library";
 import { createDesignSystem } from "../../src/design/design-system";
 import { elementRect } from "../../src/focus/element-rect";
-import { FocusRegistryContext } from "../../src/focus/focus-registry";
+import type { FocusStop } from "../../src/focus/focus-order";
+import { FocusRegistryContext, type FocusEntry } from "../../src/focus/focus-registry";
 import { FocusScope } from "../../src/focus/focus-scope";
 import { InkRenderer } from "../../src/ink-renderer";
 import type { Library } from "../../src/library";
@@ -212,6 +213,18 @@ function PagePane({
   );
 }
 
+/** The Tab cycle of the showcase: the sidebar, the theme select, then the page. */
+function showcaseCycle(program: FocusStop[], host: FocusEntry[]): string[] {
+  const ids: string[] = [];
+  for (const component of ["Sidebar", "ThemeSelect"]) {
+    for (const entry of host) {
+      if (entry.component === component) ids.push(entry.id);
+    }
+  }
+  for (const stop of program) ids.push(stop.id);
+  return ids;
+}
+
 /**
  * The full-screen showcase: a sidebar of pages on the left, the active page
  * streaming into InkRenderer on the right, and a status bar with the key
@@ -270,7 +283,7 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
 
   return (
     <MouseScope enabled={mouse}>
-      <FocusScope onUiEvent={onUiEvent}>
+      <FocusScope onUiEvent={onUiEvent} order={showcaseCycle}>
         <Box flexDirection="column" width={columns} height={rows}>
           <Box flexGrow={1} minHeight={0}>
             <Box
