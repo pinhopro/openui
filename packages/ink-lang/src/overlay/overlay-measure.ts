@@ -80,9 +80,18 @@ export interface MeasureInput {
 
 const NO_SIZE: OverlaySize = Object.freeze({ width: 0, height: 0 });
 
-/** The cells a line or a rectangle covers: a line counts as one cell thick. */
+/**
+ * The cells an anchor is seen through: a rectangle's own cells; a line no
+ * row high (or no column wide) lies between two rows (columns), so it is seen
+ * while the row (column) on either side of it is. A Dialog declared after the
+ * last row of a pane scrolled to its end is seen along with that row.
+ */
 function coveredCells(rect: CellRect): CellRect {
-  return { ...rect, width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
+  if (rect.height === 0) {
+    return { x: rect.x, y: rect.y - 1, width: Math.max(1, rect.width), height: 2 };
+  }
+  if (rect.width === 0) return { x: rect.x - 1, y: rect.y, width: 2, height: rect.height };
+  return rect;
 }
 
 /**
