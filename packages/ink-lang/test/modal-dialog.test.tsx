@@ -214,6 +214,47 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("waits for the stream to end before it takes focus, then focuses its first stop", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(inkLibrary, program(true), {
+      isStreaming: true,
+      onUiEvent: function onUiEvent(event) {
+        events.push(event);
+      },
+    });
+    await settle();
+    expect(stripAnsi(rendered.frame())).toContain(TITLE);
+    expect(inverseSegments(rendered.frame())).toEqual([]);
+    expect(ofType(events, "focus")).toEqual([]);
+    await rendered.update({ isStreaming: false });
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    expect(ofType(events, "focus")).toEqual([
+      expect.objectContaining({ type: "focus", name: "Cancel" }),
+    ]);
+    rendered.unmount();
+  });
+
+  it("covers the page with its backdrop while streaming: a click never reaches the page", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(inkLibrary, program(true), {
+      isStreaming: true,
+      mouse: true,
+      onUiEvent: function onUiEvent(event) {
+        events.push(event);
+      },
+    });
+    await settle();
+    const outside = findCell(stripAnsi(rendered.frame()), "[ Outside ]");
+    rendered.instance.stdin.write(MOUSE.click(outside.x + 2, outside.y));
+    await settle();
+    const onPage = events.filter(function isOnPage(event) {
+      return event.name === "Outside";
+    });
+    expect(onPage).toEqual([]);
+    rendered.unmount();
+  });
+
   it("cancels once for two backdrop clicks in one input chunk", async () => {
     const { rendered, actions, events } = await mount(
       program(true, '@ToAssistant("Kept Carlos")'),
