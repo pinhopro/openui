@@ -120,6 +120,37 @@ describe("nested overlays", () => {
     rendered.unmount();
   });
 
+  it("releases a focused Dialog inside a modal on Escape; only the next Escape cancels the modal", async () => {
+    const { rendered, events } = await mount(
+      modalProgram(
+        'Buttons([Button("Details", @Set($note, true))]), noteDialog, TextContent("modal text")',
+        [
+          "$note = true",
+          'noteDialog = Dialog("info", "Draft saved", "Keep editing.", "Close", "Keep", $note)',
+        ],
+      ),
+    );
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Close ]"]);
+    rendered.instance.stdin.write(ESCAPE);
+    // Ink holds a lone Escape for 20ms in case a sequence follows.
+    await settle(60);
+    const released = stripAnsi(rendered.frame());
+    expect(released).toContain("Settings");
+    expect(released).toContain("Draft saved");
+    expect(inverseSegments(rendered.frame())).toEqual([]);
+    expect(ofType(events, "cancel")).toEqual([]);
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    const cancelled = stripAnsi(rendered.frame());
+    expect(cancelled).not.toContain("Settings");
+    expect(cancelled).not.toContain("Draft saved");
+    expect(ofType(events, "cancel")).toEqual([
+      expect.objectContaining({ component: "Modal", name: "Settings" }),
+    ]);
+    rendered.unmount();
+  });
+
   it("cancels only a ModalDialog opened from a Dialog on Escape: the Dialog stays", async () => {
     const { rendered, events } = await mount(
       [

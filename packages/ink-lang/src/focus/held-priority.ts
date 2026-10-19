@@ -50,22 +50,42 @@ export function heldPriority(
 }
 
 /**
- * What Escape does about priority, once no stop claims it and no modal took
- * it: true when an overlay has priority only because the pointer is over it
- * (Escape then leaves focus alone); otherwise, when the focused stop's
- * overlay has priority, that overlay is released, and false is returned
- * (the navigator drops focus as usual).
+ * What Escape does first, once no stop claims it: when the focused stop's
+ * overlay has priority and is not the active modal layer's own overlay (a
+ * non-modal dialog, on the page or inside a modal), that overlay is released
+ * and true is returned: the navigator drops focus and the Escape ends there,
+ * so a dialog inside a modal is released before the modal is cancelled.
+ * False otherwise (a modal's own stop has focus, or none of a dialog's).
+ * `activeLayer` is the id of the innermost open modal layer, which is also
+ * the id of the modal's own overlay; null when no modal is open.
  */
-export function escapeKeepsFocus(
+export function releaseFocusedPriority(
+  registry: FocusRegistry,
+  input: PriorityInput,
+  active: FocusEntry | null,
+  activeLayer: string | null,
+): boolean {
+  const priority = heldPriority(registry, input, active);
+  if (priority === null || active === null || active.overlay !== priority) return false;
+  if (priority === activeLayer) return false;
+  input.released.add(priority);
+  return true;
+}
+
+/**
+ * What Escape does last, once no stop claims it, no focused dialog was
+ * released and no modal took it: true when an overlay has priority only
+ * because the pointer is over it (Escape then leaves focus alone); false
+ * otherwise (the navigator drops focus).
+ */
+export function hoverKeepsFocus(
   registry: FocusRegistry,
   input: PriorityInput,
   active: FocusEntry | null,
 ): boolean {
   const priority = heldPriority(registry, input, active);
   if (priority === null) return false;
-  if (active === null || active.overlay !== priority) return true;
-  input.released.add(priority);
-  return false;
+  return active === null || active.overlay !== priority;
 }
 
 /**

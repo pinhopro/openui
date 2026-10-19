@@ -5,9 +5,10 @@ import {
   type FocusRegistry,
 } from "../../src/focus/focus-registry";
 import {
-  escapeKeepsFocus,
   heldPriority,
+  hoverKeepsFocus,
   rearmHoveredFocus,
+  releaseFocusedPriority,
   type PriorityInput,
 } from "../../src/focus/held-priority";
 import { priorityOverlay } from "../../src/focus/overlay-priority";
@@ -75,16 +76,35 @@ describe("heldPriority and the Escape release", () => {
     const { registry, close } = dialogRegistry();
     const state = input(null);
     expect(heldPriority(registry, state, close)).toBe("d");
-    expect(escapeKeepsFocus(registry, state, close)).toBe(false);
+    expect(releaseFocusedPriority(registry, state, close, null)).toBe(true);
     expect(state.released.has("d")).toBe(true);
     expect(heldPriority(registry, state, close)).toBeNull();
+  });
+
+  it("releases a dialog inside a modal, never the active modal's own overlay", () => {
+    const { registry, close } = dialogRegistry();
+    const modalStop = stop("ok", "m");
+    registry.register(modalStop);
+    const state = input(null);
+    expect(releaseFocusedPriority(registry, state, modalStop, "m")).toBe(false);
+    expect(state.released.size).toBe(0);
+    expect(releaseFocusedPriority(registry, state, close, "m")).toBe(true);
+    expect(state.released.has("d")).toBe(true);
   });
 
   it("keeps focus on Escape while the overlay only has the pointer", () => {
     const { registry, a } = dialogRegistry();
     const state = input("d");
-    expect(escapeKeepsFocus(registry, state, a)).toBe(true);
+    expect(releaseFocusedPriority(registry, state, a, null)).toBe(false);
+    expect(hoverKeepsFocus(registry, state, a)).toBe(true);
     expect(state.released.size).toBe(0);
+  });
+
+  it("lets Escape drop focus when no overlay has priority", () => {
+    const { registry, a } = dialogRegistry();
+    const state = input(null);
+    expect(releaseFocusedPriority(registry, state, a, null)).toBe(false);
+    expect(hoverKeepsFocus(registry, state, a)).toBe(false);
   });
 
   it("re-arms a released overlay once its stop has focus under the pointer, not on the drop", () => {

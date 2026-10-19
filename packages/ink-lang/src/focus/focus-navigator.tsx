@@ -13,9 +13,10 @@ import {
 import { focusOrder, hostStops, nextInOrder, type CycleStop } from "./focus-order";
 import { FocusRegistryContext, type FocusEntry, type FocusRegistry } from "./focus-registry";
 import {
-  escapeKeepsFocus,
   heldPriority,
+  hoverKeepsFocus,
   rearmHoveredFocus,
+  releaseFocusedPriority,
   type PriorityInput,
 } from "./held-priority";
 import { ModalLayerContext } from "./modal-layer";
@@ -210,16 +211,17 @@ function usePriorityInput(hovered: string | null): PriorityInput {
  * moves focus first: Tab and Shift+Tab follow the Tab cycle (deterministic,
  * whatever order components mounted in; the `order` of the `FocusScope`
  * above, or `defaultCycle` without one), Escape is left to a focused stop
- * that claims it (`claimsEscape`), else cancels the innermost open modal
- * layer, else drops focus, and the arrows
- * move to the nearest stop in their direction whenever the focused component
- * does not use that arrow itself (or has nowhere further to go). While an
- * overlay has priority (one of its stops has focus, or, for a non-modal
- * dialog, the pointer is over it: `OverlayPriorityContext`), Tab and the
- * arrows only reach its own stops; Escape drops focus as usual when one of
- * its stops has it and ends that priority (the overlay keeps its place in
- * the cycle until the pointer enters it or it opens again), and does nothing
- * when the dialog only has the pointer. Each key
+ * that claims it (`claimsEscape`), else releases the non-modal dialog whose
+ * stop has focus (`releaseFocusedPriority`: it drops focus and ends that
+ * dialog's priority, which keeps its place in the cycle until the pointer
+ * enters it or it opens again; a dialog inside a modal is released before
+ * the modal is cancelled), else cancels the innermost open modal layer, else
+ * does nothing while a dialog has priority only by the pointer, else drops
+ * focus, and the arrows move to the nearest stop in their direction whenever
+ * the focused component does not use that arrow itself (or has nowhere
+ * further to go). While an overlay has priority (one of its stops has focus,
+ * or, for a non-modal dialog, the pointer is over it:
+ * `OverlayPriorityContext`), Tab and the arrows only reach its own stops. Each key
  * steps from the stop the previous key focused, even before React commits.
  * Provides `FocusCommands` to its children. Without a focus registry above it
  * there are no stops to move over, so it leaves Ink's own handling on and
@@ -319,8 +321,10 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
     if (key.escape && !key.shift && isUnmodified(key)) {
       const active = activeEntry(registry, target.activeId);
       if (claimsEscape(active)) return;
-      if (layers.cancelActive()) return;
-      if (escapeKeepsFocus(registry, priority, active)) return;
+      if (!releaseFocusedPriority(registry, priority, active, layers.activeLayer)) {
+        if (layers.cancelActive()) return;
+        if (hoverKeepsFocus(registry, priority, active)) return;
+      }
       // Ink exposes no way to clear the focused id but this; its flag stays off.
       manager.disableFocus();
       trackerRef.current.current = undefined;
