@@ -9,6 +9,10 @@ export const KEYS = {
   RIGHT: "\u001b[C",
   UP: "\u001b[A",
   DOWN: "\u001b[B",
+  CTRL_LEFT: "\u001b[1;5D",
+  CTRL_RIGHT: "\u001b[1;5C",
+  CTRL_UP: "\u001b[1;5A",
+  CTRL_DOWN: "\u001b[1;5B",
   PAGE_UP: "\u001b[5~",
   PAGE_DOWN: "\u001b[6~",
 };

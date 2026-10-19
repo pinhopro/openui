@@ -433,6 +433,8 @@ export type { BackdropProps } from "./overlay/backdrop";
 export { clippedBy, rectIntersection, rectsIntersect } from "./overlay/clip-rect";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
+export { DragHandle } from "./overlay/drag-handle";
+export type { DragHandleProps } from "./overlay/drag-handle";
 export {
   OverlayIdContext,
   OverlayVisibleContext,
@@ -461,6 +463,8 @@ export type {
 export { OverlayRegistryContext, createOverlayRegistry } from "./overlay/overlay-registry";
 export type { Overlay, OverlayKind, OverlayRegistry } from "./overlay/overlay-registry";
 export { rootRect } from "./overlay/root-rect";
+export { useDrag } from "./overlay/use-drag";
+export type { DragOffset, DragState, UseDragOptions } from "./overlay/use-drag";
 export { useOverlay } from "./overlay/use-overlay";
 export type { OverlayHandle, UseOverlayOptions } from "./overlay/use-overlay";
 export { UiEventContext, useUiEvents } from "./ui-events";

@@ -7,6 +7,8 @@ import { LayerIdContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { Backdrop } from "../overlay/backdrop";
+import { DragHandle } from "../overlay/drag-handle";
+import { useDrag } from "../overlay/use-drag";
 import { useOverlay } from "../overlay/use-overlay";
 import { ModalSchema } from "../schemas/modal-schema";
 import { useTheme } from "../theme";
@@ -15,6 +17,7 @@ import { useUiEvents } from "../ui-events";
 import { useStateField } from "../use-state-field";
 import { isPressKey } from "./button-keys";
 import { DialogFocusOnShow } from "./dialog-focus-on-show";
+import { DialogKeys } from "./dialog-keys";
 import { DialogSurface } from "./dialog-surface";
 import { displayText } from "./pad";
 import { useDialogLayer } from "./use-dialog-layer";
@@ -71,7 +74,8 @@ const WIDTHS: Record<string, number> = { sm: 40, md: 60, lg: 80 };
  * the `$open` binding is true, as the only active layer, and focus moves to
  * its first stop once it shows. `[ x ]`, Escape and a click on the backdrop
  * cancel it: the binding becomes false, like the React library, and `cancel`
- * is reported.
+ * is reported. It moves by its title row (a mouse drag) and with Ctrl+arrows
+ * while one of its stops has focus (`useDrag`), clamped into the screen.
  */
 function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) {
   const theme = useTheme();
@@ -81,7 +85,18 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   const setValue = field.setValue;
   const layerId = useId();
   const anchorRef = useRef<DOMElement | null>(null);
+  const titleRef = useRef<DOMElement | null>(null);
   const title = displayText(props.title);
+
+  /** A dropped modal keeps its offset from the centre. */
+  function stayWhereDropped(): void {}
+
+  const drag = useDrag({
+    enabled: isOpen,
+    name: title,
+    component: "Modal",
+    onDrop: stayWhereDropped,
+  });
 
   function runCancel(): void {
     setValue(false);
@@ -115,6 +130,8 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     return (
       <LayerIdContext.Provider value={layerId}>
         <DialogFocusOnShow />
+        <DialogKeys onMove={drag.moveBy} />
+        <DragHandle handleRef={titleRef} handlers={drag.handlers} />
         <DialogSurface
           width={WIDTHS[props.size ?? "md"]}
           maxWidth={undefined}
@@ -127,6 +144,8 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
           markColor={undefined}
           title={title}
           titleText={{ ...NO_TEXT_STYLE, bold: true }}
+          titleRef={titleRef}
+          dragging={drag.isDragging}
           titleAction={<CloseButton onClose={cancel} />}
           body={null}
           bodyText={NO_TEXT_STYLE}
@@ -155,6 +174,8 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     isOpen,
     render: renderDialog,
     layer: layerId,
+    offset: drag.offset,
+    onPlaced: drag.onPlaced,
   });
 
   // The overlays are placed in the bounds, not against this box: it only

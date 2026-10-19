@@ -44,4 +44,8 @@ export const DialogSchema = z.object({
     .describe(
       'Where it floats against the place it is declared: "bottom" (default) under it, "top" over it, "left" or "right" beside it on that row, "center" centred on the screen',
     ),
+  draggable: z
+    .boolean()
+    .optional()
+    .describe("False keeps the dialog where it is placed; default true"),
 });

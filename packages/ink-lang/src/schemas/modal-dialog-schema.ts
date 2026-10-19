@@ -38,4 +38,8 @@ export const ModalDialogSchema = z.object({
     .any()
     .optional()
     .describe("The action of the secondary button; without it the button only closes the dialog"),
+  draggable: z
+    .boolean()
+    .optional()
+    .describe("False keeps the dialog where it is placed; default true"),
 });

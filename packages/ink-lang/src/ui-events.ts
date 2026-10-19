@@ -5,7 +5,10 @@ import type { MouseButton, WheelDirection } from "./mouse/mouse-sequence";
  * The browser-like events a host can observe through `InkRenderer`'s
  * `onUiEvent`. `open` and `close` report a dialog layer shown and hidden,
  * `cancel` a dialog dismissed (Escape, a backdrop click, its cancel or close
- * control); each carries the dialog's type and title.
+ * control); each carries the dialog's type and title. `dragstart`, `drag`
+ * and `dragend` report a dialog moved by its title bar (a press, each move
+ * that moved it, the release, at the pointer's cell) or by Ctrl+arrows (all
+ * three for each key, at the dialog's top-left cell).
  */
 export type UiEventType =
   | "focus"
@@ -25,7 +28,10 @@ export type UiEventType =
   | "wheel"
   | "cancel"
   | "open"
-  | "close";
+  | "close"
+  | "dragstart"
+  | "drag"
+  | "dragend";
 
 /** One event: which component instance it happened on and the details that apply. */
 export interface UiEvent {

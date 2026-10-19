@@ -1,5 +1,5 @@
-import { Box, Text } from "ink";
-import type { ReactNode } from "react";
+import { Box, Text, type DOMElement } from "ink";
+import type { ReactNode, RefObject } from "react";
 import { useOverlayWidthLimit } from "../overlay/overlay-content-context";
 import type { InkBoxProps, InkTextProps } from "../theme-styles";
 import { wrapWords } from "./wrap-words";
@@ -24,6 +24,10 @@ export interface DialogSurfaceProps {
   markColor: string | undefined;
   title: string;
   titleText: InkTextProps;
+  /** Put on the title row: the box the dialog is dragged by; undefined for none. */
+  titleRef: RefObject<DOMElement | null> | undefined;
+  /** The dialog is being dragged: its title is drawn bold and inverse. */
+  dragging: boolean;
   /** A control at the right end of the title line (Modal's `[ x ]`); null for none. */
   titleAction: ReactNode;
   /** A text under the title (ModalDialog's body); null for none. */
@@ -72,7 +76,8 @@ function DialogBody({ lines, text }: DialogBodyProps) {
 
 /**
  * What a dialog draws: a bordered box with the variant mark and the title
- * (and a control at the end of the title line), the body text, the content
+ * (and a control at the end of the title line, the row it is dragged by,
+ * drawn bold and inverse while dragged), the body text, the content
  * and the row of buttons, at a preferred width or fitting its content up to
  * a limit. The body is wrapped between words (`wrapWords`) to the width it
  * has inside the borders and the padding, so no line starts with the space
@@ -82,6 +87,9 @@ function DialogBody({ lines, text }: DialogBodyProps) {
  */
 export function DialogSurface(props: DialogSurfaceProps) {
   const limit = useOverlayWidthLimit();
+  const titleText = props.dragging
+    ? { ...props.titleText, bold: true, inverse: true }
+    : props.titleText;
   // A row around it, so a preferred width (the flex basis) shrinks to fit narrower bounds.
   return (
     <Box flexDirection="row">
@@ -96,14 +104,14 @@ export function DialogSurface(props: DialogSurfaceProps) {
         paddingX={props.paddingX}
         paddingY={props.paddingY}
       >
-        <Box flexDirection="row" justifyContent="space-between" gap={2}>
+        <Box ref={props.titleRef} flexDirection="row" justifyContent="space-between" gap={2}>
           <Text>
             {props.mark === null ? null : (
               <Text color={props.markColor} bold>
                 {props.mark + " "}
               </Text>
             )}
-            <Text {...props.titleText}>{props.title}</Text>
+            <Text {...titleText}>{props.title}</Text>
           </Text>
           {props.titleAction}
         </Box>

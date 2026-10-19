@@ -7,7 +7,9 @@ import { useComponentStyle } from "../design/design-system-context";
 import { LayerIdContext } from "../focus/modal-layer";
 import { useFormName } from "../form-name-context";
 import { Backdrop } from "../overlay/backdrop";
+import { DragHandle } from "../overlay/drag-handle";
 import type { OverlayPlacement } from "../overlay/overlay-placement";
+import { useDrag } from "../overlay/use-drag";
 import { useOverlay } from "../overlay/use-overlay";
 import type { ModalDialogSchema } from "../schemas/modal-dialog-schema";
 import { useTheme } from "../theme";
@@ -16,6 +18,7 @@ import { useUiEvents } from "../ui-events";
 import { useStateField } from "../use-state-field";
 import { DialogButton } from "./dialog-button";
 import { DialogFocusOnShow } from "./dialog-focus-on-show";
+import { DialogKeys } from "./dialog-keys";
 import { DialogSurface } from "./dialog-surface";
 import { displayText } from "./pad";
 import { useDialogLayer } from "./use-dialog-layer";
@@ -58,7 +61,9 @@ const MARKS: Record<string, string> = {
  * floats at its placement against the line where it is declared, its stops
  * sit in the page's Tab cycle at that place, and the page stays interactive.
  * Either moves focus to its first stop once it shows and gives it back to its
- * opener when it closes. Cancel (its cancel button; for a modal one also
+ * opener when it closes. Unless `draggable` is false it moves by its title
+ * bar (a mouse drag) and with Ctrl+arrows while one of its stops has focus
+ * (`useDrag`), clamped into the screen. Cancel (its cancel button; for a modal one also
  * Escape and a click on the backdrop) sets `$open` to false, runs
  * `cancelAction` and reports `cancel`; confirm fires its action (or sends the
  * label to the assistant) and closes it. Without an `open` binding it is
@@ -76,8 +81,19 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
   // The modal layer's id and the id of the overlay the dialog renders in.
   const dialogId = useId();
   const anchorRef = useRef<DOMElement | null>(null);
+  const titleRef = useRef<DOMElement | null>(null);
   const variant = props.variant;
   const title = displayText(props.title);
+
+  /** A dropped dialog keeps its offset against its declaration anchor. */
+  function stayWhereDropped(): void {}
+
+  const drag = useDrag({
+    enabled: isOpen && props.draggable !== false,
+    name: title,
+    component,
+    onDrop: stayWhereDropped,
+  });
   const color = variant === "destructive" ? theme.danger : variantColor(variant, theme);
   const dialogStyle = useComponentStyle([variant]);
   const titleStyle = useComponentStyle([variant, "title"]);
@@ -167,6 +183,8 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     return inLayer(
       <>
         <DialogFocusOnShow />
+        <DialogKeys onMove={drag.moveBy} />
+        <DragHandle handleRef={titleRef} handlers={drag.handlers} />
         <DialogSurface
           width={undefined}
           maxWidth={DIALOG_MAX_WIDTH}
@@ -179,6 +197,8 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
           markColor={color}
           title={title}
           titleText={titleText}
+          titleRef={titleRef}
+          dragging={drag.isDragging}
           titleAction={null}
           body={body}
           bodyText={bodyText}
@@ -206,6 +226,8 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     isOpen,
     render: renderDialog,
     layer: modal ? dialogId : undefined,
+    offset: drag.offset,
+    onPlaced: drag.onPlaced,
   });
 
   // The overlays are placed in the bounds or against the line this box marks

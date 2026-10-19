@@ -266,8 +266,9 @@ export const inkComponentGroups: ComponentGroup[] = [
       '- Theme(tokens, css, children) applies a design system to its children: tokens like {"color.primary": "#2563eb", "shape.fieldBorder": "round", mode: "dark"} and a stylesheet of the CSS subset.',
       "- Tooltip(trigger, text, placement?, variant?) shows text beside its trigger while focused or hovered.",
       "- QrCode(data, size?) draws a scannable QR code with block characters.",
-      "- ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?) blocks everything behind it; use a $boolean binding as open and a Button with @Set($open, true) to show it.",
-      "- Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?) floats beside its declaration without blocking the page.",
+      "- ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, draggable?) blocks everything behind it; use a $boolean binding as open and a Button with @Set($open, true) to show it.",
+      "- Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?, draggable?) floats beside its declaration without blocking the page.",
+      "- Both dialogs (and Modal) move by dragging their title bar or with Ctrl+arrows; pass draggable false to keep a dialog where it is placed.",
     ],
   },
 ];

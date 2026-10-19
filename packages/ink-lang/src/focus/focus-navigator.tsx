@@ -217,7 +217,8 @@ function usePriorityInput(hovered: string | null): PriorityInput {
  * enters it or it opens again; a dialog inside a modal is released before
  * the modal is cancelled), else cancels the innermost open modal layer, else
  * does nothing while a dialog has priority only by the pointer, else drops
- * focus, and the arrows move to the nearest stop in their direction whenever
+ * focus, and the arrows (with no Ctrl, Meta, Super or Hyper held) move to
+ * the nearest stop in their direction whenever
  * the focused component does not use that arrow itself (or has nowhere
  * further to go). While an overlay has priority (one of its stops has focus,
  * or, for a non-modal dialog, the pointer is over it:
@@ -330,7 +331,8 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
       trackerRef.current.current = undefined;
       return;
     }
-    const direction = arrowDirection(key);
+    // A modified arrow is never a focus move: Ctrl+arrows move a dialog (`DialogKeys`).
+    const direction = isUnmodified(key) ? arrowDirection(key) : null;
     if (direction !== null) moveByArrow(registry, target, priority, direction);
   });
 
