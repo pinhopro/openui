@@ -123,7 +123,7 @@ Added to the browser-like event stream: `cancel` (backdrop click or Escape on a 
 
 ### Host extension points on `FocusScope`
 
-- `portal`: the host offers the box overlays are painted into (for apps that clip the renderer's panel).
+- `portal`: the host offers the box overlays are painted into (for apps that clip the renderer's panel). Superseded in step 2: the scope always hosts overlays (after its children, bounded by the ink root), and `OverlayHost` (with an optional `boundsRef`) plus `OverlayRegistryContext` are exported for a manual portal.
 - `order`: a function that receives the program's ordered stops and the host's own stops and returns the full cycle. Default: the host's stops first, in their registration order, then the program's.
 
 ## Ink internals
@@ -143,7 +143,7 @@ Every rule above gets an `ink-testing-library` test before its code: order of a 
 Four steps, each with its tests, docs (README "Focus order", AGENTS module table) and its own commit:
 
 1. Sequence paths in `renderNode` and the registry; `focusOrder` by sequence path; Tab, Shift+Tab, Escape and autoFocus owned by the library; audit of every container's sequence; `FocusScope.order` for the host; the showcase placing its sidebar and theme select through it.
-2. `OverlayHost` and the floating `Tooltip`; `FocusScope.portal`; tmux check of painting.
+2. `OverlayHost` and the floating `Tooltip`; `FocusScope.portal`; tmux check of painting. (`portal` is superseded: the scope always hosts overlays, and `OverlayHost` plus `OverlayRegistryContext` are exported for a manual portal.)
 3. Backdrop and `cancel`, `Dialog`, auto focus, priority by hover or focus-within, layer-aware Tab, arrows and mouse hit-test, nested overlays, streaming rule, dim-behind context.
 4. Drag (mouse and Ctrl+arrows), re-anchoring on drop, resize behaviour, the focus map's `layer` and `anchor`, drag events.
 
