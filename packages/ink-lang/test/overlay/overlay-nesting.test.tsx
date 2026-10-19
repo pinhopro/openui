@@ -3,7 +3,9 @@ import { inkLibrary } from "../../src/default-library";
 import type { UiEvent } from "../../src/ui-events";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
 import { fillerRows } from "../helpers/filler-rows";
+import { findCell } from "../helpers/find-cell";
 import { KEYS } from "../helpers/keys";
+import { MOUSE } from "../helpers/mouse";
 import { renderProgram } from "../helpers/render-program";
 import { settle } from "../helpers/settle";
 
@@ -148,6 +150,44 @@ describe("nested overlays", () => {
     expect(ofType(events, "cancel")).toEqual([
       expect.objectContaining({ component: "Modal", name: "Settings" }),
     ]);
+    rendered.unmount();
+  });
+
+  it("keeps a page Dialog shown after a modal under the modal's backdrop: the modal is drawn and clicked", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(
+      inkLibrary,
+      [
+        "$note = true",
+        "$confirm = true",
+        `root = Stack([page, confirmDialog, noteDialog, ${fillerRows(ROWS)}], "column", "none")`,
+        'page = Button("Page button", @ToAssistant("Page"))',
+        'noteDialog = Dialog("info", "Draft saved", "Keep editing.", "Close", null, $note, null, null, "center")',
+        'confirmDialog = ModalDialog("destructive", "Discard?", "Gone for good.", "Cancel", "Discard it", $confirm)',
+      ].join("\n"),
+      {
+        mouse: true,
+        onUiEvent: function onUiEvent(event) {
+          events.push(event);
+        },
+      },
+    );
+    await settle();
+    const frame = stripAnsi(rendered.frame());
+    expect(frame).toContain("⚠ Discard?");
+    expect(frame).toContain("Gone for good.");
+    expect(frame).toContain("[ Cancel ] [ Discard it ]");
+    expect(frame).not.toContain("[ Close ]");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    const cancel = findCell(frame, "[ Cancel ]");
+    rendered.instance.stdin.write(MOUSE.click(cancel.x + 2, cancel.y));
+    await settle();
+    expect(ofType(events, "cancel")).toEqual([
+      expect.objectContaining({ component: "ModalDialog", name: "Discard?" }),
+    ]);
+    const after = stripAnsi(rendered.frame());
+    expect(after).not.toContain("Discard?");
+    expect(after).toContain("Draft saved");
     rendered.unmount();
   });
 

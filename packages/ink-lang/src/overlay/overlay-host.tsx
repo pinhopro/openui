@@ -9,6 +9,7 @@ import {
   type RefObject,
 } from "react";
 import { elementRect, type CellRect } from "../focus/element-rect";
+import { ModalLayerContext } from "../focus/modal-layer";
 import { rectIntersection } from "./clip-rect";
 import { OverlayBox } from "./overlay-box";
 import {
@@ -20,6 +21,7 @@ import {
 } from "./overlay-measure";
 import { OverlayRegistryContext, type Overlay, type OverlayRegistry } from "./overlay-registry";
 import { rootRect } from "./root-rect";
+import { stackingOrder } from "./stacking-order";
 import { useLayoutSignal } from "./use-layout-signal";
 
 /**
@@ -120,7 +122,8 @@ export interface OverlayHostProps {
 
 /**
  * Paints the open overlays of the nearest registry over everything rendered
- * before it, in stacking order: an absolutely positioned box at the top-left
+ * before it, in stacking order (`stackingOrder`: by modal layer, then in the
+ * order they opened): an absolutely positioned box at the top-left
  * of its container holding one absolutely positioned box per overlay form,
  * so the container's layout does not change and later overlays overwrite
  * earlier cells. An overlay is opaque unless it asks otherwise (blank cells
@@ -138,7 +141,10 @@ export interface OverlayHostProps {
  */
 export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostProps) {
   const registry = useContext(OverlayRegistryContext);
-  const overlays = useOverlayList(registry);
+  // Read on every render: a layer opening or closing re-renders the host through this context.
+  const layers = useContext(ModalLayerContext);
+  const registered = useOverlayList(registry);
+  const overlays = stackingOrder(registered, layers.indexOf);
   const hostRef = useRef<DOMElement | null>(null);
   const wholeRefs = useRef<BoxRefs>(new Map());
   const compactRefs = useRef<BoxRefs>(new Map());

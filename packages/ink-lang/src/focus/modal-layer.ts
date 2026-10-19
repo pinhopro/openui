@@ -16,6 +16,12 @@ export interface ModalLayers {
   open: (id: string, onCancel: () => void) => () => void;
   /** Runs the innermost open layer's `onCancel`; false when no layer is open. */
   cancelActive: () => boolean;
+  /**
+   * The place of the layer `id` in the stack, bottom first, read at call
+   * time: -1 for the page (null), below every modal; the stack's length for
+   * an id that is not open (a layer still opening), above every open one.
+   */
+  indexOf: (id: string | null) => number;
 }
 
 function noLayer(): () => void {
@@ -26,11 +32,16 @@ function cancelNothing(): boolean {
   return false;
 }
 
+function pageOrOpening(id: string | null): number {
+  return id === null ? -1 : 0;
+}
+
 /** The layers when nothing provides them: none is ever open. */
 export const NO_MODAL_LAYERS: ModalLayers = {
   activeLayer: null,
   open: noLayer,
   cancelActive: cancelNothing,
+  indexOf: pageOrOpening,
 };
 
 export const ModalLayerContext = createContext<ModalLayers>(NO_MODAL_LAYERS);

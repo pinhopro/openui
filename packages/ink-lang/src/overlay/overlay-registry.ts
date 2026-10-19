@@ -34,6 +34,14 @@ export interface Overlay {
   captured: CapturedContexts;
   /** Added to the placed position (a dragged dialog's displacement). */
   offset: { x: number; y: number };
+  /**
+   * The modal layer the overlay belongs to (a modal's id for its own backdrop
+   * and box, the layer its owner renders in otherwise; null for the page).
+   * The host stacks overlays by their layer's place among the open modals
+   * first (`stackingOrder`), so one of a layer under the active modal never
+   * paints over it.
+   */
+  layer: string | null;
 }
 
 export interface OverlayRegistry {
@@ -43,7 +51,7 @@ export interface OverlayRegistry {
   update: (overlay: Overlay) => void;
   /** Calls `listener` after every register, update and removal; returns the unsubscribe. */
   subscribe: (listener: () => void) => () => void;
-  /** The open overlays in stacking order (registration order), bottom first. */
+  /** The open overlays in registration order, bottom first (the host stacks them by layer first). */
   list: () => Overlay[];
 }
 

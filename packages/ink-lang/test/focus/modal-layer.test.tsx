@@ -1,6 +1,9 @@
 import type { ActionEvent } from "@openuidev/lang-core";
+import { render } from "ink-testing-library";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../../src/default-library";
+import type { ModalLayers } from "../../src/focus/modal-layer";
+import { useModalLayers } from "../../src/focus/use-modal-layers";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
 import { fillerRows } from "../helpers/filler-rows";
 import { findCell } from "../helpers/find-cell";
@@ -105,5 +108,36 @@ describe("modal layer", () => {
     expect(frame).toContain("Outer");
     expect(inverseSegments(rendered.frame())).toEqual(["[ Nested ]"]);
     rendered.unmount();
+  });
+});
+
+/** Hands the component's modal layers to the test on every render. */
+function LayersProbe({ onLayers }: { onLayers: (layers: ModalLayers) => void }) {
+  onLayers(useModalLayers());
+  return null;
+}
+
+describe("ModalLayers.indexOf", () => {
+  it("places the page under every layer, open layers bottom first and an unknown id on top", async () => {
+    let layers: ModalLayers | null = null;
+    const instance = render(
+      <LayersProbe
+        onLayers={function keep(current) {
+          layers = current;
+        }}
+      />,
+    );
+    const stack = layers as unknown as ModalLayers;
+    const closeOuter = stack.open("outer", function cancelOuter() {});
+    stack.open("inner", function cancelInner() {});
+    expect(stack.indexOf(null)).toBe(-1);
+    expect(stack.indexOf("outer")).toBe(0);
+    expect(stack.indexOf("inner")).toBe(1);
+    expect(stack.indexOf("opening")).toBe(2);
+    closeOuter();
+    expect(stack.indexOf("inner")).toBe(0);
+    expect(stack.indexOf("outer")).toBe(1);
+    await settle();
+    instance.unmount();
   });
 });

@@ -195,7 +195,9 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     opaque: false,
     isOpen: isOpen && modal,
     render: renderBackdrop,
+    layer: dialogId,
   });
+  // A modal dialog is in its own layer; a non-modal one stays in the layer it is declared in.
   useOverlay({
     id: dialogId,
     kind: modal ? "modal" : "dialog",
@@ -203,6 +205,7 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     placement: modal ? "center" : placement,
     isOpen,
     render: renderDialog,
+    layer: modal ? dialogId : undefined,
   });
 
   // The overlays are placed in the bounds or against the line this box marks

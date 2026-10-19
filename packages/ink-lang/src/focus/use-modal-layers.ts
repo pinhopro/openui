@@ -41,10 +41,18 @@ export function useModalLayers(): ModalLayers {
     top.onCancel();
     return true;
   }, []);
+  const indexOf = useCallback(function indexOf(id: string | null): number {
+    if (id === null) return -1;
+    const stack = stackRef.current;
+    for (let index = 0; index < stack.length; index += 1) {
+      if (stack[index]?.id === id) return index;
+    }
+    return stack.length;
+  }, []);
   return useMemo<ModalLayers>(
     function buildLayers() {
-      return { activeLayer, open: openLayer, cancelActive };
+      return { activeLayer, open: openLayer, cancelActive, indexOf };
     },
-    [activeLayer, openLayer, cancelActive],
+    [activeLayer, openLayer, cancelActive, indexOf],
   );
 }

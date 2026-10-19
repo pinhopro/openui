@@ -1,5 +1,6 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
+import { LayerIdContext } from "../focus/modal-layer";
 import { useCapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
 import { OverlayRegistryContext, type Overlay, type OverlayKind } from "./overlay-registry";
@@ -34,6 +35,12 @@ export interface UseOverlayOptions {
   renderCompact?: () => ReactNode;
   /** Paint blank cells under the content so nothing shows through; default true. */
   opaque?: boolean;
+  /**
+   * The modal layer the overlay belongs to, which decides its stacking: a
+   * modal passes its own layer id for its backdrop and its box; default the
+   * layer this component renders in (`LayerIdContext`, null on the page).
+   */
+  layer?: string | null;
 }
 
 export interface OverlayHandle {
@@ -45,7 +52,7 @@ const NO_OFFSET = Object.freeze({ x: 0, y: 0 });
 /**
  * Floats `render()` over the program, placed against `anchorRef`, while
  * `isOpen`: the overlay joins the nearest overlay registry on top of the
- * stack, and its content is rendered by the registry's host with the contexts
+ * overlays of its layer (`layer`), and its content is rendered by the registry's host with the contexts
  * this component renders in. It is re-sent to the host after every render of
  * this component, so the content and the bridged contexts stay current.
  * Outside any registry it does nothing.
@@ -55,6 +62,7 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
   const id = options.id ?? ownId;
   const registry = useContext(OverlayRegistryContext);
   const captured = useCapturedContexts();
+  const ownerLayer = useContext(LayerIdContext);
   const isOpen = options.isOpen;
   const latest = useRef<Overlay | null>(null);
   latest.current = {
@@ -68,6 +76,7 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
     opaque: options.opaque ?? true,
     captured,
     offset: NO_OFFSET,
+    layer: options.layer === undefined ? ownerLayer : options.layer,
   };
 
   useEffect(

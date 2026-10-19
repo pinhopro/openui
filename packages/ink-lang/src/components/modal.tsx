@@ -145,6 +145,7 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     opaque: false,
     isOpen,
     render: renderBackdrop,
+    layer: layerId,
   });
   useOverlay({
     id: layerId,
@@ -153,6 +154,7 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     placement: "center",
     isOpen,
     render: renderDialog,
+    layer: layerId,
   });
 
   // The overlays are placed in the bounds, not against this box: it only
