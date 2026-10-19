@@ -227,16 +227,16 @@ Some content floats over the program instead of taking cells in its layout: the 
 
 **Placement.** `placement` is `top`, `bottom`, `left`, `right`, `center`, `cover` (the whole bounds from their top-left, what a modal's backdrop takes) or `anchor` (the anchor's top-left, what a re-anchored dialog takes), with `gap` empty cells between the anchor and the overlay. The bounds are the ink root (the cells Ink draws) for a `FocusScope`'s host and the page for a standalone renderer's host. The rules, in order:
 
-| Case                                 | Rule                                                                                                                                                                     |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| The asked side fits                  | The overlay goes on that side of its anchor.                                                                                                                             |
-| Only the opposite side fits          | It flips to the opposite side.                                                                                                                                           |
-| Placed on a side                     | It is then shifted (never shrunk) to lie inside the bounds: a bubble past the right edge moves left, a side bubble beside the last row moves up.                         |
-| `top` or `bottom`, neither side fits | It takes the side with more room (the asked one on a tie), never covers its anchor, and the rows past the bounds are cut (Ink draws no rows outside the root).           |
-| `left` or `right`, neither side fits | It is shifted inside the bounds anyway, since a row longer than the terminal would wrap, so in a narrow terminal it may cover its trigger, unless it has a compact form. |
-| `center`                             | Centred in the bounds.                                                                                                                                                   |
-| `cover`                              | Spans the bounds from their top-left, whatever the anchor; never flipped or shifted (a modal's backdrop).                                                                |
-| `anchor`                             | On the anchor's top-left, never flipped or shifted; the offset is added and the moved box is clamped into the bounds, with no offset too (a re-anchored dialog).         |
+| Case                                 | Rule                                                                                                                                                                                   |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The asked side fits                  | The overlay goes on that side of its anchor.                                                                                                                                           |
+| Only the opposite side fits          | It flips to the opposite side.                                                                                                                                                         |
+| Placed on a side                     | It is then shifted (never shrunk) to lie inside the bounds: a bubble past the right edge moves left, a side bubble beside the last row moves up.                                       |
+| `top` or `bottom`, neither side fits | It takes the side with more room (the asked one on a tie), never covers its anchor, and the rows past the bounds are cut (Ink draws no rows outside the root).                         |
+| `left` or `right`, neither side fits | It is shifted inside the bounds anyway, since a row longer than the terminal would wrap, so in a narrow terminal it may cover its trigger, unless it has a compact form.               |
+| `center`                             | Centred in the bounds.                                                                                                                                                                 |
+| `cover`                              | Spans the bounds from their top-left, whatever the anchor; never flipped or shifted (a modal's backdrop).                                                                              |
+| `anchor`                             | On the anchor's top-left, never flipped or shifted, and `gap` is ignored; the offset is added and the moved box is clamped into the bounds, with no offset too (a re-anchored dialog). |
 
 **Width.** An overlay's box is never wider than its bounds (`maxWidth`), so long content wraps inside the terminal: a line past the terminal's edge would be wrapped by the terminal itself and break Ink's count of the lines it drew. A 200-character tooltip in a 60-column terminal is a bubble at most 60 cells wide over several rows.
 
