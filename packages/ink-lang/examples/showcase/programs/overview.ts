@@ -11,5 +11,5 @@ export const overviewProgram = [
   "actions = Buttons([hello, docs])",
   'hello = Button("Say hello", @ToAssistant("Hello from the showcase"))',
   'docs = Button("Open the docs", @OpenUrl("https://www.openui.com/docs"), "secondary")',
-  'docsCode = Card([CardHeader("Scan for the docs", "a QrCode component, drawn with block characters"), QrCode("https://www.openui.com/docs")], "sunk")',
+  'docsCode = Card([CardHeader("Scan for the docs", "a QrCode component, drawn with block characters: compact, then large"), Stack([QrCode("https://www.openui.com/docs", "compact"), QrCode("https://www.openui.com", "large")], "row", "l")], "sunk")',
 ].join("\n");

@@ -52,6 +52,15 @@ describe("table styling", () => {
     left.rendered.unmount();
   });
 
+  it("gives a bordered field in a table a column wide enough for its frame", async () => {
+    const { rendered } = await mount(
+      'root = Stack([Table([Col("Note", [Input("q", "a longer placeholder")])])])',
+      { tokens: { "shape.fieldBorder": "round" } },
+    );
+    expect(stripAnsi(rendered.frame())).toContain("a longer placeholder");
+    rendered.unmount();
+  });
+
   it("styles a field inside a table through a descendant selector", async () => {
     const { rendered, line } = await mount(
       'root = Stack([Table([Col("Search field", [Input("q", "Type here")])]), Input("other", "Elsewhere")])',
@@ -83,6 +92,18 @@ describe("form and text parts", () => {
     );
     expect(stripAnsi(rendered.frame())).toContain("HELLO WORLD");
     expect(line("Title")).toContain(MAGENTA_ON);
+    rendered.unmount();
+  });
+
+  it("transforms and sizes CardHeader titles through the cascade", async () => {
+    const { rendered, line } = await mount('root = Stack([CardHeader("Section", "about it")])', {
+      css: "CardHeader .title { text-transform: uppercase; font-size: x-large; color: magenta } CardHeader .subtitle { text-transform: lowercase; color: blue }",
+    });
+    const plain = stripAnsi(rendered.frame());
+    expect(plain).toContain("SECTION");
+    expect(line("SECTION")).toContain(MAGENTA_ON);
+    expect(line("SECTION")).toContain("\u001b[1m");
+    expect(line("about it")).toContain(BLUE_ON);
     rendered.unmount();
   });
 
