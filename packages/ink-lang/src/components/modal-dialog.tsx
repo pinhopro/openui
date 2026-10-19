@@ -1,23 +1,30 @@
 import type { ActionPlan } from "@openuidev/lang-core";
-import { Box, Text, useInput } from "ink";
-import { useContext, useEffect, useId } from "react";
+import { Box, type DOMElement } from "ink";
+import { useId, useRef, type ReactNode } from "react";
 import type { z } from "zod/v4";
-import { useIsStreaming, useTriggerAction } from "../context";
-import { useComponentStyle, useStyleAs } from "../design/design-system-context";
-import { useFocusCommands } from "../focus/focus-commands";
-import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
-import { useFocusable } from "../focus/use-focusable";
+import { useTriggerAction } from "../context";
+import { useComponentStyle } from "../design/design-system-context";
+import { LayerIdContext } from "../focus/modal-layer";
 import { useFormName } from "../form-name-context";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { Backdrop } from "../overlay/backdrop";
+import { useOverlay } from "../overlay/use-overlay";
 import { ModalDialogSchema } from "../schemas/modal-dialog-schema";
 import { useTheme } from "../theme";
 import { boxProps, textProps } from "../theme-styles";
+import { useUiEvents } from "../ui-events";
 import { useStateField } from "../use-state-field";
-import { isPressKey } from "./button-keys";
+import { DialogButton } from "./dialog-button";
+import { DialogFocusOnShow } from "./dialog-focus-on-show";
+import { DialogSurface } from "./dialog-surface";
 import { displayText } from "./pad";
+import { useDialogLayer } from "./use-dialog-layer";
 import { variantColor } from "./variant-color";
 
 type ModalDialogProps = z.infer<typeof ModalDialogSchema>;
+
+/** The widest a ModalDialog grows: a longer body wraps. */
+const DIALOG_MAX_WIDTH = 60;
 
 const MARKS: Record<string, string> = {
   info: "ⓘ",
@@ -27,100 +34,34 @@ const MARKS: Record<string, string> = {
   neutral: "•",
 };
 
-interface DialogButtonProps {
-  label: string;
-  classes: string[];
-  color: string | undefined;
-  order: number;
-  onPress: () => void;
-}
-
-/** One of the dialog's buttons: a focus stop pressed with Enter, Space or a click. */
-function DialogButton({ label, classes, color, order, onPress }: DialogButtonProps) {
-  const isStreaming = useIsStreaming();
-  const focusable = useFocusable({
-    isActive: !isStreaming,
-    name: label,
-    hoverFocus: true,
-    order,
-    mouse: {
-      onClick: function handleClick() {
-        if (!isStreaming) onPress();
-      },
-    },
-  });
-  const states: string[] = [];
-  if (focusable.isFocused) states.push("focus");
-  if (focusable.isHovered) states.push("hover");
-  if (focusable.isPressed) states.push("pressed");
-  if (isStreaming) states.push("disabled");
-  // Styled as a Button under the dialog, so `Button:focus` and `ModalDialog Button.confirm` apply.
-  const style = useStyleAs("Button", classes, states);
-  useInput(
-    function handleKey(input, key) {
-      if (isPressKey(input, key)) onPress();
-    },
-    { isActive: focusable.isFocused && !isStreaming },
-  );
-  return (
-    <Box ref={focusable.ref} backgroundColor={style.box.background}>
-      <Text {...textProps(style.text)} color={style.text.color ?? color}>
-        [ {label} ]
-      </Text>
-    </Box>
-  );
-}
-
 /**
- * A dialog with a variant mark, a title, a body and up to two buttons.
- * While shown it is the only active layer: nothing outside it takes focus or
- * the mouse. Cancel closes it; confirm fires its action (or sends the label
- * to the assistant) and closes it. Without an `open` binding it is always
- * shown and the buttons only fire.
+ * A dialog with a variant mark, a title, a body and up to two buttons,
+ * floating centred over the page above a see-through backdrop: two overlays
+ * opened from here, so the page keeps its layout. While shown it is the only
+ * active layer: nothing outside it takes focus or the mouse, and focus moves
+ * to its first button once it shows. Cancel (its cancel button, Escape, a
+ * click on the backdrop) sets `$open` to false, runs `cancelAction` and
+ * reports `cancel`; confirm fires its action (or sends the label to the
+ * assistant) and closes it. Without an `open` binding it is always shown and
+ * its buttons only fire.
  */
 function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) {
   const theme = useTheme();
   const triggerAction = useTriggerAction();
   const formName = useFormName();
+  const emit = useUiEvents();
   const field = useStateField<unknown>("open", props.open);
   const hasBinding = props.open !== undefined && props.open !== null;
   const isOpen = !hasBinding || field.value === true || field.value === "true";
   const setValue = field.setValue;
   const layerId = useId();
-  const layers = useContext(ModalLayerContext);
-  const openLayer = layers.open;
-  const focusFirst = useFocusCommands().focusFirst;
+  const anchorRef = useRef<DOMElement | null>(null);
   const variant = props.variant;
+  const title = displayText(props.title);
   const color = variant === "destructive" ? theme.danger : variantColor(variant, theme);
   const dialogStyle = useComponentStyle([variant]);
   const titleStyle = useComponentStyle([variant, "title"]);
   const bodyStyle = useComponentStyle([variant, "body"]);
-
-  useEffect(
-    function holdLayer() {
-      if (!isOpen) return undefined;
-      return openLayer(layerId, function closeOnCancel() {
-        if (hasBinding) setValue(false);
-      });
-    },
-    [hasBinding, isOpen, layerId, openLayer, setValue],
-  );
-
-  // Focus moves into the dialog once its layer is on top: its stops are
-  // active by then (their effects run before this one), so the focus commands
-  // and Ink both see them. When an inner modal closes, this re-runs and
-  // focuses the first stop of this one: acceptable for now.
-  const isTopLayer = isOpen && layers.activeLayer === layerId;
-  useEffect(
-    function focusIntoLayer() {
-      if (!isTopLayer) return undefined;
-      const timer = setTimeout(focusFirst, 0);
-      return function cancel() {
-        clearTimeout(timer);
-      };
-    },
-    [focusFirst, isTopLayer],
-  );
 
   function close(): void {
     if (hasBinding) setValue(false);
@@ -132,6 +73,7 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
       void triggerAction(displayText(props.cancelLabel), formName, action);
     }
     close();
+    emit({ type: "cancel", component: "ModalDialog", name: title });
   }
 
   function confirm(): void {
@@ -143,52 +85,92 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
     close();
   }
 
-  if (!isOpen) return null;
+  useDialogLayer({
+    isOpen,
+    modal: true,
+    onCancel: cancel,
+    layerId,
+    component: "ModalDialog",
+    title,
+  });
+
   const cancelLabel = displayText(props.cancelLabel);
   const confirmLabel = displayText(props.confirmLabel);
   const box = boxProps(dialogStyle.box);
-  return (
-    <LayerIdContext.Provider value={layerId}>
-      <Box
-        flexDirection="column"
-        borderStyle={box.borderStyle ?? "round"}
-        borderColor={box.borderColor ?? color}
-        backgroundColor={box.backgroundColor}
-        paddingX={box.paddingX ?? 1}
-        paddingY={box.paddingY}
-      >
-        <Text>
-          <Text color={color} bold>
-            {(MARKS[variant] ?? MARKS["neutral"]) + " "}
-          </Text>
-          <Text {...textProps(titleStyle.text)} bold={titleStyle.text.bold ?? true}>
-            {displayText(props.title)}
-          </Text>
-        </Text>
-        <Text {...textProps(bodyStyle.text)}>{displayText(props.body)}</Text>
-        <Box flexDirection="row" gap={1} marginTop={1}>
-          {cancelLabel === "" ? null : (
-            <DialogButton
-              label={cancelLabel}
-              classes={[variant, "cancel"]}
-              color={undefined}
-              order={0}
-              onPress={cancel}
-            />
-          )}
-          {confirmLabel === "" ? null : (
-            <DialogButton
-              label={confirmLabel}
-              classes={[variant, "confirm"]}
-              color={color}
-              order={1}
-              onPress={confirm}
-            />
-          )}
-        </Box>
-      </Box>
-    </LayerIdContext.Provider>
-  );
+  const titleText = { ...textProps(titleStyle.text), bold: titleStyle.text.bold ?? true };
+  const bodyText = textProps(bodyStyle.text);
+  const body = displayText(props.body);
+  const buttons =
+    cancelLabel === "" && confirmLabel === "" ? null : (
+      <>
+        {cancelLabel === "" ? null : (
+          <DialogButton
+            label={cancelLabel}
+            classes={[variant, "cancel"]}
+            color={undefined}
+            order={0}
+            onPress={cancel}
+          />
+        )}
+        {confirmLabel === "" ? null : (
+          <DialogButton
+            label={confirmLabel}
+            classes={[variant, "confirm"]}
+            color={color}
+            order={1}
+            onPress={confirm}
+          />
+        )}
+      </>
+    );
+
+  // Both render functions call no hooks: they close over what the body computed.
+  function renderBackdrop(): ReactNode {
+    return (
+      <LayerIdContext.Provider value={layerId}>
+        <Backdrop onCancel={cancel} />
+      </LayerIdContext.Provider>
+    );
+  }
+
+  function renderDialog(): ReactNode {
+    return (
+      <LayerIdContext.Provider value={layerId}>
+        <DialogFocusOnShow />
+        <DialogSurface
+          width={undefined}
+          maxWidth={DIALOG_MAX_WIDTH}
+          borderStyle={box.borderStyle ?? "round"}
+          borderColor={box.borderColor ?? color}
+          background={box.backgroundColor}
+          paddingX={box.paddingX ?? 1}
+          paddingY={box.paddingY}
+          mark={MARKS[variant] ?? MARKS["neutral"] ?? null}
+          markColor={color}
+          title={title}
+          titleText={titleText}
+          titleAction={null}
+          body={body}
+          bodyText={bodyText}
+          buttons={buttons}
+        />
+      </LayerIdContext.Provider>
+    );
+  }
+
+  useOverlay({
+    kind: "backdrop",
+    anchorRef,
+    placement: "cover",
+    opaque: false,
+    isOpen,
+    render: renderBackdrop,
+  });
+  useOverlay({ kind: "modal", anchorRef, placement: "center", isOpen, render: renderDialog });
+
+  // The overlays are placed in the bounds, not against this box: it only
+  // marks the declaration, out of the flow, so a gap around it never shows.
+  return <Box ref={anchorRef} position="absolute" />;
 }
 
 export const ModalDialog = defineComponent({

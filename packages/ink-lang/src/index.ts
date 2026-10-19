@@ -524,3 +524,4 @@ export type {
   MouseWheelHandler,
 } from "./mouse/mouse-target";
 export { useMouse } from "./mouse/use-mouse";
+export type { UseMouseOptions } from "./mouse/use-mouse";

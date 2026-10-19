@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import type { UiEvent } from "../src/ui-events";
 import { stripAnsi } from "./helpers/ansi";
+import { fillerRows } from "./helpers/filler-rows";
 import { findCell } from "./helpers/find-cell";
 import { KEYS } from "./helpers/keys";
 import { MOUSE } from "./helpers/mouse";
@@ -145,6 +146,43 @@ describe("onUiEvent", () => {
     await settle();
     expect(ofType(events, "contextmenu")).toEqual([
       expect.objectContaining({ type: "contextmenu", component: "Button", name: "Go" }),
+    ]);
+    rendered.unmount();
+  });
+
+  it("reports open, cancel and close of a modal with its type and title", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(
+      inkLibrary,
+      [
+        "$show = false",
+        `root = Stack([open, Modal("Settings", $show, [TextContent("Inside")]), ${fillerRows(8)}], "column", "none")`,
+        'open = Button("Open", @Set($show, true))',
+      ].join("\n"),
+      {
+        onUiEvent: function onUiEvent(event) {
+          events.push(event);
+        },
+      },
+    );
+    expect(ofType(events, "open")).toEqual([]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(ofType(events, "open")).toEqual([
+      expect.objectContaining({ type: "open", component: "Modal", name: "Settings" }),
+    ]);
+    rendered.instance.stdin.write("\u001b");
+    // Ink holds a lone Escape for 20ms in case a sequence follows.
+    await settle(60);
+    const layer = events.filter(function isLayerEvent(event) {
+      return event.type === "open" || event.type === "cancel" || event.type === "close";
+    });
+    expect(layer).toEqual([
+      expect.objectContaining({ type: "open", component: "Modal", name: "Settings" }),
+      expect.objectContaining({ type: "cancel", component: "Modal", name: "Settings" }),
+      expect.objectContaining({ type: "close", component: "Modal", name: "Settings" }),
     ]);
     rendered.unmount();
   });

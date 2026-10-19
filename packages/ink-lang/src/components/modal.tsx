@@ -1,18 +1,23 @@
-import { Box, Text, useInput } from "ink";
-import { useContext, useEffect, useId } from "react";
+import { Box, Text, useInput, type DOMElement } from "ink";
+import { useId, useRef, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
-import { useFocusCommands } from "../focus/focus-commands";
 import { ORDER_LAST } from "../focus/focus-order";
-import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
+import { LayerIdContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { Backdrop } from "../overlay/backdrop";
+import { useOverlay } from "../overlay/use-overlay";
 import { ModalSchema } from "../schemas/modal-schema";
 import { useTheme } from "../theme";
 import { textProps } from "../theme-styles";
+import { useUiEvents } from "../ui-events";
 import { useStateField } from "../use-state-field";
 import { isPressKey } from "./button-keys";
+import { DialogFocusOnShow } from "./dialog-focus-on-show";
+import { DialogSurface } from "./dialog-surface";
 import { displayText } from "./pad";
+import { useDialogLayer } from "./use-dialog-layer";
 
 type ModalProps = z.infer<typeof ModalSchema>;
 
@@ -20,7 +25,10 @@ interface CloseButtonProps {
   onClose: () => void;
 }
 
-/** The focusable `[ x ]` in the title line, the last stop of the modal; Enter, Space or Escape close it. */
+/**
+ * The focusable `[ x ]` in the title line, the last stop of the modal; Enter,
+ * Space or a click close it (Escape is the navigator's: it cancels the layer).
+ */
 function CloseButton({ onClose }: CloseButtonProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
@@ -38,7 +46,7 @@ function CloseButton({ onClose }: CloseButtonProps) {
   useInput(
     function handleCloseKey(input, key) {
       if (key.eventType === "release") return;
-      if (key.escape || isPressKey(input, key)) onClose();
+      if (isPressKey(input, key)) onClose();
     },
     { isActive: focusable.isFocused && !isStreaming },
   );
@@ -50,64 +58,89 @@ function CloseButton({ onClose }: CloseButtonProps) {
   );
 }
 
+const NO_TEXT_STYLE = textProps({});
+
+/** The width of each size, in cells; `md` when none is given, as in the React library. */
+const WIDTHS: Record<string, number> = { sm: 40, md: 60, lg: 80 };
+
 /**
- * A dialog drawn in place: an accent border, the title with a close button
- * and the children. It shows while the `$open` binding is true; closing sets
- * the binding to false, like the React library.
+ * A dialog with an accent border, the title with a close button and the
+ * children, as wide as its `size` (narrower in narrow bounds), floating centred over the page above a see-through backdrop (two
+ * overlays opened from here, so the page keeps its layout). It shows while
+ * the `$open` binding is true, as the only active layer, and focus moves to
+ * its first stop once it shows. `[ x ]`, Escape and a click on the backdrop
+ * cancel it: the binding becomes false, like the React library, and `cancel`
+ * is reported.
  */
 function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) {
   const theme = useTheme();
+  const emit = useUiEvents();
   const field = useStateField<unknown>("open", props.open);
   const isOpen = field.value === true || field.value === "true";
   const setValue = field.setValue;
   const layerId = useId();
-  const layers = useContext(ModalLayerContext);
-  const openLayer = layers.open;
-  const focusFirst = useFocusCommands().focusFirst;
+  const anchorRef = useRef<DOMElement | null>(null);
+  const title = displayText(props.title);
 
-  // While shown, the dialog is the only active layer.
-  useEffect(
-    function holdLayer() {
-      if (!isOpen) return undefined;
-      return openLayer(layerId, function closeOnCancel() {
-        setValue(false);
-      });
-    },
-    [isOpen, layerId, openLayer, setValue],
-  );
-
-  // Focus moves into the dialog once its layer is on top: its stops are
-  // active by then (their effects run before this one), so the focus commands
-  // and Ink both see them. When an inner modal closes, this re-runs and
-  // focuses the first stop of this one: acceptable for now.
-  const isTopLayer = isOpen && layers.activeLayer === layerId;
-  useEffect(
-    function focusIntoLayer() {
-      if (!isTopLayer) return undefined;
-      const timer = setTimeout(focusFirst, 0);
-      return function cancel() {
-        clearTimeout(timer);
-      };
-    },
-    [focusFirst, isTopLayer],
-  );
-
-  function close(): void {
+  function cancel(): void {
     setValue(false);
+    emit({ type: "cancel", component: "Modal", name: title });
   }
 
-  if (!isOpen) return null;
-  return (
-    <LayerIdContext.Provider value={layerId}>
-      <Box flexDirection="column" borderStyle="round" borderColor={theme.accent} paddingX={1}>
-        <Box flexDirection="row" justifyContent="space-between" gap={2}>
-          <Text bold>{displayText(props.title)}</Text>
-          <CloseButton onClose={close} />
-        </Box>
-        <Box flexDirection="column">{renderNode(props.children)}</Box>
-      </Box>
-    </LayerIdContext.Provider>
-  );
+  useDialogLayer({ isOpen, modal: true, onCancel: cancel, layerId, component: "Modal", title });
+
+  // Rendered here, so the children keep this element's sequence path and contexts.
+  const children = isOpen ? renderNode(props.children) : null;
+
+  // Both render functions call no hooks: they close over what the body computed.
+  function renderBackdrop(): ReactNode {
+    return (
+      <LayerIdContext.Provider value={layerId}>
+        <Backdrop onCancel={cancel} />
+      </LayerIdContext.Provider>
+    );
+  }
+
+  function renderDialog(): ReactNode {
+    return (
+      <LayerIdContext.Provider value={layerId}>
+        <DialogFocusOnShow />
+        <DialogSurface
+          width={WIDTHS[props.size ?? "md"]}
+          maxWidth={undefined}
+          borderStyle="round"
+          borderColor={theme.accent}
+          background={undefined}
+          paddingX={1}
+          paddingY={undefined}
+          mark={null}
+          markColor={undefined}
+          title={title}
+          titleText={{ ...NO_TEXT_STYLE, bold: true }}
+          titleAction={<CloseButton onClose={cancel} />}
+          body={null}
+          bodyText={NO_TEXT_STYLE}
+          buttons={null}
+        >
+          {children}
+        </DialogSurface>
+      </LayerIdContext.Provider>
+    );
+  }
+
+  useOverlay({
+    kind: "backdrop",
+    anchorRef,
+    placement: "cover",
+    opaque: false,
+    isOpen,
+    render: renderBackdrop,
+  });
+  useOverlay({ kind: "modal", anchorRef, placement: "center", isOpen, render: renderDialog });
+
+  // The overlays are placed in the bounds, not against this box: it only
+  // marks the declaration, out of the flow, so a gap around it never shows.
+  return <Box ref={anchorRef} position="absolute" />;
 }
 
 export const Modal = defineComponent({
