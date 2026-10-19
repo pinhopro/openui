@@ -106,8 +106,9 @@ function shiftInto(start: number, length: number, min: number, room: number): nu
  * then shifted (never shrunk) so it lies inside the bounds. A top or bottom
  * overlay that fits neither side is never shifted over its anchor: it stays on
  * the side with more room and the rows past the bounds are cut, as Ink draws
- * no rows outside its root. A left or right one is shifted inside the bounds
- * anyway, since a row longer than the terminal would wrap.
+ * no rows outside its root. A left or right one that fits neither side is
+ * shifted inside the bounds anyway, since a row longer than the terminal would
+ * wrap, so in a narrow terminal it may cover its trigger.
  */
 export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
   const side = chooseSide(input);
@@ -117,4 +118,53 @@ export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
   const fits = fitsSide(input, side, position);
   if (isVertical(side) && !fits) return { x, y: position.y };
   return { x, y: shiftInto(position.y, input.size.height, bounds.y, bounds.height) };
+}
+
+/**
+ * True when the overlay can be shown whole at its placement: a top or bottom
+ * one fits on one side of its anchor or the other, a left or right one is no
+ * taller than the bounds, a center one always fits. An owner with a compact
+ * form shows that one instead when this is false.
+ */
+export function overlayFits(input: PlaceOverlayInput): boolean {
+  const placement = input.placement;
+  if (isVertical(placement)) {
+    if (fitsSide(input, placement, sidePosition(input, placement))) return true;
+    const opposite = oppositeOf(placement);
+    return fitsSide(input, opposite, sidePosition(input, opposite));
+  }
+  if (placement === "center") return true;
+  return input.size.height <= input.bounds.height;
+}
+
+export interface PlaceCompactInput {
+  /** The cells of the element the overlay is attached to. */
+  anchor: CellRect;
+  /** The compact overlay's size (one row). */
+  size: OverlaySize;
+  /** The rectangle the overlay must stay in (the ink root). */
+  bounds: CellRect;
+}
+
+/** Empty cells between the anchor and a compact overlay beside it. */
+const COMPACT_GAP = 1;
+
+/**
+ * The top-left cell of an overlay's compact (one-row) form: on the anchor's
+ * row one cell to its right, else one cell to its left, else under it (over
+ * it when there is no row under it), shifted inside the bounds.
+ */
+export function placeCompact(input: PlaceCompactInput): OverlayPosition {
+  const beside: PlaceOverlayInput = {
+    anchor: input.anchor,
+    size: input.size,
+    placement: "right",
+    gap: COMPACT_GAP,
+    bounds: input.bounds,
+  };
+  const right = sidePosition(beside, "right");
+  if (fitsSide(beside, "right", right)) return right;
+  const left = sidePosition(beside, "left");
+  if (fitsSide(beside, "left", left)) return left;
+  return placeOverlay({ ...beside, placement: "bottom", gap: 0 });
 }

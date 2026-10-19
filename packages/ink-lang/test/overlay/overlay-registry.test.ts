@@ -12,6 +12,8 @@ function overlay(id: string, gap = 0): Overlay {
     render: function renderNothing() {
       return null;
     },
+    renderCompact: null,
+    opaque: true,
     captured: {} as CapturedContexts,
     offset: { x: 0, y: 0 },
   };

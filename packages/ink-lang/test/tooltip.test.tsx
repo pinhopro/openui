@@ -1,3 +1,4 @@
+import type { ActionEvent } from "@openuidev/lang-core";
 import { render } from "ink-testing-library";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
@@ -26,6 +27,19 @@ function charAt(frame: string, x: number, y: number): string {
 const BOTTOM_TIP = rowsProgram(
   'Tooltip(Icon("info"), "View certificate details", "bottom", "light"), Button("Next", @ToAssistant("Next"))',
 );
+
+/** The cells [from, from + length) of a row of a plain frame, blank past the line's end. */
+function cellsAt(frame: string, y: number, from: number, length: number): string {
+  const line = frame.split("\n")[y] ?? "";
+  return Array.from(line.padEnd(from + length))
+    .slice(from, from + length)
+    .join("");
+}
+
+/** A single row: the tooltip's icon, then a Go button one cell to its right. */
+function shortRowProgram(placement: string): string {
+  return `root = Stack([Tooltip(Icon("info"), "More", "${placement}"), Button("Go", @ToAssistant("Go"))], "row")`;
+}
 
 describe("Tooltip", () => {
   it("floats its bubble under the trigger while focused, over the rows below, without moving them", async () => {
@@ -200,4 +214,52 @@ describe("Tooltip", () => {
     expect(frame.split("\n")[2]).toBe(expected);
     instance.unmount();
   });
+
+  it("takes the clicks on its bubble: the button it covers fires only once it is uncovered", async () => {
+    const actions: ActionEvent[] = [];
+    function onAction(event: ActionEvent): void {
+      actions.push(event);
+    }
+    const rendered = await renderProgram(inkLibrary, BOTTOM_TIP, { mouse: true, onAction });
+    const next = findCell(stripAnsi(rendered.frame()), "[ Next ]");
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    // The bubble's top border is painted over "[ Next ]".
+    expect(stripAnsi(rendered.frame())).not.toContain("[ Next ]");
+    rendered.instance.stdin.write(MOUSE.click(next.x + 3, next.y));
+    await settle();
+    expect(actions).toHaveLength(0);
+
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(stripAnsi(rendered.frame())).not.toContain("View certificate details");
+    rendered.instance.stdin.write(MOUSE.click(next.x + 3, next.y));
+    await settle();
+    expect(actions).toHaveLength(1);
+    expect(actions[0]?.humanFriendlyMessage).toBe("Next");
+    rendered.unmount();
+  });
+
+  for (const placement of ["bottom", "top", "right"]) {
+    it(`shows a one-row label beside the trigger when a ${placement} bubble has no room`, async () => {
+      const rendered = await renderProgram(inkLibrary, shortRowProgram(placement));
+      const closed = stripAnsi(rendered.frame());
+      const icon = findCell(closed, "<info>");
+      const go = findCell(closed, "[ Go ]");
+      expect(go).toEqual({ x: icon.x + "<info>".length + 1, y: icon.y });
+      rendered.instance.stdin.write(KEYS.TAB);
+      await settle();
+      const open = stripAnsi(rendered.frame());
+      expect(open.split("\n").length).toBe(closed.split("\n").length);
+      // " More " starts one cell after the icon, over "[ Go ]" and nothing else; no border.
+      expect(cellsAt(open, icon.y, go.x, " More ".length)).toBe(" More ");
+      expect(findCell(open, "<info>")).toEqual(icon);
+      expect(open).not.toMatch(/[╭╮╰╯┌┐└┘│─]/);
+      rendered.instance.stdin.write(KEYS.TAB);
+      await settle();
+      expect(inverseSegments(rendered.frame())).toEqual(["[ Go ]"]);
+      expect(stripAnsi(rendered.frame())).not.toContain("More");
+      rendered.unmount();
+    });
+  }
 });

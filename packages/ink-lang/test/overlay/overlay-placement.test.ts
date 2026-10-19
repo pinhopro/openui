@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { CellRect } from "../../src/focus/element-rect";
 import {
+  overlayFits,
+  placeCompact,
   placeOverlay,
   type OverlayPlacement,
   type OverlayPosition,
@@ -93,5 +95,58 @@ describe("placeOverlay", () => {
     expect(
       placeOverlay({ anchor: anchorAt(4, 2), size, placement: "center", gap: 0, bounds: inset }),
     ).toEqual({ x: 15, y: 6 });
+  });
+});
+
+describe("overlayFits", () => {
+  it("says whether a top or bottom overlay fits on either side of its anchor", () => {
+    const input = { anchor: anchorAt(4, 4), size: SIZE, gap: 0, bounds: BOUNDS };
+    expect(overlayFits({ ...input, placement: "bottom" })).toBe(true);
+    expect(overlayFits({ ...input, placement: "top" })).toBe(true);
+    const five = { width: 10, height: 5 };
+    expect(overlayFits({ ...input, size: five, placement: "top" })).toBe(true);
+    const six = { width: 10, height: 6 };
+    expect(overlayFits({ ...input, size: six, placement: "bottom" })).toBe(false);
+    expect(overlayFits({ ...input, size: six, placement: "top" })).toBe(false);
+  });
+
+  it("says whether a left or right overlay is no taller than the bounds", () => {
+    const input = { anchor: anchorAt(4, 0), size: SIZE, gap: 1, bounds: BOUNDS };
+    expect(overlayFits({ ...input, placement: "right" })).toBe(true);
+    const short: CellRect = { x: 0, y: 0, width: 40, height: 2 };
+    expect(overlayFits({ ...input, bounds: short, placement: "right" })).toBe(false);
+    expect(overlayFits({ ...input, bounds: short, placement: "left" })).toBe(false);
+  });
+
+  it("always fits a center overlay", () => {
+    const short: CellRect = { x: 0, y: 0, width: 40, height: 1 };
+    const input = { anchor: anchorAt(4, 0), size: SIZE, gap: 0, bounds: short };
+    expect(overlayFits({ ...input, placement: "center" })).toBe(true);
+  });
+});
+
+describe("placeCompact", () => {
+  const LABEL: OverlaySize = { width: 8, height: 1 };
+
+  it("puts a compact overlay one cell right of its anchor, on its row", () => {
+    const placed = placeCompact({ anchor: anchorAt(4, 2), size: LABEL, bounds: BOUNDS });
+    expect(placed).toEqual({ x: 11, y: 2 });
+  });
+
+  it("puts it one cell left of its anchor when the right has no room", () => {
+    const placed = placeCompact({ anchor: anchorAt(30, 2), size: LABEL, bounds: BOUNDS });
+    expect(placed).toEqual({ x: 21, y: 2 });
+  });
+
+  it("puts it under its anchor when neither side has room, over it on the last row", () => {
+    const narrow: CellRect = { x: 0, y: 0, width: 16, height: 10 };
+    expect(placeCompact({ anchor: anchorAt(5, 2), size: LABEL, bounds: narrow })).toEqual({
+      x: 5,
+      y: 3,
+    });
+    expect(placeCompact({ anchor: anchorAt(5, 9), size: LABEL, bounds: narrow })).toEqual({
+      x: 5,
+      y: 8,
+    });
   });
 });

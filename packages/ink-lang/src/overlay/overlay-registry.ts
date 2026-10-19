@@ -17,6 +17,14 @@ export interface Overlay {
   gap: number;
   /** The overlay's content; called by the host on every one of its renders. */
   render: () => ReactNode;
+  /**
+   * A one-row form of the content, shown beside the anchor instead of
+   * `render()` when the whole overlay does not fit (`overlayFits`); null when
+   * the overlay has none.
+   */
+  renderCompact: (() => ReactNode) | null;
+  /** Blank cells are painted under the content, so nothing shows through its empty cells. */
+  opaque: boolean;
   /** The owner's contexts on its latest render, re-provided around `render()`. */
   captured: CapturedContexts;
   /** Added to the placed position (a dragged dialog's displacement). */

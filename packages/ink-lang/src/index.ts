@@ -426,11 +426,12 @@ export type { Focusable, FocusableOptions } from "./focus/use-focusable";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
 export { OverlayHost } from "./overlay/overlay-host";
-export { placeOverlay } from "./overlay/overlay-placement";
+export { overlayFits, placeCompact, placeOverlay } from "./overlay/overlay-placement";
 export type {
   OverlayPlacement,
   OverlayPosition,
   OverlaySize,
+  PlaceCompactInput,
   PlaceOverlayInput,
 } from "./overlay/overlay-placement";
 export { OverlayRegistryContext, createOverlayRegistry } from "./overlay/overlay-registry";

@@ -26,6 +26,7 @@ interface FloaterProps {
   detach?: boolean;
   hooked?: boolean;
   padded?: boolean;
+  seeThrough?: boolean;
 }
 
 /** Overlay content that breaks the rule that `render` calls no hooks: it calls one. */
@@ -44,7 +45,8 @@ function HookedOverlay(): ReactNode {
  * bordered box (3 rows) reading "OVERLAY <label>". `detach` keeps the overlay
  * open but leaves its anchor ref unattached (a null anchor). `hooked` renders
  * `HookedOverlay` instead; `padded` gives the bordered box a padding of one
- * cell on every side (5 rows), cells the content itself never writes.
+ * cell on every side (5 rows), cells the content itself never writes;
+ * `seeThrough` opens the overlay with `opaque: false`.
  */
 function FloaterRenderer({ props }: ComponentRenderProps<FloaterProps>) {
   const anchorRef = useRef<DOMElement | null>(null);
@@ -55,6 +57,7 @@ function FloaterRenderer({ props }: ComponentRenderProps<FloaterProps>) {
     placement: (props.placement ?? "bottom") as OverlayPlacement,
     gap: 0,
     isOpen: props.hide !== true,
+    opaque: props.seeThrough !== true,
     render: props.hooked === true ? HookedOverlay : renderOverlay,
   });
   const padding = props.padded === true ? 1 : 0;
@@ -89,6 +92,7 @@ const Floater = defineComponent({
     detach: z.boolean().optional(),
     hooked: z.boolean().optional(),
     padded: z.boolean().optional(),
+    seeThrough: z.boolean().optional(),
   }),
   component: FloaterRenderer,
 });
@@ -216,6 +220,19 @@ describe("overlay host", () => {
     expect(lines[anchor.y + 3]).toBe("│ OVERLAY anchor │");
     expect(lines[anchor.y + 4]).toBe(`│${" ".repeat(16)}│`);
     expect(lines[anchor.y + 5]).toBe(`└${"─".repeat(16)}┘`);
+  });
+
+  it("lets what is under a see-through overlay show in the cells its content leaves empty", async () => {
+    const closed = await plainFrame(floaterProgram('Floater("anchor", true)'));
+    const frame = await plainFrame(
+      floaterProgram('Floater("anchor", false, "bottom", false, false, true, true)'),
+    );
+    const anchor = findCell(closed, "anchor");
+    const lines = frame.split("\n");
+    // The padding row over "filler one" shows its cells between the borders, and the
+    // padding cell before the text shows the "i" of "filler two".
+    expect(lines[anchor.y + 2]).toBe(`│iller one${" ".repeat(7)}│`);
+    expect(lines[anchor.y + 3]).toBe("│iOVERLAY anchor │");
   });
 
   it("renders each overlay's content in its own component, so a hook in it cannot break the host", async () => {

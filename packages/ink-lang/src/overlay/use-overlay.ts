@@ -15,6 +15,13 @@ export interface UseOverlayOptions {
   isOpen: boolean;
   /** The overlay's content, rendered by the host with this component's contexts. */
   render: () => ReactNode;
+  /**
+   * A one-row form of the content (no hooks either), shown on the anchor's row
+   * instead of `render()` when the whole overlay does not fit around it.
+   */
+  renderCompact?: () => ReactNode;
+  /** Paint blank cells under the content so nothing shows through; default true. */
+  opaque?: boolean;
 }
 
 export interface OverlayHandle {
@@ -44,6 +51,8 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
     placement: options.placement,
     gap: options.gap ?? 0,
     render: options.render,
+    renderCompact: options.renderCompact ?? null,
+    opaque: options.opaque ?? true,
     captured,
     offset: NO_OFFSET,
   };
