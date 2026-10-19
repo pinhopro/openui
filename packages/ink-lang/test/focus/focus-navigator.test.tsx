@@ -8,6 +8,7 @@ import { createFocusRegistry, FocusRegistryContext } from "../../src/focus/focus
 import { FocusScope } from "../../src/focus/focus-scope";
 import { useFocusable } from "../../src/focus/use-focusable";
 import { InkRenderer } from "../../src/ink-renderer";
+import { OverlayIdContext } from "../../src/overlay/overlay-content-context";
 import type { UiEvent } from "../../src/ui-events";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
 import { fillerRows } from "../helpers/filler-rows";
@@ -434,6 +435,35 @@ describe("FocusNavigator", () => {
     instance.unmount();
   });
 
+  it("focuses the first stop of the cycle inside one overlay", async () => {
+    let commands: FocusCommands | null = null;
+    function Probe() {
+      commands = useFocusCommands();
+      return null;
+    }
+    const instance = render(
+      <FocusScope>
+        <Probe />
+        <Panel name="One" />
+        <OverlayIdContext.Provider value="note">
+          <Panel name="Two" />
+          <Panel name="Three" />
+        </OverlayIdContext.Provider>
+        <Panel name="Four" />
+      </FocusScope>,
+    );
+    await settle();
+    const current = commands as FocusCommands | null;
+    if (current === null) throw new Error("no focus commands");
+    current.focusFirstIn("note");
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Two ]"]);
+    current.focusFirstIn("missing");
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Two ]"]);
+    instance.unmount();
+  });
+
   it("gives no-op focus commands outside a navigator", async () => {
     let commands: FocusCommands | null = null;
     function Probe() {
@@ -450,6 +480,7 @@ describe("FocusNavigator", () => {
     const current = commands as FocusCommands | null;
     if (current === null) throw new Error("no focus commands");
     current.focusFirst();
+    current.focusFirstIn("note");
     current.focusNext();
     current.focusPrevious();
     await settle();

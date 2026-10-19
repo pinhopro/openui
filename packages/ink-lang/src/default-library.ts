@@ -21,6 +21,7 @@ import { CompositeCardItem } from "./components/composite-card-item";
 import { ContextCardBlock } from "./components/context-card-block";
 import { ContextCardItem } from "./components/context-card-item";
 import { DatePicker } from "./components/date-picker";
+import { Dialog } from "./components/dialog";
 import { EditableTable } from "./components/editable-table";
 import { EntityList } from "./components/entity-list";
 import { Form } from "./components/form";
@@ -260,12 +261,13 @@ export const inkComponentGroups: ComponentGroup[] = [
   },
   {
     name: "Terminal extras",
-    components: ["Theme", "Tooltip", "QrCode", "ModalDialog"],
+    components: ["Theme", "Tooltip", "QrCode", "ModalDialog", "Dialog"],
     notes: [
       '- Theme(tokens, css, children) applies a design system to its children: tokens like {"color.primary": "#2563eb", "shape.fieldBorder": "round", mode: "dark"} and a stylesheet of the CSS subset.',
       "- Tooltip(trigger, text, placement?, variant?) shows text beside its trigger while focused or hovered.",
       "- QrCode(data, size?) draws a scannable QR code with block characters.",
       "- ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?) blocks everything behind it; use a $boolean binding as open and a Button with @Set($open, true) to show it.",
+      "- Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?) floats beside its declaration without blocking the page.",
     ],
   },
 ];
@@ -298,6 +300,7 @@ export const inkLibrary: Library = createLibrary({
     Tooltip,
     QrCode,
     ModalDialog,
+    Dialog,
     Tabs,
     TabItem,
     Accordion,

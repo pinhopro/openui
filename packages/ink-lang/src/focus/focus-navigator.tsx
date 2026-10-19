@@ -70,6 +70,23 @@ function focusFirstStop(
   if (first !== undefined) target.focus(first.id);
 }
 
+/** Focuses the first stop of the Tab cycle that renders in the overlay `overlayId`. */
+function focusFirstStopIn(
+  registry: FocusRegistry | null,
+  order: FocusCycleOrder,
+  target: FocusTarget,
+  overlayId: string,
+): void {
+  if (registry === null) return;
+  for (const stop of tabCycle(registry, order)) {
+    const entry = registry.find(stop.id);
+    if (entry !== null && entry.overlay === overlayId) {
+      target.focus(stop.id);
+      return;
+    }
+  }
+}
+
 /** Moves focus to the nearest stop in the arrow's direction, unless the focused stop keeps that arrow. */
 function moveByArrow(
   registry: FocusRegistry,
@@ -200,6 +217,9 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
       return {
         focusFirst: function focusFirst() {
           focusFirstStop(registry, order, target());
+        },
+        focusFirstIn: function focusFirstIn(overlayId: string) {
+          focusFirstStopIn(registry, order, target(), overlayId);
         },
         focusNext: function focusNext() {
           stepCycle(registry, order, target(), 1);

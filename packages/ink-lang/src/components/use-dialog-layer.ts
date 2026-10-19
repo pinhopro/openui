@@ -1,13 +1,16 @@
 import { useFocusManager } from "ink";
 import { useCallback, useContext, useEffect, useRef } from "react";
-import { FocusRegistryContext } from "../focus/focus-registry";
+import { FocusRegistryContext, type FocusRegistry } from "../focus/focus-registry";
 import { ModalLayerContext } from "../focus/modal-layer";
 import { useUiEvents, type UiEvent } from "../ui-events";
 
 export interface DialogLayerOptions {
   /** The dialog is shown. */
   isOpen: boolean;
-  /** It blocks everything behind it: it holds a modal layer while shown. */
+  /**
+   * It blocks everything behind it: it holds a modal layer while shown. A
+   * non-modal dialog leaves the page interactive.
+   */
   modal: boolean;
   /**
    * Cancelling closes the dialog (it has an `open` binding): further cancels
@@ -17,9 +20,11 @@ export interface DialogLayerOptions {
   closesOnCancel: boolean;
   /** What a cancel runs; the latest one is called. */
   onCancel: () => void;
-  /** The layer's id, the value of `LayerIdContext` around the dialog's content. */
+  /** The layer's id, the value of `LayerIdContext` around a modal dialog's content. */
   layerId: string;
-  /** The dialog's type (`Modal`, `ModalDialog`), reported in its UI events. */
+  /** The id of the overlay the dialog's content renders in (what `useOverlay` returned). */
+  overlayId: string;
+  /** The dialog's type (`Modal`, `ModalDialog`, `Dialog`), reported in its UI events. */
   component: string;
   /** Its title, the `name` of its UI events. */
   title: string;
@@ -35,15 +40,28 @@ export interface DialogLayer {
   cancel: () => void;
 }
 
+/** True when `id` is a stop rendered in the overlay `overlayId`. */
+function isStopIn(
+  registry: FocusRegistry | null,
+  id: string | undefined,
+  overlayId: string,
+): boolean {
+  if (registry === null || id === undefined) return false;
+  const entry = registry.find(id);
+  return entry !== null && entry.overlay === overlayId;
+}
+
 /**
  * A dialog's layer: while `isOpen && modal` it holds a modal layer whose
  * cancel (Escape, through the navigator) is the dialog's `cancel`; it
  * reports `open` when the dialog shows and `close` when it hides or unmounts
- * while shown; and when the layer closes it gives focus back to the stop
- * that had it when the layer opened (the dialog's opener, or an outer
- * modal's stop), if that stop can still take focus. Moving focus into the
- * dialog once it shows is `DialogFocusOnShow`'s job, inside the overlay
- * content, where the shown state is known.
+ * while shown; and when the dialog closes it gives focus back to the stop
+ * that had it when the dialog opened (the dialog's opener, or an outer
+ * modal's stop), if that stop can still take focus. A non-modal dialog gives
+ * it back only when one of its own stops had focus as it closed: focus moved
+ * to the page on purpose stays there. Moving focus into the dialog once it
+ * shows is `DialogFocusOnShow`'s job, inside the overlay content, where the
+ * shown state is known.
  */
 export function useDialogLayer(options: DialogLayerOptions): DialogLayer {
   const layers = useContext(ModalLayerContext);
@@ -72,19 +90,29 @@ export function useDialogLayer(options: DialogLayerOptions): DialogLayer {
   useEffect(
     function holdLayer() {
       if (!holdsLayer) return undefined;
+      return openLayer(layerId, cancel);
+    },
+    [cancel, holdsLayer, layerId, openLayer],
+  );
+
+  useEffect(
+    function giveFocusBackOnClose() {
+      if (!isOpen) return undefined;
       const opener = managerRef.current.activeId;
-      const close = openLayer(layerId, cancel);
-      return function releaseLayer() {
-        close();
+      return function giveFocusBack() {
+        // Read on the render that closes the dialog: its stops are still mounted.
+        const focused = managerRef.current.activeId;
+        const current = latest.current;
+        if (!current.modal && !isStopIn(registry, focused, current.overlayId)) return;
         // The opener's layer becomes active once React re-renders; Ink only focuses an active id.
-        setTimeout(function giveFocusBack() {
+        setTimeout(function focusOpener() {
           if (opener === undefined || registry === null) return;
           const entry = registry.find(opener);
           if (entry !== null && entry.isActive) managerRef.current.focus(opener);
         }, 0);
       };
     },
-    [cancel, holdsLayer, layerId, openLayer, registry],
+    [isOpen, registry],
   );
 
   useEffect(

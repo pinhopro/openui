@@ -5,11 +5,18 @@ import type { OverlayPlacement } from "./overlay-placement";
 import { OverlayRegistryContext, type Overlay, type OverlayKind } from "./overlay-registry";
 
 export interface UseOverlayOptions {
+  /**
+   * The overlay's id, for an owner that needs it before this call (a dialog
+   * tells its layer which overlay its stops render in); default one of its own.
+   */
+  id?: string;
   kind: OverlayKind;
   /**
    * The box the overlay is placed against; nothing is drawn while it is
    * missing, empty or clipped out, except for a `cover` or `center` overlay,
-   * which is placed in the bounds whatever its anchor.
+   * which is placed in the bounds whatever its anchor. An absolute box that
+   * takes no cells marks a declaration: the overlay is placed against the
+   * line where it was declared (`declarationLine`).
    */
   anchorRef: RefObject<DOMElement | null>;
   /** Where it goes against its anchor; `cover` spans the bounds (a backdrop). */
@@ -44,7 +51,8 @@ const NO_OFFSET = Object.freeze({ x: 0, y: 0 });
  * Outside any registry it does nothing.
  */
 export function useOverlay(options: UseOverlayOptions): OverlayHandle {
-  const id = useId();
+  const ownId = useId();
+  const id = options.id ?? ownId;
   const registry = useContext(OverlayRegistryContext);
   const captured = useCapturedContexts();
   const isOpen = options.isOpen;

@@ -39,6 +39,7 @@ describe("default library", () => {
       "ContextCardBlock",
       "ContextCardItem",
       "DatePicker",
+      "Dialog",
       "EditableTable",
       "EntityList",
       "Form",

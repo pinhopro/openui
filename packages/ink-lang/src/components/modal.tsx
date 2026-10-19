@@ -94,6 +94,7 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     closesOnCancel: true,
     onCancel: runCancel,
     layerId,
+    overlayId: layerId,
     component: "Modal",
     title,
   }).cancel;
@@ -145,7 +146,14 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
     isOpen,
     render: renderBackdrop,
   });
-  useOverlay({ kind: "modal", anchorRef, placement: "center", isOpen, render: renderDialog });
+  useOverlay({
+    id: layerId,
+    kind: "modal",
+    anchorRef,
+    placement: "center",
+    isOpen,
+    render: renderDialog,
+  });
 
   // The overlays are placed in the bounds, not against this box: it only
   // marks the declaration, out of the flow, so a gap around it never shows.

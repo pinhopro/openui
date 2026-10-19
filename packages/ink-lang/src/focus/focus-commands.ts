@@ -4,6 +4,11 @@ import { createContext, useContext } from "react";
 export interface FocusCommands {
   /** Focuses the first stop of the cycle. */
   focusFirst: () => void;
+  /**
+   * Focuses the first stop of the cycle that renders in the overlay
+   * `overlayId` (`FocusStop.overlay`); does nothing when the cycle has none.
+   */
+  focusFirstIn: (overlayId: string) => void;
   /** Focuses the stop after the focused one (the first when none is), wrapping around. */
   focusNext: () => void;
   /** Focuses the stop before the focused one (the last when none is), wrapping around. */
@@ -14,6 +19,7 @@ function doNothing(): void {}
 
 const NO_COMMANDS: FocusCommands = {
   focusFirst: doNothing,
+  focusFirstIn: doNothing,
   focusNext: doNothing,
   focusPrevious: doNothing,
 };

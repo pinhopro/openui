@@ -2,6 +2,7 @@ import { measureElement, type DOMElement } from "ink";
 import { elementRect, type CellRect } from "../focus/element-rect";
 import { anchorBackground } from "./anchor-background";
 import { clippedBy, rectsIntersect } from "./clip-rect";
+import { declarationLine, marksDeclaration } from "./declaration-line";
 import {
   compactWidthLimit,
   overlayFits,
@@ -71,17 +72,27 @@ export interface MeasureInput {
 
 const NO_SIZE: OverlaySize = Object.freeze({ width: 0, height: 0 });
 
+/** The cells a line or a rectangle covers: a line counts as one cell thick. */
+function coveredCells(rect: CellRect): CellRect {
+  return { ...rect, width: Math.max(1, rect.width), height: Math.max(1, rect.height) };
+}
+
 /**
  * The anchor's cells, or null while it is unmounted, takes no cells or is
- * clipped out of sight (scrolled out of a pane that hides its overflow).
+ * clipped out of sight (scrolled out of a pane that hides its overflow). An
+ * anchor that only marks a declaration (an absolute box taking no cells, see
+ * `marksDeclaration`) stands for the line where it was declared
+ * (`declarationLine`), seen when that line's row or column is.
  */
 function anchorRect(overlay: Overlay): CellRect | null {
   const anchor = overlay.anchorRef.current;
   if (anchor === null) return null;
-  const rect = elementRect(anchor);
-  if (rect.width === 0 || rect.height === 0) return null;
+  const isLine = marksDeclaration(anchor);
+  const rect = isLine ? declarationLine(anchor) : elementRect(anchor);
+  if (rect === null) return null;
+  if (!isLine && (rect.width === 0 || rect.height === 0)) return null;
   const clip = clippedBy(anchor);
-  if (clip !== null && !rectsIntersect(rect, clip)) return null;
+  if (clip !== null && !rectsIntersect(coveredCells(rect), clip)) return null;
   return rect;
 }
 

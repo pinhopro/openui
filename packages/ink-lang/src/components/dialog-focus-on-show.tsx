@@ -1,7 +1,7 @@
 import { useFocusManager } from "ink";
 import { useContext, useEffect, useRef } from "react";
 import { useIsStreaming } from "../context";
-import { useFocusCommands } from "../focus/focus-commands";
+import { useFocusCommands, type FocusCommands } from "../focus/focus-commands";
 import { FocusRegistryContext, type FocusRegistry } from "../focus/focus-registry";
 import { useLayerIsActive } from "../focus/modal-layer";
 import { useOverlayId, useOverlayVisible } from "../overlay/overlay-content-context";
@@ -18,15 +18,40 @@ function isActiveStopOf(
 }
 
 /**
+ * True when `id` is a stop outside the overlay `overlay` that can take focus
+ * right now: focus was moved out of the dialog on purpose (Tab, a click on
+ * the page). A stop that is gone or inert (an inner modal's, just closed) is
+ * not one.
+ */
+function isActiveStopOutside(
+  registry: FocusRegistry | null,
+  id: string | undefined,
+  overlay: string | null,
+): boolean {
+  if (registry === null || id === undefined) return false;
+  const entry = registry.find(id);
+  return entry !== null && entry.isActive && entry.overlay !== overlay;
+}
+
+/** Focuses the first stop of the overlay `overlay`, or of the whole cycle outside any overlay. */
+function focusFirstOf(commands: FocusCommands, overlay: string | null): void {
+  if (overlay === null) commands.focusFirst();
+  else commands.focusFirstIn(overlay);
+}
+
+/**
  * Put inside a dialog's overlay content (it mounts once per open): moves
  * focus into the dialog once the content shows (its stops are inert while
  * the overlay's form is only measured), the program is not streaming and the
- * dialog's layer is the active one, which for a modal leaves only its own
- * stops in the cycle. It focuses the first stop once per open; while the
- * dialog is ready it remembers the stop of its own that has focus, and when
- * the dialog is ready again after a pause (a hidden re-measure on a resize,
- * an inner modal on top, streaming) it focuses that stop again if it can
- * still take focus. Draws nothing.
+ * dialog's layer is the active one. It focuses the dialog's first stop (the
+ * first stop of the cycle in its overlay: a modal's layer leaves only its own
+ * stops in the cycle, a non-modal dialog's sit among the page's) once per
+ * open; while the dialog is ready it remembers the stop of its own that has
+ * focus, and when the dialog is ready again after a pause (a hidden
+ * re-measure on a resize, an inner modal on top, streaming) it focuses that
+ * stop again if it can still take focus. Once focus moves to a stop outside
+ * the dialog (possible for a non-modal one) it forgets its stop, so it never
+ * pulls focus back. Draws nothing.
  */
 export function DialogFocusOnShow(): null {
   const visible = useOverlayVisible();
@@ -35,7 +60,7 @@ export function DialogFocusOnShow(): null {
   const overlay = useOverlayId();
   const registry = useContext(FocusRegistryContext);
   const manager = useFocusManager();
-  const focusFirst = useFocusCommands().focusFirst;
+  const commands = useFocusCommands();
   const ready = visible && !isStreaming && layerActive;
   const focusedFirst = useRef(false);
   const remembered = useRef<string | undefined>(undefined);
@@ -43,11 +68,14 @@ export function DialogFocusOnShow(): null {
   managerRef.current = manager;
 
   // Re-rendered on every focus change (the focus manager's context): the stop
-  // of this dialog that has focus while it is ready, kept across a pause.
+  // of this dialog that has focus while it is ready, kept across a pause, and
+  // forgotten once focus moves out of the dialog.
   const activeId = manager.activeId;
   useEffect(
     function rememberFocusedStop() {
-      if (ready && isActiveStopOf(registry, activeId, overlay)) remembered.current = activeId;
+      if (!ready) return;
+      if (isActiveStopOf(registry, activeId, overlay)) remembered.current = activeId;
+      else if (isActiveStopOutside(registry, activeId, overlay)) remembered.current = undefined;
     },
     [activeId, overlay, ready, registry],
   );
@@ -62,7 +90,7 @@ export function DialogFocusOnShow(): null {
         if (id !== undefined && isActiveStopOf(registry, id, overlay)) {
           if (managerRef.current.activeId !== id) managerRef.current.focus(id);
         } else if (!focusedFirst.current) {
-          focusFirst();
+          focusFirstOf(commands, overlay);
         }
         focusedFirst.current = true;
       }, 0);
@@ -70,7 +98,7 @@ export function DialogFocusOnShow(): null {
         clearTimeout(timer);
       };
     },
-    [focusFirst, overlay, ready, registry],
+    [commands, overlay, ready, registry],
   );
   return null;
 }
