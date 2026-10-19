@@ -1,5 +1,6 @@
 import { measureElement, type DOMElement } from "ink";
 import { elementRect, type CellRect } from "../focus/element-rect";
+import { anchorBackground } from "./anchor-background";
 import { clippedBy, rectsIntersect } from "./clip-rect";
 import {
   compactWidthLimit,
@@ -40,6 +41,11 @@ export interface PlacedOverlay {
   whole: FormSpot;
   /** The compact form, drawn only while the whole one does not fit; null when it is not drawn. */
   compact: FormSpot | null;
+  /**
+   * The background of the cells under the anchor, painted under an opaque
+   * overlay's content (which may set its own); null when none is set.
+   */
+  background: string | null;
 }
 
 export interface MeasureInput {
@@ -136,24 +142,29 @@ export function unmeasuredPlacement(
 ): PlacedOverlay | null {
   if (anchorRect(overlay) === null) return null;
   const maxWidth = wholeWidthLimit(bounds);
-  return { whole: hiddenSpot({ host, bounds, maxWidth, size: NO_SIZE }), compact: null };
+  return {
+    whole: hiddenSpot({ host, bounds, maxWidth, size: NO_SIZE }),
+    compact: null,
+    background: backgroundOf(overlay),
+  };
 }
 
-/**
- * How an overlay is drawn after the last commit's layout, or null when its
- * anchor is missing, empty or clipped out (nothing is drawn). It depends only
- * on that layout, never on the form drawn before, so it cannot oscillate:
- * the whole form is measured on every commit (shown or hidden, at the same
- * width limit, the bounds' width), and it is shown while it fits
- * (`overlayFits`) or the overlay has no compact form; otherwise it stays
- * hidden and the compact form, limited to the room beside the anchor
- * (`compactWidthLimit`), is shown beside it (`placeCompact`). A form not
- * measured yet at its current width limit is drawn hidden first.
- */
-export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
-  const overlay = input.overlay;
-  const anchor = anchorRect(overlay);
+/** The background of the cells the overlay's anchor sits on; null without an anchor or one. */
+function backgroundOf(overlay: Overlay): string | null {
+  const anchor = overlay.anchorRef.current;
   if (anchor === null) return null;
+  return anchorBackground(anchor);
+}
+
+/** The forms of an overlay as drawn, without its background. */
+interface PlacedForms {
+  whole: FormSpot;
+  compact: FormSpot | null;
+}
+
+/** Where each form of an overlay with a visible anchor is drawn after the last layout. */
+function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
+  const overlay = input.overlay;
   const host = input.host;
   const bounds = input.bounds;
   const wholeLimit = wholeWidthLimit(bounds);
@@ -195,6 +206,25 @@ export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
   };
 }
 
+/**
+ * How an overlay is drawn after the last commit's layout, or null when its
+ * anchor is missing, empty or clipped out (nothing is drawn). It depends only
+ * on that layout, never on the form drawn before, so it cannot oscillate:
+ * the whole form is measured on every commit (shown or hidden, at the same
+ * width limit, the bounds' width), and it is shown while it fits
+ * (`overlayFits`) or the overlay has no compact form; otherwise it stays
+ * hidden and the compact form, limited to the room beside the anchor
+ * (`compactWidthLimit`), is shown beside it (`placeCompact`). A form not
+ * measured yet at its current width limit is drawn hidden first. The
+ * overlay takes the background its anchor sits on (`anchorBackground`).
+ */
+export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
+  const anchor = anchorRect(input.overlay);
+  if (anchor === null) return null;
+  const forms = placeForms(input, anchor);
+  return { whole: forms.whole, compact: forms.compact, background: backgroundOf(input.overlay) };
+}
+
 function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {
   if (a === null || b === null) return a === b;
   if (a.x !== b.x || a.y !== b.y || a.visible !== b.visible) return false;
@@ -204,5 +234,6 @@ function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {
 /** True when both placements draw the same forms in the same cells. */
 export function samePlacement(a: PlacedOverlay | null, b: PlacedOverlay | null): boolean {
   if (a === null || b === null) return a === b;
+  if (a.background !== b.background) return false;
   return sameSpot(a.whole, b.whole) && sameSpot(a.compact, b.compact);
 }

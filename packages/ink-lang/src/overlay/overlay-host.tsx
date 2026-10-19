@@ -183,6 +183,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
           captured={overlay.captured}
           layer={layer}
           opaque={overlay.opaque}
+          background={placed.background}
           render={overlay.render}
         />
         {placed.compact !== null && renderCompact !== null ? (
@@ -192,6 +193,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
             captured={overlay.captured}
             layer={layer}
             opaque={overlay.opaque}
+            background={placed.background}
             render={renderCompact}
           />
         ) : null}
