@@ -244,47 +244,47 @@ describe("Tab follows the sequence of the program tree", () => {
     ]);
   });
 
-  it("visits each CompositeCardBlock card as header, body, footer, card by card", async () => {
+  // The header of a CompositeCardItem is never focusable (IconText, ImageText, Text or Image),
+  // so it cannot be observed in the Tab order: the sequence starts at the body.
+  const cardItems: string[] = [
+    'one = CompositeCardItem("one", IconText(Icon("box"), null, null, "One"), [ListBlock([ListItem("Alpha", null, null, "Open", @ToAssistant("Alpha")), ListItem("Beta", null, null, "Open", @ToAssistant("Beta"))])], {price: BoldText(null, "$9"), button: Button("Foot 1", @ToAssistant("Foot 1"))})',
+    'two = CompositeCardItem("two", IconText(Icon("box"), null, null, "Two"), [ListBlock([ListItem("Gamma", null, null, "Open", @ToAssistant("Gamma"))])], {price: BoldText(null, "$29"), button: Button("Foot 2", @ToAssistant("Foot 2"))})',
+  ];
+
+  it("visits each CompositeCardBlock card as body, then footer, card by card", async () => {
     const program = [
       "root = Stack([block])",
       "block = CompositeCardBlock([one, two])",
-      'one = CompositeCardItem("one", Button("Head 1", @ToAssistant("Head 1")), [Input("q1", "Q1", null, null, $q1)], {price: BoldText(null, "$9"), button: Button("Foot 1", @ToAssistant("Foot 1"))})',
-      'two = CompositeCardItem("two", Button("Head 2", @ToAssistant("Head 2")), [Input("q2", "Q2", null, null, $q2)], {price: BoldText(null, "$29"), button: Button("Foot 2", @ToAssistant("Foot 2"))})',
-      '$q1 = "alpha"',
-      '$q2 = "beta"',
+      ...cardItems,
     ].join("\n");
     const rendered = await renderProgram(inkLibrary, program);
-    expect(await tabThrough(rendered, 7)).toEqual([
-      "[ Head 1 ]",
-      "alpha",
+    expect(await tabThrough(rendered, 6)).toEqual([
+      "Alpha",
+      "Beta",
       "[ Foot 1 ]",
-      "[ Head 2 ]",
-      "beta",
+      "Gamma",
       "[ Foot 2 ]",
-      "[ Head 1 ]",
+      "Alpha",
     ]);
     rendered.unmount();
   });
 
-  it("puts a pressable CompositeCardBlock card before its own header, body and footer", async () => {
+  it("puts a pressable CompositeCardBlock card before its own body and footer stops", async () => {
     const program = [
       "root = Stack([block])",
       'block = CompositeCardBlock([one, two], "grid", true, @ToAssistant("Pick"))',
-      'one = CompositeCardItem("one", Button("Head 1", @ToAssistant("Head 1")), [Input("q1", "Q1", null, null, $q1)], {price: BoldText(null, "$9"), button: Button("Foot 1", @ToAssistant("Foot 1"))})',
-      'two = CompositeCardItem("two", Button("Head 2", @ToAssistant("Head 2")), [Input("q2", "Q2", null, null, $q2)], {price: BoldText(null, "$29"), button: Button("Foot 2", @ToAssistant("Foot 2"))})',
-      '$q1 = "alpha"',
-      '$q2 = "beta"',
+      ...cardItems,
     ].join("\n");
-    expect(await tabThroughEvents(program, 9)).toEqual([
-      "CompositeCardBlock:one",
-      "Button:Head 1",
-      "Input:q1",
+    const visited = await tabThroughEvents(program, 8);
+    expect(visited).toEqual([
+      "CompositeCardBlock:One",
+      "ListBlock:Alpha",
+      "ListBlock:Beta",
       "Button:Foot 1",
-      "CompositeCardBlock:two",
-      "Button:Head 2",
-      "Input:q2",
+      "CompositeCardBlock:Two",
+      "ListBlock:Gamma",
       "Button:Foot 2",
-      "CompositeCardBlock:one",
+      "CompositeCardBlock:One",
     ]);
   });
 });
