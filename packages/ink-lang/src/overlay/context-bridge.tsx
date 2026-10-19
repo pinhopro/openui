@@ -19,6 +19,9 @@ import { UiEventContext, type UiEventListener } from "../ui-events";
  * The value of every library context at one point of the tree. Content rendered
  * elsewhere (an overlay placed last in the tree) re-provides them with
  * BridgedContexts, so it behaves as if it were rendered where they were captured.
+ * The overlay content contexts (`OverlayIdContext`, `OverlayVisibleContext`)
+ * are left out on purpose: they describe the overlay the content is drawn in,
+ * not where it was opened, so the overlay host provides them below the bridge.
  */
 export interface CapturedContexts {
   openUI: OpenUIContextValue | null;

@@ -17,6 +17,8 @@ export interface FocusEntry {
    * the Tab order sorts by; null for a stop outside the renderer (a host stop).
    */
   path: number[] | null;
+  /** The id of the overlay the stop renders in (`useOverlayId`); null outside any overlay. */
+  overlay: string | null;
 }
 
 export interface FocusRegistry {

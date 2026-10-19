@@ -70,6 +70,7 @@ function stop(id: string, path: number[]): FocusStop {
     path,
     rect: { x: 0, y: 0, width: 1, height: 1 },
     arrows: { up: false, down: false, left: false, right: false },
+    overlay: null,
   };
 }
 
@@ -82,6 +83,7 @@ function hostEntry(id: string): FocusEntry {
     component: "Panel",
     name: id,
     path: null,
+    overlay: null,
   };
 }
 

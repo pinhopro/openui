@@ -24,6 +24,8 @@ export interface FocusStop {
   path: number[];
   rect: CellRect;
   arrows: ArrowMap;
+  /** The id of the overlay the stop renders in; null for a stop outside any overlay. */
+  overlay: string | null;
 }
 
 /** The largest order: a stop that comes after every other child of its element. */
@@ -89,6 +91,7 @@ export function focusOrder(registry: FocusRegistry): FocusStop[] {
       path: entry.path,
       rect,
       arrows: arrowMap(entry),
+      overlay: entry.overlay,
     });
   }
   stops.sort(compareStops);

@@ -427,6 +427,12 @@ export { anchorBackground } from "./overlay/anchor-background";
 export { clippedBy, rectIntersection, rectsIntersect } from "./overlay/clip-rect";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
+export {
+  OverlayIdContext,
+  OverlayVisibleContext,
+  useOverlayId,
+  useOverlayVisible,
+} from "./overlay/overlay-content-context";
 export { OverlayHost } from "./overlay/overlay-host";
 export type { OverlayHostProps } from "./overlay/overlay-host";
 export {

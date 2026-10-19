@@ -2,6 +2,7 @@ import { Box, type DOMElement } from "ink";
 import type { ReactNode, RefObject } from "react";
 import { MouseLayerContext } from "../mouse/mouse-layer";
 import { BridgedContexts, type CapturedContexts } from "./context-bridge";
+import { OverlayIdContext, OverlayVisibleContext } from "./overlay-content-context";
 import { OverlayFill } from "./overlay-fill";
 import type { FormSpot } from "./overlay-measure";
 import { OverlayMouseShield } from "./overlay-mouse-shield";
@@ -13,6 +14,8 @@ export interface OverlayBoxProps {
    * longest line, past the terminal's edge) and whether it shows.
    */
   spot: FormSpot;
+  /** The overlay's id, provided to its content (`useOverlayId`). */
+  overlayId: string;
   /** The box the host measures. */
   boxRef: RefObject<DOMElement | null>;
   /** The owner's contexts, re-provided around the content. */
@@ -48,9 +51,12 @@ function OverlayContent({ render }: OverlayContentProps) {
  * its owner's contexts in the overlay's mouse layer. While it shows, an
  * opaque one is filled first (with the anchor's background) and the box
  * takes the presses and clicks on its cells; while it is only measured
- * (below the root) it does neither. The
- * fill and the shield keep their slots, so the content never remounts when
- * the form starts to show.
+ * (below the root) it does neither and its content is inert: told so through
+ * `OverlayVisibleContext`, its focus stops leave the Tab cycle and its mouse
+ * targets take nothing. The content knows its overlay through
+ * `OverlayIdContext`; both are provided below the bridged contexts. The fill
+ * and the shield keep their slots, so the content never remounts when the
+ * form starts to show.
  */
 export function OverlayBox(props: OverlayBoxProps) {
   const spot = props.spot;
@@ -72,10 +78,14 @@ export function OverlayBox(props: OverlayBoxProps) {
       ) : null}
       <BridgedContexts captured={props.captured}>
         <MouseLayerContext.Provider value={props.layer}>
-          {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
-          <Box flexDirection="column">
-            <OverlayContent render={props.render} />
-          </Box>
+          <OverlayIdContext.Provider value={props.overlayId}>
+            <OverlayVisibleContext.Provider value={spot.visible}>
+              {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
+              <Box flexDirection="column">
+                <OverlayContent render={props.render} />
+              </Box>
+            </OverlayVisibleContext.Provider>
+          </OverlayIdContext.Provider>
         </MouseLayerContext.Provider>
       </BridgedContexts>
     </Box>

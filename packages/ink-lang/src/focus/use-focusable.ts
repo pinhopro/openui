@@ -4,6 +4,7 @@ import { useElementType } from "../element-type-context";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers, MouseWheelEvent } from "../mouse/mouse-target";
 import { useMouse } from "../mouse/use-mouse";
+import { useOverlayId, useOverlayVisible } from "../overlay/overlay-content-context";
 import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
 import type { ArrowClaims, ArrowClaimsInput } from "./focus-navigation";
 import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
@@ -67,9 +68,12 @@ function stopPath(elementPath: number[], order: number): number[] | null {
  */
 export function useFocusable(options: FocusableOptions): Focusable {
   const id = useId();
-  // A modal open above this component takes it out of the Tab cycle and off the mouse.
+  // A modal open above this component takes it out of the Tab cycle and off the mouse,
+  // and so does an overlay form drawn only to be measured (hidden below the root).
   const layerActive = useLayerIsActive();
-  const isActive = options.isActive && layerActive;
+  const visible = useOverlayVisible();
+  const overlay = useOverlayId();
+  const isActive = options.isActive && layerActive && visible;
   // Ink's own autoFocus is off with its focus handling (see FocusNavigator); the effect below does it.
   const focus = useFocus({ id, isActive });
   const [isHovered, setHovered] = useState(false);
@@ -101,12 +105,14 @@ export function useFocusable(options: FocusableOptions): Focusable {
     component,
     name,
     path,
+    overlay,
   });
   entryRef.current.isActive = isActive;
   entryRef.current.arrows = options.arrows ?? NO_CLAIMS;
   entryRef.current.component = component;
   entryRef.current.name = name;
   entryRef.current.path = path;
+  entryRef.current.overlay = overlay;
 
   useEffect(
     function registerStop() {

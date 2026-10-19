@@ -1,6 +1,7 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useRef, type RefObject } from "react";
 import { useLayerIsActive } from "../focus/modal-layer";
+import { useOverlayVisible } from "../overlay/overlay-content-context";
 import { MouseLayerContext } from "./mouse-layer";
 import { MouseContext } from "./mouse-provider";
 import type { MouseHandlers, MouseTarget } from "./mouse-target";
@@ -12,13 +13,15 @@ import type { MouseHandlers, MouseTarget } from "./mouse-target";
  */
 export function useMouse(ref: RefObject<DOMElement | null>, handlers: MouseHandlers): void {
   const registry = useContext(MouseContext);
-  // While a modal is open above it, a box takes no events (they fall through to its ancestors).
+  // While a modal is open above it, or while it renders in an overlay form drawn only to be
+  // measured (hidden below the root), a box takes no events (they fall through to its ancestors).
   const layerActive = useLayerIsActive();
+  const visible = useOverlayVisible();
   const layer = useContext(MouseLayerContext);
   const targetRef = useRef<MouseTarget>({ ref, handlers, layer });
   targetRef.current.ref = ref;
   targetRef.current.layer = layer;
-  targetRef.current.handlers = layerActive ? handlers : {};
+  targetRef.current.handlers = layerActive && visible ? handlers : {};
 
   useEffect(
     function registerTarget() {
