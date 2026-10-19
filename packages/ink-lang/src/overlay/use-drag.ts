@@ -72,7 +72,7 @@ interface Press {
   shown: ShownPlacement | null;
 }
 
-const NO_OFFSET: DragOffset = Object.freeze({ x: 0, y: 0 });
+const NO_OFFSET: CellPoint = Object.freeze({ x: 0, y: 0 });
 const NO_HANDLERS: MouseHandlers = Object.freeze({});
 
 function sameOffset(a: CellPoint, b: CellPoint): boolean {
@@ -97,7 +97,9 @@ function sameOffset(a: CellPoint, b: CellPoint): boolean {
  * at once, and does nothing when the bounds leave no room that way. Reports
  * `dragstart`, `drag` (only for a move that changed the offset) and
  * `dragend` through `useUiEvents`, at the pointer's cell, or for a keyboard
- * move at the overlay's top-left cell before and after it. `onDrop` is told
+ * move at the overlay's top-left cell before and after it, each with where
+ * the box is drawn (`left`, `top`). A press is ignored once the drag is
+ * disabled, even by handlers of an earlier render. `onDrop` is told
  * where the form is drawn after the drop; an owner that then gives the
  * overlay another anchor calls `setOrigin` with where the host will place
  * it, so it stays put. The mouse handlers must be registered by a
