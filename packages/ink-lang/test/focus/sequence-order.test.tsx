@@ -193,6 +193,61 @@ describe("Tab follows the sequence of the program tree", () => {
     rendered.unmount();
   });
 
+  it("puts only the current Carousel item's stop in the cycle, after the strip", async () => {
+    const program = [
+      "root = Stack([Carousel([[Buttons([first])], [Buttons([second])]])])",
+      'first = Button("In first", @ToAssistant("1"))',
+      'second = Button("In second", @ToAssistant("2"))',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    expect(await tabThrough(rendered, 3)).toEqual(["◂ 1 / 2 ▸", "[ In first ]", "◂ 1 / 2 ▸"]);
+    await press(rendered, KEYS.RIGHT);
+    expect(focusedText(rendered.frame())).toBe("◂ 2 / 2 ▸");
+    expect(await tabThrough(rendered, 2)).toEqual(["[ In second ]", "◂ 2 / 2 ▸"]);
+    rendered.unmount();
+  });
+
+  it("visits a column of Buttons top to bottom", async () => {
+    const program = [
+      'root = Stack([Buttons([one, two, three], "column")])',
+      'one = Button("One", @ToAssistant("One"))',
+      'two = Button("Two", @ToAssistant("Two"))',
+      'three = Button("Three", @ToAssistant("Three"))',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    expect(await tabThrough(rendered, 4)).toEqual(["[ One ]", "[ Two ]", "[ Three ]", "[ One ]"]);
+    rendered.unmount();
+  });
+
+  it("visits each child of a wrapping row Stack in full before the next, also past the wrap", async () => {
+    const label = "x".repeat(30);
+    function column(name: string): string {
+      return `${name} = Stack([Button("${name} top ${label}", @ToAssistant("t")), Button("${name} low ${label}", @ToAssistant("l"))])`;
+    }
+    const program = [
+      'root = Stack([c1, c2, c3], "row", "m", null, null, true)',
+      column("c1"),
+      column("c2"),
+      column("c3"),
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    const lines = stripAnsi(rendered.frame()).split("\n");
+    let firstRow = -1;
+    let thirdRow = -1;
+    for (let row = 0; row < lines.length; row += 1) {
+      const line = lines[row] ?? "";
+      if (firstRow === -1 && line.includes("c1 top")) firstRow = row;
+      if (thirdRow === -1 && line.includes("c3 top")) thirdRow = row;
+    }
+    // The third column wrapped onto a later row.
+    expect(thirdRow).toBeGreaterThan(firstRow);
+    const visited = await tabThrough(rendered, 7);
+    const names: string[] = [];
+    for (const text of visited) names.push(text.slice(2, 8));
+    expect(names).toEqual(["c1 top", "c1 low", "c2 top", "c2 low", "c3 top", "c3 low", "c1 top"]);
+    rendered.unmount();
+  });
+
   it("visits the items of a ListBlock top to bottom", async () => {
     const program = [
       "root = Stack([ListBlock([first, second, third])])",
