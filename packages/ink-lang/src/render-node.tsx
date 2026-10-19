@@ -1,9 +1,9 @@
 import type { ElementNode } from "@openuidev/lang-core";
+import { ComponentHost } from "./component-host";
 import { useOpenUI } from "./context";
 import { ElementErrorBoundary } from "./element-error-boundary";
 import { ElementPathContext, useElementPath } from "./element-type-context";
 import { SequencePathContext, useSequencePath } from "./focus/sequence-path";
-import { createSequencedRenderer } from "./focus/sequenced-render";
 import { UnknownComponent } from "./unknown-component";
 
 export interface RenderNodeProps {
@@ -22,14 +22,16 @@ export function RenderNode({ node, order }: RenderNodeProps) {
   const parentSequence = useSequencePath();
   const definition = context.library.components[node.typeName];
   if (definition === undefined) return <UnknownComponent typeName={node.typeName} />;
-  const Renderer = definition.component;
-  // A fresh renderer each render: the counter must restart at 0 every time.
-  const renderChild = createSequencedRenderer();
   return (
     <ElementErrorBoundary componentName={node.typeName} onError={context.reportError}>
       <ElementPathContext.Provider value={parentPath.concat(node.typeName)}>
         <SequencePathContext.Provider value={parentSequence.concat(order)}>
-          <Renderer props={node.props} renderNode={renderChild} statementId={node.statementId} />
+          <ComponentHost
+            key={node.typeName}
+            renderer={definition.component}
+            props={node.props}
+            statementId={node.statementId}
+          />
         </SequencePathContext.Provider>
       </ElementPathContext.Provider>
     </ElementErrorBoundary>

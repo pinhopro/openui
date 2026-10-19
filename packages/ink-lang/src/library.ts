@@ -12,6 +12,7 @@ import {
 import type { FC, ReactNode } from "react";
 import type { z } from "zod/v4";
 import type { $ZodObject } from "zod/v4/core";
+import type { SequencedRenderNode } from "./focus/sequenced-render";
 
 export type {
   ComponentGroup,
@@ -27,7 +28,10 @@ export type {
 export interface ComponentRenderProps<P = Record<string, unknown>> extends CoreRenderProps<
   P,
   ReactNode
-> {}
+> {
+  /** Draws a nested value, numbering its elements in call order; `{ order }` pins one. */
+  renderNode: SequencedRenderNode;
+}
 
 /** An Ink component renderer is a React function component over ComponentRenderProps. */
 export type ComponentRenderer<P = Record<string, unknown>> = FC<ComponentRenderProps<P>>;

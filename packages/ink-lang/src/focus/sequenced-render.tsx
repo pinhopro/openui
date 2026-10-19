@@ -14,8 +14,11 @@ export type SequencedRenderNode = (value: unknown, options?: RenderNodeOptions) 
  * A `renderNode` for one render of one component. Its counter starts at 0:
  * each element it renders takes the next order, the items of an array (nested
  * arrays included) take the next orders in turn, and primitives and null take
- * none. `options.order` gives an element that order without advancing the
- * counter.
+ * none. `options.order` gives an element that order without consuming a
+ * counter slot, so the next element still takes the next order; keeping
+ * explicit orders from colliding with the counted ones is the caller's
+ * responsibility. An `order` passed with an array value is ignored: its items
+ * take the next orders in turn.
  */
 export function createSequencedRenderer(): SequencedRenderNode {
   let nextOrder = 0;
