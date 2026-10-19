@@ -120,7 +120,8 @@ function FilterLine({ editor, fallback }: FilterLineProps) {
  * The model-facing `Combobox`: a Select with a filter line. Unfocused it shows
  * the picked label (or the placeholder); focused, typing narrows the option
  * list, Up and Down move the highlight, Enter stores the highlighted option's
- * value and Escape clears the filter. With the mouse, a click opens it, a
+ * value and Escape clears the filter (an Escape with no filter typed is the
+ * navigator's: it cancels an open modal or drops focus). With the mouse, a click opens it, a
  * click on a match picks it and the wheel moves the highlight.
  */
 function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
@@ -137,6 +138,11 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
       if (direction === "down") return highlightRef.current < filtered.length - 1;
       if (direction === "left") return editorRef.current.cursor > 0;
       return editorRef.current.cursor < countGraphemes(editorRef.current.value);
+    },
+    // Escape clears a typed filter; with none it is left to the navigator
+    // (it cancels an open modal or drops focus).
+    claimsEscape: function claimsEscape() {
+      return editorRef.current.value !== "";
     },
     mouse: {
       onWheel: function handleWheel(event) {

@@ -12,6 +12,7 @@ import {
 } from "./focus-navigation";
 import { focusOrder, hostStops, nextInOrder, type CycleStop } from "./focus-order";
 import { FocusRegistryContext, type FocusEntry, type FocusRegistry } from "./focus-registry";
+import { ModalLayerContext } from "./modal-layer";
 
 /** What the navigator needs from Ink's focus manager. */
 interface FocusTarget {
@@ -90,6 +91,12 @@ function moveByArrow(
   if (next !== null) target.focus(next);
 }
 
+/** True when the focused stop uses this Escape itself (`FocusEntry.claimsEscape`). */
+function claimsEscape(active: FocusEntry | null): boolean {
+  if (active === null || active.claimsEscape === undefined) return false;
+  return active.claimsEscape();
+}
+
 /** No Ctrl, Meta, Super or Hyper held: the keys Ink itself would have handled. */
 function isUnmodified(key: Key): boolean {
   return !key.ctrl && !key.meta && !key.super && !key.hyper;
@@ -137,7 +144,9 @@ function trackedTarget(tracker: FocusTracker, focusById: (id: string) => void): 
  * Ink's own focus handling off (and back on when it unmounts), so Ink never
  * moves focus first: Tab and Shift+Tab follow the Tab cycle (deterministic,
  * whatever order components mounted in; the `order` of the `FocusScope`
- * above, or `defaultCycle` without one), Escape drops focus, and the arrows
+ * above, or `defaultCycle` without one), Escape is left to a focused stop
+ * that claims it (`claimsEscape`), else cancels the innermost open modal
+ * layer, else drops focus, and the arrows
  * move to the nearest stop in their direction whenever the focused component
  * does not use that arrow itself (or has nowhere further to go). Each key
  * steps from the stop the previous key focused, even before React commits.
@@ -150,6 +159,7 @@ function trackedTarget(tracker: FocusTracker, focusById: (id: string) => void): 
 export function FocusNavigator({ children }: FocusNavigatorProps) {
   const registry = useContext(FocusRegistryContext);
   const order = useContext(FocusCycleContext);
+  const layers = useContext(ModalLayerContext);
   const manager = useFocusManager();
   const managerRef = useRef(manager);
   managerRef.current = manager;
@@ -210,6 +220,8 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
       return;
     }
     if (key.escape && !key.shift && isUnmodified(key)) {
+      if (claimsEscape(activeEntry(registry, target.activeId))) return;
+      if (layers.cancelActive()) return;
       // Ink exposes no way to clear the focused id but this; its flag stays off.
       manager.disableFocus();
       trackerRef.current.current = undefined;

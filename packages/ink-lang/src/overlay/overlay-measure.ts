@@ -65,6 +65,8 @@ export interface MeasureInput {
   compactBox: DOMElement | null;
   /** The rectangle overlays are placed in. */
   bounds: CellRect;
+  /** The box the bounds come from, null for the whole ink root; see `backgroundOf`. */
+  boundsBox: DOMElement | null;
 }
 
 const NO_SIZE: OverlaySize = Object.freeze({ width: 0, height: 0 });
@@ -81,6 +83,23 @@ function anchorRect(overlay: Overlay): CellRect | null {
   const clip = clippedBy(anchor);
   if (clip !== null && !rectsIntersect(rect, clip)) return null;
   return rect;
+}
+
+/** True for the placements that ignore the anchor's cells: they go against the bounds. */
+function placedInBounds(overlay: Overlay): boolean {
+  return overlay.placement === "cover" || overlay.placement === "center";
+}
+
+/**
+ * The rectangle an overlay is placed against, or null when nothing is drawn:
+ * a `cover` or `center` overlay is placed in the bounds whatever its anchor
+ * (null, empty or clipped out: a modal shows even when it was declared in a
+ * scrolled-out pane), so the bounds stand in for its anchor; any other
+ * overlay needs its anchor's cells (`anchorRect`).
+ */
+function placementAnchor(overlay: Overlay, bounds: CellRect): CellRect | null {
+  if (placedInBounds(overlay)) return bounds;
+  return anchorRect(overlay);
 }
 
 /** The host box's own cells; positions are relative to them. */
@@ -164,32 +183,41 @@ function coverSpot(host: DOMElement, bounds: CellRect, anchor: CellRect): FormSp
  * How an overlay is drawn before it was ever measured: its whole form hidden
  * below the root, so the first frame never shows it in a wrong place (over
  * its anchor), except a cover form, which shows at once; null when its anchor
- * is missing, empty or clipped out.
+ * is missing, empty or clipped out (never for a `cover` or `center` overlay,
+ * see `placementAnchor`).
  */
 export function unmeasuredPlacement(
   overlay: Overlay,
   host: DOMElement,
   bounds: CellRect,
+  boundsBox: DOMElement | null,
 ): PlacedOverlay | null {
-  const anchor = anchorRect(overlay);
+  const anchor = placementAnchor(overlay, bounds);
   if (anchor === null) return null;
+  const background = backgroundOf(overlay, host, boundsBox);
   if (overlay.placement === "cover") {
-    return {
-      whole: coverSpot(host, bounds, anchor),
-      compact: null,
-      background: backgroundOf(overlay),
-    };
+    return { whole: coverSpot(host, bounds, anchor), compact: null, background };
   }
   const maxWidth = wholeWidthLimit(bounds);
   return {
     whole: hiddenSpot({ host, bounds, maxWidth, size: NO_SIZE }),
     compact: null,
-    background: backgroundOf(overlay),
+    background,
   };
 }
 
-/** The background of the cells the overlay's anchor sits on; null without an anchor or one. */
-function backgroundOf(overlay: Overlay): string | null {
+/**
+ * The background an overlay is painted with: for a `cover` or `center` one,
+ * the background of the bounds box (the host's own when the bounds are the
+ * whole root), as it is placed in them; for any other, the background of the
+ * cells its anchor sits on. Null when none is set or the anchor is missing.
+ */
+function backgroundOf(
+  overlay: Overlay,
+  host: DOMElement,
+  boundsBox: DOMElement | null,
+): string | null {
+  if (placedInBounds(overlay)) return anchorBackground(boundsBox ?? host);
   const anchor = overlay.anchorRef.current;
   if (anchor === null) return null;
   return anchorBackground(anchor);
@@ -201,7 +229,11 @@ interface PlacedForms {
   compact: FormSpot | null;
 }
 
-/** Where each form of an overlay with a visible anchor is drawn after the last layout. */
+/**
+ * Where each form of an overlay is drawn after the last layout, against
+ * `anchor` (its visible anchor's cells, or the bounds for a `cover` or
+ * `center` overlay).
+ */
 function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
   const overlay = input.overlay;
   const host = input.host;
@@ -250,7 +282,8 @@ function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
 
 /**
  * How an overlay is drawn after the last commit's layout, or null when its
- * anchor is missing, empty or clipped out (nothing is drawn). It depends only
+ * anchor is missing, empty or clipped out (nothing is drawn; a `cover` or
+ * `center` overlay is always drawn, in the bounds). It depends only
  * on that layout, never on the form drawn before, so it cannot oscillate:
  * the whole form is measured on every commit (shown or hidden, at the same
  * width limit, the bounds' width), and it is shown while it fits
@@ -259,13 +292,18 @@ function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
  * (`compactWidthLimit`), is shown beside it (`placeCompact`). A form not
  * measured yet at its current width limit is drawn hidden first. A cover
  * form is never measured: it spans the bounds and shows at once. The
- * overlay takes the background its anchor sits on (`anchorBackground`).
+ * overlay takes the background its anchor sits on, or its bounds' one
+ * (`backgroundOf`).
  */
 export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
-  const anchor = anchorRect(input.overlay);
+  const anchor = placementAnchor(input.overlay, input.bounds);
   if (anchor === null) return null;
   const forms = placeForms(input, anchor);
-  return { whole: forms.whole, compact: forms.compact, background: backgroundOf(input.overlay) };
+  return {
+    whole: forms.whole,
+    compact: forms.compact,
+    background: backgroundOf(input.overlay, input.host, input.boundsBox),
+  };
 }
 
 function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {

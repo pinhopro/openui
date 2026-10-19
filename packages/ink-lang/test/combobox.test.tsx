@@ -172,15 +172,18 @@ describe("Combobox", () => {
     await settle();
     expect(stripAnsi(rendered.frame())).not.toContain("US East");
     rendered.instance.stdin.write(ESCAPE);
-    // Ink holds a lone Escape for 20ms in case a sequence follows, then drops focus.
+    // Ink holds a lone Escape for 20ms in case a sequence follows. The Combobox
+    // claims the Escape that clears its filter, so it keeps focus and its list.
     await settle(60);
-    expect(stripAnsi(rendered.frame())).not.toContain("> we");
-    rendered.instance.stdin.write(KEYS.TAB);
-    await settle();
     const plain = stripAnsi(rendered.frame());
     expect(plain).not.toContain("we");
     expect(plain).toContain("US East");
     expect(plain).toContain("Asia Pacific");
+    expect(inverseSegments(rendered.frame())).toContain(" ");
+    // With the filter empty, Escape is no longer claimed: the navigator drops focus.
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    expect(stripAnsi(rendered.frame())).not.toContain("Asia Pacific");
     rendered.unmount();
   });
 

@@ -24,6 +24,14 @@ export interface FocusableOptions {
    * in that direction, so the arrow moves focus to a neighbour instead.
    */
   arrows?: ArrowClaimsInput;
+  /**
+   * Asked at key time when Escape is pressed while this stop has focus: true
+   * when the component handles this Escape itself (its own `useInput` acts on
+   * it), so the navigator leaves it alone. The navigator asks before the
+   * component's handler runs: its listener is registered when the renderer
+   * mounts, a stop's only once it has focus.
+   */
+  claimsEscape?: () => boolean;
   /** Handlers on the focusable box besides focusing it: press on click, drag... */
   mouse?: MouseHandlers;
   /** Focus as soon as the pointer enters, the way a button highlights on hover. */
@@ -102,6 +110,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
     ref,
     isActive,
     arrows: options.arrows ?? NO_CLAIMS,
+    claimsEscape: options.claimsEscape,
     component,
     name,
     path,
@@ -109,6 +118,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
   });
   entryRef.current.isActive = isActive;
   entryRef.current.arrows = options.arrows ?? NO_CLAIMS;
+  entryRef.current.claimsEscape = options.claimsEscape;
   entryRef.current.component = component;
   entryRef.current.name = name;
   entryRef.current.path = path;

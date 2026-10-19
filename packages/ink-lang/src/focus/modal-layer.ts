@@ -9,16 +9,29 @@ import { createContext, useContext } from "react";
 export interface ModalLayers {
   /** The id of the innermost open layer, or null when no modal is open. */
   activeLayer: string | null;
-  /** Opens a layer; the returned function closes it. */
-  open: (id: string) => () => void;
+  /**
+   * Opens a layer whose `onCancel` runs when it is cancelled on top of the
+   * stack (Escape, through `cancelActive`); the returned function closes it.
+   */
+  open: (id: string, onCancel: () => void) => () => void;
+  /** Runs the innermost open layer's `onCancel`; false when no layer is open. */
+  cancelActive: () => boolean;
 }
 
 function noLayer(): () => void {
   return function close() {};
 }
 
+function cancelNothing(): boolean {
+  return false;
+}
+
 /** The layers when nothing provides them: none is ever open. */
-export const NO_MODAL_LAYERS: ModalLayers = { activeLayer: null, open: noLayer };
+export const NO_MODAL_LAYERS: ModalLayers = {
+  activeLayer: null,
+  open: noLayer,
+  cancelActive: cancelNothing,
+};
 
 export const ModalLayerContext = createContext<ModalLayers>(NO_MODAL_LAYERS);
 

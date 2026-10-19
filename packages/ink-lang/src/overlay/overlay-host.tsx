@@ -124,10 +124,14 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
   const rendered = useRef({ overlays, placements });
   rendered.current = { overlays, placements };
 
+  /** The box the bounds come from, null for the whole ink root. */
+  function currentBoundsBox(): DOMElement | null {
+    return boundsRef === undefined ? null : boundsRef.current;
+  }
+
   /** The current bounds, read after layout. */
   function currentBounds(host: DOMElement): CellRect {
-    const boundsBox = boundsRef === undefined ? null : boundsRef.current;
-    return boundsOf(host, boundsBox);
+    return boundsOf(host, currentBoundsBox());
   }
 
   /** Measures every open overlay against the layout Ink just computed; sets state only on a change. */
@@ -150,6 +154,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
         wholeBox: refFor(wholeRefs.current, overlay.id).current,
         compactBox: refFor(compactRefs.current, overlay.id).current,
         bounds,
+        boundsBox: currentBoundsBox(),
       });
       next.set(overlay.id, placed);
     }
@@ -167,7 +172,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
     if (measured !== undefined) return measured;
     const host = hostRef.current;
     if (host === null) return null;
-    return unmeasuredPlacement(overlay, host, currentBounds(host));
+    return unmeasuredPlacement(overlay, host, currentBounds(host), currentBoundsBox());
   }
 
   const boxes = [];

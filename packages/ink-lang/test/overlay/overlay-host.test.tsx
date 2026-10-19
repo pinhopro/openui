@@ -175,6 +175,18 @@ describe("overlay host", () => {
     expect(detached).toBe(closed);
   });
 
+  it("draws a center overlay whose anchor is null centred in the bounds", async () => {
+    const closed = await plainFrame(floaterProgram('Floater("anchor", true)'));
+    const frame = await plainFrame(floaterProgram('Floater("anchor", false, "center", true)'));
+    const lines = frame.split("\n");
+    expect(lines).toHaveLength(closed.split("\n").length);
+    const corner = findCell(frame, "┌");
+    // The box is 16 cells wide ("OVERLAY anchor" in a border) and 3 rows high, in a 100 by 6 page.
+    expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: corner.x + 1, y: corner.y + 1 });
+    expect(corner.x).toBe(Math.floor((100 - 16) / 2));
+    expect(corner.y).toBe(Math.floor((lines.length - 3) / 2));
+  });
+
   it("paints each overlay under its own anchor, the later one over the earlier", async () => {
     const row = 'Stack([Floater("first"), Floater("second")], "row", "none")';
     const frame = await plainFrame(`root = Stack([${row}, ${FILLER}], "column", "none")`);

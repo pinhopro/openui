@@ -10,6 +10,13 @@ export interface FocusEntry {
   ref: RefObject<DOMElement | null>;
   isActive: boolean;
   arrows: ArrowClaimsInput;
+  /**
+   * Asked when Escape is pressed while the stop has focus: true when the
+   * component uses this Escape itself (a Combobox clearing its filter), so
+   * the navigator neither cancels the open modal nor drops focus. Absent for
+   * a stop that never claims it.
+   */
+  claimsEscape?: () => boolean;
   component: string;
   name: string;
   /**

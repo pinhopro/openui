@@ -99,9 +99,11 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
   useEffect(
     function holdLayer() {
       if (!isOpen) return undefined;
-      return openLayer(layerId);
+      return openLayer(layerId, function closeOnCancel() {
+        if (hasBinding) setValue(false);
+      });
     },
-    [isOpen, layerId, openLayer],
+    [hasBinding, isOpen, layerId, openLayer, setValue],
   );
 
   // Focus moves into the dialog once its layer is on top: its stops are

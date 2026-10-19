@@ -1,7 +1,12 @@
 import { createContext, useContext } from "react";
 import type { MouseButton, WheelDirection } from "./mouse/mouse-sequence";
 
-/** The browser-like events a host can observe through `InkRenderer`'s `onUiEvent`. */
+/**
+ * The browser-like events a host can observe through `InkRenderer`'s
+ * `onUiEvent`. `open` and `close` report a dialog layer shown and hidden,
+ * `cancel` a dialog dismissed (Escape, a backdrop click, its cancel or close
+ * control); each carries the dialog's type and title.
+ */
 export type UiEventType =
   | "focus"
   | "blur"
@@ -17,7 +22,10 @@ export type UiEventType =
   | "mouseenter"
   | "mouseleave"
   | "mousemove"
-  | "wheel";
+  | "wheel"
+  | "cancel"
+  | "open"
+  | "close";
 
 /** One event: which component instance it happened on and the details that apply. */
 export interface UiEvent {

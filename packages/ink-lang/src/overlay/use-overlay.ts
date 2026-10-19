@@ -8,7 +8,8 @@ export interface UseOverlayOptions {
   kind: OverlayKind;
   /**
    * The box the overlay is placed against; nothing is drawn while it is
-   * missing, empty or clipped out, even for a `cover` overlay.
+   * missing, empty or clipped out, except for a `cover` or `center` overlay,
+   * which is placed in the bounds whatever its anchor.
    */
   anchorRef: RefObject<DOMElement | null>;
   /** Where it goes against its anchor; `cover` spans the bounds (a backdrop). */

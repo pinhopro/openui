@@ -134,7 +134,7 @@ describe("FocusNavigator", () => {
     rendered.unmount();
   });
 
-  it("clears a focused Combobox's filter on Escape and drops focus", async () => {
+  it("lets a focused Combobox's Escape clear its filter; the next Escape drops focus", async () => {
     const program = [
       "root = Stack([form])",
       'form = Form("deploy", Buttons([go]), [regionField])',
@@ -153,15 +153,16 @@ describe("FocusNavigator", () => {
     rendered.instance.stdin.write(ESCAPE);
     // Ink holds a lone Escape for 20ms in case a sequence follows.
     await settle(60);
+    // The Combobox claims the Escape that clears its filter: it keeps focus and its list.
+    const cleared = stripAnsi(rendered.frame());
+    expect(cleared).not.toContain("we");
+    expect(cleared).toContain("US East");
+    expect(cleared).toContain("Asia Pacific");
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
     const dropped = rendered.frame();
-    expect(stripAnsi(dropped)).not.toContain("> we");
+    expect(stripAnsi(dropped)).not.toContain("Asia Pacific");
     expect(inverseSegments(dropped)).toEqual([]);
-    rendered.instance.stdin.write(KEYS.TAB);
-    await settle();
-    const plain = stripAnsi(rendered.frame());
-    expect(plain).not.toContain("we");
-    expect(plain).toContain("US East");
-    expect(plain).toContain("Asia Pacific");
     rendered.unmount();
   });
 
