@@ -1,4 +1,6 @@
 // Renderer
+export { DimBehind } from "./dim-behind";
+export type { DimBehindProps } from "./dim-behind";
 export { InkRenderer } from "./ink-renderer";
 export type { InkRendererProps } from "./ink-renderer";
 
