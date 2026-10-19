@@ -10,7 +10,7 @@ import type { MouseButton, WheelDirection } from "./mouse/mouse-sequence";
  * that moved it, the release, at the pointer's cell) or by Ctrl+arrows (all
  * three for each key that moves it, at the dialog's top-left cell before
  * and after); each also carries where the dialog's box is drawn (`left`,
- * `top`).
+ * `top`, clamped into the host's bounds), once a placement is known.
  */
 export type UiEventType =
   | "focus"
@@ -50,7 +50,9 @@ export interface UiEvent {
   y?: number;
   /**
    * Drag events: the 0-based top-left cell the dragged box is drawn at,
-   * clamped into the screen.
+   * clamped into the host's bounds (the ink root for a `FocusScope`'s host,
+   * the page for a standalone renderer's); left out while no placement of
+   * the box is known.
    */
   left?: number;
   top?: number;

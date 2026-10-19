@@ -69,7 +69,7 @@ const MARKS: Record<string, string> = {
  * Either moves focus to its first stop once it shows and gives it back to its
  * opener when it closes. Unless `draggable` is false it moves by its title
  * bar (a mouse drag) and with Ctrl+arrows while one of its stops has focus
- * (`useDrag`), clamped into the screen; a dropped non-modal one re-anchors
+ * (`useDrag`), clamped into the host's bounds; a dropped non-modal one re-anchors
  * to the page stop behind it, without moving, and its stops then follow that
  * stop in the Tab cycle (`useDialogAnchor`). Cancel (its cancel button; for a modal one also
  * Escape and a click on the backdrop) sets `$open` to false, runs
