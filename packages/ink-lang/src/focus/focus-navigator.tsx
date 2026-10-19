@@ -97,7 +97,8 @@ export interface FocusNavigatorProps {
 
 /**
  * Owns keyboard focus movement over the registered stops. On mount it turns
- * Ink's own focus handling off, so Ink never moves focus first: Tab and
+ * Ink's own focus handling off (and back on when it unmounts), so Ink never
+ * moves focus first: Tab and
  * Shift+Tab follow the Tab cycle (deterministic, whatever order components
  * mounted in; the `order` of the `FocusScope` above, or `defaultCycle`
  * without one), Escape drops focus, and the arrows move to the nearest stop
@@ -113,6 +114,7 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   const managerRef = useRef(manager);
   managerRef.current = manager;
   const disableFocus = manager.disableFocus;
+  const enableFocus = manager.enableFocus;
   const focusById = manager.focus;
   const hasRegistry = registry !== null;
 
@@ -120,14 +122,19 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   // focuses), wherever the navigator sits among them; turning Ink's focus off
   // later would clear that focus again. `disableFocus` also clears the focused
   // id, so a stop focused before a navigator mounting later gets it back.
+  // Unmounting hands Tab, Escape and autoFocus back to Ink, so plain Ink
+  // `useFocus` UI shown once the renderer is gone moves with Ink's Tab again.
   useLayoutEffect(
     function takeOverFromInk() {
-      if (!hasRegistry) return;
+      if (!hasRegistry) return undefined;
       const focusedBefore = managerRef.current.activeId;
       disableFocus();
       if (focusedBefore !== undefined) focusById(focusedBefore);
+      return function handBackToInk() {
+        enableFocus();
+      };
     },
-    [disableFocus, focusById, hasRegistry],
+    [disableFocus, enableFocus, focusById, hasRegistry],
   );
 
   const commands = useMemo(

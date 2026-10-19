@@ -1,4 +1,4 @@
-import { Box, Text } from "ink";
+import { Box, Text, useFocus } from "ink";
 import { render } from "ink-testing-library";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../../src/default-library";
@@ -57,6 +57,20 @@ interface SecondPanelProps {
 
 interface NavigatorSwitchProps {
   withNavigator: boolean;
+}
+
+interface RendererSwitchProps {
+  withRenderer: boolean;
+}
+
+interface PlainInkBoxProps {
+  name: string;
+}
+
+/** A plain Ink focusable, moved by Ink's own Tab handling only. */
+function PlainInkBox({ name }: PlainInkBoxProps) {
+  const { isFocused } = useFocus();
+  return <Text inverse={isFocused}>{"[ " + name + " ]"}</Text>;
 }
 
 const twoButtons = 'root = Stack([Button("A", @ToAssistant("A")), Button("B", @ToAssistant("B"))])';
@@ -289,6 +303,39 @@ describe("FocusNavigator", () => {
     );
     await settle();
     expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Early ]"]);
+    instance.unmount();
+  });
+
+  it("gives Ink its own Tab back once the renderer that switched it off unmounts", async () => {
+    function App({ withRenderer }: RendererSwitchProps) {
+      return (
+        <Box flexDirection="column">
+          <PlainInkBox name="One" />
+          <PlainInkBox name="Two" />
+          {withRenderer ? <InkRenderer response={twoButtons} library={inkLibrary} /> : null}
+        </Box>
+      );
+    }
+    const instance = render(<App withRenderer />);
+    await settle();
+    function focused(): string[] {
+      return inverseSegments(lastFrame(instance.frames));
+    }
+    // While the renderer is mounted, Tab follows its cycle only: Ink moves nothing itself.
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ A ]"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ B ]"]);
+    instance.rerender(<App withRenderer={false} />);
+    await settle();
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ One ]"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ Two ]"]);
     instance.unmount();
   });
 
