@@ -48,6 +48,9 @@ export interface DialogRendererProps {
 /** The widest a dialog grows: a longer body wraps. */
 const DIALOG_MAX_WIDTH = 60;
 
+/** Drops before the first render are ignored (none can happen: the drag needs a placement). */
+function ignoreDrop(): void {}
+
 const MARKS: Record<string, string> = {
   info: "ⓘ",
   success: "✓",
@@ -91,9 +94,13 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
   const variant = props.variant;
   const title = displayText(props.title);
 
+  // The anchor needs the drag and the drag reports its drops to the anchor:
+  // the drop handler is read through this ref, set once both exist.
+  const dropRef = useRef<(dropped: DroppedForm | null) => void>(ignoreDrop);
+
   /** A dropped non-modal dialog re-anchors to the stop behind it (`useDialogAnchor`). */
   function reanchor(dropped: DroppedForm | null): void {
-    anchor.drop(dropped);
+    dropRef.current(dropped);
   }
 
   const drag = useDrag({
@@ -109,6 +116,7 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     placement: modal ? "center" : placement,
     drag,
   });
+  dropRef.current = anchor.drop;
   const color = variant === "destructive" ? theme.danger : variantColor(variant, theme);
   const dialogStyle = useComponentStyle([variant]);
   const titleStyle = useComponentStyle([variant, "title"]);
@@ -261,6 +269,8 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     layer: modal ? dialogId : undefined,
     offset: anchor.offset,
     onPlaced: anchor.onPlaced,
+    // Against a stop, the page's background, never the stop's own (state-dependent) fill.
+    backgroundFromParent: anchor.stopId !== null,
   });
 
   // The overlays are placed in the bounds or against the line this box marks

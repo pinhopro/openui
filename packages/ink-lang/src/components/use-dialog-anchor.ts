@@ -27,8 +27,9 @@ export interface DialogAnchor {
   /** The overlay's offset. */
   offset: DragOffset;
   /**
-   * The sequence path the dialog's content renders under: the anchor stop's
-   * (its stops then sort right after that stop), else its declaration's.
+   * The sequence path the dialog's content renders under: one level below
+   * the anchor stop's, at `AFTER_ANCHOR` (its stops then sort right after
+   * that stop), else its declaration's.
    */
   path: number[];
   /** The anchor stop's id, for `OverlayAnchorContext`; null on the tree anchor. */
@@ -40,6 +41,15 @@ export interface DialogAnchor {
 }
 
 const NO_OFFSET: DragOffset = Object.freeze({ x: 0, y: 0 });
+
+/**
+ * The level a re-anchored dialog's content renders at under its anchor
+ * stop's path: below every order a component hands out (0 and up), so the
+ * dialog's stops sort right after the stop and before anything the stop's
+ * own component nests under it (an open accordion section under its header,
+ * whose content sits at `[...header, 0, ...]`).
+ */
+const AFTER_ANCHOR = -1;
 
 /**
  * Where a dialog is anchored. It starts at its tree anchor (its declaration,
@@ -71,10 +81,9 @@ export function useDialogAnchor(options: DialogAnchorOptions): DialogAnchor {
 
   useEffect(
     function fallBackWhenLost() {
-      if (!lost) return;
-      setStopId(null);
-      dragRef.current.resetOffset();
+      if (lost) forgetAnchor();
     },
+    // Only a change of `lost` matters: `forgetAnchor` reads the drag through a ref.
     [lost],
   );
 
@@ -113,7 +122,7 @@ export function useDialogAnchor(options: DialogAnchorOptions): DialogAnchor {
     anchorRef: anchored.ref,
     placement: ANCHORED_PLACEMENT,
     offset: drag.offset,
-    path: anchored.path ?? declarationPath,
+    path: anchored.path === null ? declarationPath : anchored.path.concat(AFTER_ANCHOR),
     stopId: anchored.id,
     drop,
     onPlaced,

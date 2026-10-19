@@ -64,6 +64,13 @@ export interface UseOverlayOptions {
    * twice in a row.
    */
   onPlaced?: (rect: CellRect | null, frame: PlacedFrame | null) => void;
+  /**
+   * Paint the overlay with the background of the cells its anchor sits on
+   * (the anchor's parent's), not the anchor's own fill; default false. For
+   * an anchor that paints itself by state, like a focus stop (a dialog
+   * re-anchored to a filled button must not take, or follow, its fill).
+   */
+  backgroundFromParent?: boolean;
 }
 
 export interface OverlayHandle {
@@ -100,6 +107,7 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
     captured,
     offset: options.offset ?? NO_OFFSET,
     onPlaced: options.onPlaced ?? null,
+    backgroundFromParent: options.backgroundFromParent ?? false,
     layer: options.layer === undefined ? ownerLayer : options.layer,
   };
 

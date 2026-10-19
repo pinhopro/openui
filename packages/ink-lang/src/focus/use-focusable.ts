@@ -38,7 +38,10 @@ export interface FocusableOptions {
   claimsEscape?: () => boolean;
   /** Handlers on the focusable box besides focusing it: press on click, drag... */
   mouse?: MouseHandlers;
-  /** Focus as soon as the pointer enters, the way a button highlights on hover. */
+  /**
+   * Focus as soon as the pointer enters with no button held, the way a button
+   * highlights on hover; a drag passing over it leaves focus where it is.
+   */
   hoverFocus?: boolean;
   /** Take focus when mounted (one stop per app at most). */
   autoFocus?: boolean;
@@ -210,7 +213,8 @@ export function useFocusable(options: FocusableOptions): Focusable {
     onMouseEnter: function handleMouseEnter(event) {
       report("mouseenter", event);
       setHovered(true);
-      if (hoverFocus && isActive) focusSelf();
+      // A pointer entering with a button held (a drag passing over) moves no focus.
+      if (hoverFocus && isActive && event.button === "none") focusSelf();
       mouse.onMouseEnter?.(event);
     },
     onMouseLeave: function handleMouseLeave(event) {

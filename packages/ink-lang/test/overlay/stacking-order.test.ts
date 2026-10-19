@@ -19,6 +19,7 @@ function overlay(id: string, layer: string | null): Overlay {
     captured: {} as CapturedContexts,
     offset: { x: 0, y: 0 },
     onPlaced: null,
+    backgroundFromParent: false,
     layer,
   };
 }

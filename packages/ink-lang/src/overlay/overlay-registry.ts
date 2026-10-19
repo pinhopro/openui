@@ -59,6 +59,12 @@ export interface Overlay {
    */
   onPlaced: ((rect: CellRect | null, frame: PlacedFrame | null) => void) | null;
   /**
+   * The overlay is painted with the background of the cells its anchor sits
+   * on (its parent's), never the anchor's own fill: for an anchor that paints
+   * itself by state (a focus stop). False takes the anchor's own fill too.
+   */
+  backgroundFromParent: boolean;
+  /**
    * The modal layer the overlay belongs to (a modal's id for its own backdrop
    * and box, the layer its owner renders in otherwise; null for the page).
    * The host stacks overlays by their layer's place among the open modals

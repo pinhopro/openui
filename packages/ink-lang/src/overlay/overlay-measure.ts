@@ -259,7 +259,9 @@ export function unmeasuredPlacement(
  * The background an overlay is painted with: for a `cover` or `center` one,
  * the background of the bounds box (the host's own when the bounds are the
  * whole root), as it is placed in them; for any other, the background of the
- * cells its anchor sits on. Null when none is set or the anchor is missing.
+ * cells its anchor sits on: the anchor's own fill, or with
+ * `backgroundFromParent` only its parent's (a focus stop's fill follows its
+ * state). Null when none is set or the anchor (or that parent) is missing.
  */
 function backgroundOf(
   overlay: Overlay,
@@ -269,7 +271,9 @@ function backgroundOf(
   if (placedInBounds(overlay)) return anchorBackground(boundsBox ?? host);
   const anchor = overlay.anchorRef.current;
   if (anchor === null) return null;
-  return anchorBackground(anchor);
+  if (!overlay.backgroundFromParent) return anchorBackground(anchor);
+  const parent = anchor.parentNode;
+  return parent === undefined ? null : anchorBackground(parent);
 }
 
 /** The forms of an overlay as drawn, without its background. */

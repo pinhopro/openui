@@ -83,7 +83,10 @@ The terminal has no transparency: a "transparent" backdrop paints nothing and on
 
 - Default anchor: the tree. An overlay's place in the order is its anchor's place.
 - A dialog is draggable by its title bar when the mouse is on: mousedown captures, mousemove moves, mouseup drops; clamped to the screen. With the mouse off, Ctrl+arrows move it.
-- On drop, the dialog re-anchors to the stop behind it: the base stop whose rectangle contains the dialog's top-left cell, else the last base stop before that cell in reading order (the row above, or to the left on the same row), else the start. The anchor is stored as a stop id, not as coordinates. Re-anchoring happens on drop only, never during the drag.
+- On drop, the dialog re-anchors to the stop behind it: the base stop whose rectangle contains the dialog's top-left cell, else the last base stop before that cell in reading order (the row above, or to the left on the same row), else its tree anchor. The anchor is stored as a stop id, not as coordinates. Re-anchoring happens on drop only, never during the drag. The dialog does not move on drop: it is placed right under its anchor stop and its offset is rebased to keep it where it was dropped. Its stops sort right after the anchor stop, before anything that stop nests under it (an open accordion section under its header). It keeps the background of the cells its anchor stop sits on, never the stop's own fill.
+- A dialog may anchor to a stop of another program in the same `FocusScope`; its stops then sit in that program's part of the cycle.
+- A modal dialog never re-anchors (it is centred in its own layer), and neither does a Dialog declared inside a modal: its candidates are the modal's stops, which are not base stops.
+- A drag passing over a stop with the button held moves no focus (hover focus needs no button held).
 - If the anchor stop disappears (its tab closed, its list re-rendered), the dialog falls back to its tree anchor.
 - A never-dragged dialog keeps its tree anchor across resizes.
 

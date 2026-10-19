@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
+import type { InkRendererProps } from "../src/ink-renderer";
 import type { UiEvent } from "../src/ui-events";
 import { inverseSegments, stripAnsi } from "./helpers/ansi";
 import { fillerRows } from "./helpers/filler-rows";
@@ -64,9 +65,10 @@ function modalProgram(): string {
   ].join("\n");
 }
 
-async function mount(source: string, mouse: boolean) {
+async function mount(source: string, mouse: boolean, options: Partial<InkRendererProps> = {}) {
   const events: UiEvent[] = [];
   const rendered = await renderProgram(inkLibrary, source, {
+    ...options,
     mouse,
     onUiEvent: function onUiEvent(event) {
       events.push(event);
@@ -501,6 +503,74 @@ describe("dialog re-anchoring on drop", () => {
     expect(findCell(frame, "╭")).toEqual(declared);
     expect(findCell(frame, NOTE_TITLE)).toEqual(title);
     expect(await tabCycle(rendered, events, 4)).toEqual(["A", "Open", "Close", "B"]);
+    rendered.unmount();
+  });
+
+  it("follows a stop that owns a nested level before that level's stops: an open accordion header", async () => {
+    const source = [
+      "$note = false",
+      `root = Stack([a, acc, open, noteDialog, b, ${fillerRows(ROWS)}])`,
+      'a = Button("A", @ToAssistant("A"))',
+      'acc = Accordion([AccordionItem("s", "Section", [Button("Go", @ToAssistant("Go"))])])',
+      'open = Button("Open", @Set($note, true))',
+      `noteDialog = Dialog("info", "${NOTE_TITLE}", "Keep editing or close this note.", "Close", "Done", $note)`,
+      'b = Button("B", @ToAssistant("B"))',
+    ].join("\n");
+    const { rendered, events } = await mount(source, true);
+    const closedHeader = findCell(plain(rendered), "▸ Section");
+    await send(rendered, MOUSE.click(closedHeader.x, closedHeader.y));
+    const header = findCell(plain(rendered), "▾ Section");
+    expect(plain(rendered)).toContain("[ Go ]");
+    // Opened from its opener, the dialog takes focus (so Escape releases it in `tabCycle`).
+    const opener = findCell(plain(rendered), "[ Open ]");
+    await send(rendered, MOUSE.click(opener.x, opener.y));
+    expect(lastFocused(events)).toBe("Close");
+
+    await dragCornerTo(rendered, header);
+    expect(findCell(plain(rendered), "╭")).toEqual(header);
+    // The drag passed over Go with the button held: a held pointer focuses nothing it crosses.
+    expect(lastFocused(events)).toBe("Close");
+    // The dialog's stops come right after the header, before the stops of its open section.
+    expect(await tabCycle(rendered, events, 7)).toEqual([
+      "A",
+      "Section",
+      "Close",
+      "Done",
+      "Go",
+      "Open",
+      "B",
+    ]);
+    rendered.unmount();
+  });
+
+  it("keeps the page's background, not the fill of the button it re-anchored to", async () => {
+    const source = anchorProgram();
+    const c = findCell(await closedFrame(source), "[ C ]");
+    const { rendered, events } = await mount(source, true, {
+      designSystem: {
+        tokens: {
+          "color.button.background.default": "blue",
+          "color.button.background.focus": "magenta",
+        },
+      },
+    });
+    const BLUE_BACKGROUND = "\u001b[44m";
+    const MAGENTA_BACKGROUND = "\u001b[45m";
+    // The theme fills the page's buttons.
+    expect(rendered.frame()).toContain(BLUE_BACKGROUND);
+
+    /** The dialog's body row as drawn, with its colours. */
+    function bodyRow(): string {
+      const row = findCell(plain(rendered), "Keep editing").y;
+      return rendered.frame().split("\n")[row] ?? "";
+    }
+    await dragCornerTo(rendered, c);
+    expect(findCell(plain(rendered), "╭")).toEqual(c);
+    expect(bodyRow()).not.toContain(BLUE_BACKGROUND);
+    // Focused, the anchor stop paints itself magenta; the dialog does not follow it.
+    expect(await tabCycle(rendered, events, 4)).toEqual(["A", "Open", "B", "C"]);
+    expect(bodyRow()).not.toContain(BLUE_BACKGROUND);
+    expect(bodyRow()).not.toContain(MAGENTA_BACKGROUND);
     rendered.unmount();
   });
 });
