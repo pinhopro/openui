@@ -51,6 +51,14 @@ function Panel({ name, autoFocus }: PanelProps) {
   );
 }
 
+interface SecondPanelProps {
+  second: boolean;
+}
+
+interface NavigatorSwitchProps {
+  withNavigator: boolean;
+}
+
 const twoButtons = 'root = Stack([Button("A", @ToAssistant("A")), Button("B", @ToAssistant("B"))])';
 
 describe("FocusNavigator", () => {
@@ -136,7 +144,7 @@ describe("FocusNavigator", () => {
   });
 
   it("keeps the first autoFocus stop focused when a second one mounts later", async () => {
-    function App({ second }: { second: boolean }) {
+    function App({ second }: SecondPanelProps) {
       return (
         <FocusScope>
           <InkRenderer response={twoButtons} library={inkLibrary} />
@@ -152,6 +160,122 @@ describe("FocusNavigator", () => {
     const frame = lastFrame(instance.frames);
     expect(stripAnsi(frame)).toContain("[ Second ]");
     expect(inverseSegments(frame)).toEqual(["[ First ]"]);
+    instance.unmount();
+  });
+
+  it("focuses the first of two autoFocus stops that mount in the same commit", async () => {
+    const instance = render(
+      <FocusScope>
+        <Panel name="First" autoFocus />
+        <Panel name="Second" autoFocus />
+      </FocusScope>,
+    );
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ First ]"]);
+    instance.unmount();
+  });
+
+  it("lets a later autoFocus stop take focus once the first one has lost it", async () => {
+    function App({ second }: SecondPanelProps) {
+      return (
+        <FocusScope>
+          <Panel name="First" autoFocus />
+          {second ? <Panel name="Second" autoFocus /> : null}
+        </FocusScope>
+      );
+    }
+    const instance = render(<App second={false} />);
+    await settle();
+    instance.stdin.write(ESCAPE);
+    await settle(60);
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual([]);
+    instance.rerender(<App second />);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Second ]"]);
+    instance.unmount();
+  });
+
+  it("keeps the focus a stop already has when the navigator mounts in a later commit", async () => {
+    const registry = createFocusRegistry();
+    function App({ withNavigator }: NavigatorSwitchProps) {
+      return (
+        <FocusRegistryContext.Provider value={registry}>
+          <Panel name="One" autoFocus />
+          <Panel name="Two" />
+          {withNavigator ? <FocusNavigator /> : null}
+        </FocusRegistryContext.Provider>
+      );
+    }
+    const instance = render(<App withNavigator={false} />);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ One ]"]);
+    instance.rerender(<App withNavigator />);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ One ]"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Two ]"]);
+    instance.unmount();
+  });
+
+  it("leaves Ink's own Tab handling on without a registry", async () => {
+    const instance = render(
+      <Box>
+        <FocusNavigator />
+        <Panel name="One" />
+        <Panel name="Two" />
+      </Box>,
+    );
+    await settle();
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ One ]"]);
+    instance.unmount();
+  });
+
+  it("keeps a host stop out of the cycle while a dialog of the program is open", async () => {
+    const program = [
+      "$confirm = false",
+      "root = Stack([open, dialog])",
+      'open = Button("Open", @Set($confirm, true))',
+      'dialog = ModalDialog("neutral", "Sure?", "Nothing is undone.", "Cancel", "Go ahead", $confirm)',
+    ].join("\n");
+    const instance = render(
+      <FocusScope>
+        <Panel name="Side" />
+        <InkRenderer response={program} library={inkLibrary} />
+      </FocusScope>,
+    );
+    await settle();
+    function focused(): string[] {
+      return inverseSegments(lastFrame(instance.frames));
+    }
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ Side ]"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ Open ]"]);
+    instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(stripAnsi(lastFrame(instance.frames))).toContain("Sure?");
+    expect(focused()).toEqual(["[ Cancel ]"]);
+    const visited: string[] = [];
+    for (let step = 0; step < 4; step += 1) {
+      instance.stdin.write(KEYS.TAB);
+      await settle();
+      visited.push(focused().join(""));
+    }
+    expect(visited).toEqual(["[ Go ahead ]", "[ Cancel ]", "[ Go ahead ]", "[ Cancel ]"]);
+    instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(stripAnsi(lastFrame(instance.frames))).not.toContain("Sure?");
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ Side ]"]);
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(focused()).toEqual(["[ Open ]"]);
     instance.unmount();
   });
 

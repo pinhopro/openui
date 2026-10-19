@@ -1,6 +1,6 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { Box, Text } from "ink";
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
 import {
   createDesignSystem,
@@ -14,8 +14,9 @@ import { FocusNavigator } from "./focus/focus-navigator";
 import { ORDER_LAST } from "./focus/focus-order";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
-import { LayerIdContext, ModalLayerContext, type ModalLayers } from "./focus/modal-layer";
+import { LayerIdContext, ModalLayerContext, NO_MODAL_LAYERS } from "./focus/modal-layer";
 import { SequenceLevel } from "./focus/sequence-level";
+import { useModalLayers } from "./focus/use-modal-layers";
 import type { Library } from "./library";
 import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
@@ -129,28 +130,11 @@ export function InkRenderer(props: InkRendererProps) {
     [props.designSystem, props.theme],
   );
   const theme = designSystem.theme;
-  const [layers, setLayers] = useState<string[]>([]);
-  const openLayer = useCallback(function openLayer(id: string) {
-    setLayers(function push(previous) {
-      return previous.concat(id);
-    });
-    return function closeLayer() {
-      setLayers(function drop(previous) {
-        return previous.filter(function keep(layer) {
-          return layer !== id;
-        });
-      });
-    };
-  }, []);
-  const modalLayers = useMemo<ModalLayers>(
-    function buildLayers() {
-      return {
-        activeLayer: layers.length === 0 ? null : (layers[layers.length - 1] as string),
-        open: openLayer,
-      };
-    },
-    [layers, openLayer],
-  );
+  // Like the registry, the modal layers of a FocusScope above are shared, so
+  // the host's own stops go inert while a modal of the program is open.
+  const inheritedLayers = useContext(ModalLayerContext);
+  const ownLayers = useModalLayers();
+  const modalLayers = inheritedLayers === NO_MODAL_LAYERS ? ownLayers : inheritedLayers;
   const grid = designSystem.tokens.grid;
   const mouseOptions = useMemo(
     function buildMouseOptions() {

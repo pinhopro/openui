@@ -117,7 +117,9 @@ export function useFocusable(options: FocusableOptions): Focusable {
   );
 
   // `autoFocus` acts once, when the stop mounts, and only if nothing has focus
-  // yet: a later Escape or a stop mounting next to it leaves the focus be.
+  // yet: a later Escape or a stop mounting next to it leaves the focus be. The
+  // registry's claim picks the first of several mounting in the same commit,
+  // when the focused id read at render is the same stale one for all of them.
   const autoFocusOnMountRef = useRef(
     options.autoFocus === true && isActive && manager.activeId === undefined,
   );
@@ -126,9 +128,10 @@ export function useFocusable(options: FocusableOptions): Focusable {
     function focusOnMount() {
       if (!autoFocusOnMountRef.current) return;
       autoFocusOnMountRef.current = false;
+      if (registry !== null && !registry.claimAutoFocus(id)) return;
       focusById(id);
     },
-    [focusById, id],
+    [focusById, id, registry],
   );
 
   const wasFocusedRef = useRef(false);
@@ -136,9 +139,10 @@ export function useFocusable(options: FocusableOptions): Focusable {
     function reportFocusChange() {
       if (focus.isFocused === wasFocusedRef.current) return;
       wasFocusedRef.current = focus.isFocused;
+      if (!focus.isFocused) registry?.releaseAutoFocus(id);
       emit({ type: focus.isFocused ? "focus" : "blur", component, name });
     },
-    [component, emit, focus.isFocused, name],
+    [component, emit, focus.isFocused, id, name, registry],
   );
 
   function report(type: UiEventType, event: MouseEvent): void {

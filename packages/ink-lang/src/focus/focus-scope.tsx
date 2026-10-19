@@ -3,6 +3,8 @@ import { UiEventContext, type UiEvent } from "../ui-events";
 import { FocusNavigator } from "./focus-navigator";
 import { createFocusRegistry, FocusRegistryContext } from "./focus-registry";
 import { KeyReporter } from "./key-reporter";
+import { ModalLayerContext } from "./modal-layer";
+import { useModalLayers } from "./use-modal-layers";
 
 export interface FocusScopeProps {
   children: ReactNode;
@@ -15,15 +17,17 @@ export interface FocusScopeProps {
 }
 
 /**
- * One focus registry and one navigator for a whole app: wrap the app in it
- * and every `useFocusable` inside (the host's own sidebar as much as the
- * programs rendered by `InkRenderer`) joins the same Tab order and the same
- * arrow-key map, so the arrows cross from a page into the panel beside it.
- * `InkRenderer` creates its own scope only when none is above it.
+ * One focus registry, one modal layer stack and one navigator for a whole
+ * app: wrap the app in it and every `useFocusable` inside (the host's own
+ * sidebar as much as the programs rendered by `InkRenderer`) joins the same
+ * Tab order and the same arrow-key map, so the arrows cross from a page into
+ * the panel beside it, and while a program's modal is open the host's stops
+ * are inert too. `InkRenderer` creates its own scope only when none is above it.
  */
 export function FocusScope({ children, onUiEvent }: FocusScopeProps) {
   const inherited = useContext(FocusRegistryContext);
   const registry = useMemo(createFocusRegistry, []);
+  const modalLayers = useModalLayers();
   const listenerRef = useRef(onUiEvent);
   listenerRef.current = onUiEvent;
   const emit = useMemo(function stableListener() {
@@ -35,10 +39,12 @@ export function FocusScope({ children, onUiEvent }: FocusScopeProps) {
   return (
     <FocusRegistryContext.Provider value={registry}>
       <UiEventContext.Provider value={emit}>
-        <FocusNavigator>
-          <KeyReporter />
-          {children}
-        </FocusNavigator>
+        <ModalLayerContext.Provider value={modalLayers}>
+          <FocusNavigator>
+            <KeyReporter />
+            {children}
+          </FocusNavigator>
+        </ModalLayerContext.Provider>
       </UiEventContext.Provider>
     </FocusRegistryContext.Provider>
   );

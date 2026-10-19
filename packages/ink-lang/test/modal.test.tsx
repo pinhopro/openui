@@ -35,8 +35,7 @@ describe("Modal", () => {
     expect(plain).toContain("[ x ]");
     expect(plain).toContain("Are you sure?");
     expect(plain).toContain("[ Yes ]");
-    rendered.instance.stdin.write(KEYS.TAB);
-    await settle();
+    // Opening moves focus to the dialog's first stop.
     expect(inverseSegments(rendered.frame())).toEqual(["[ x ]"]);
     rendered.instance.stdin.write(KEYS.ENTER);
     await settle();

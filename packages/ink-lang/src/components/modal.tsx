@@ -63,18 +63,28 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   const openLayer = layers.open;
   const focusFirst = useFocusCommands().focusFirst;
 
-  // While shown, the dialog is the only active layer; focus moves into it.
+  // While shown, the dialog is the only active layer.
   useEffect(
     function holdLayer() {
       if (!isOpen) return undefined;
-      const closeLayer = openLayer(layerId);
+      return openLayer(layerId);
+    },
+    [isOpen, layerId, openLayer],
+  );
+
+  // Focus moves into the dialog once its layer is on top: its stops are
+  // active by then (their effects run before this one), so the focus commands
+  // and Ink both see them.
+  const isTopLayer = isOpen && layers.activeLayer === layerId;
+  useEffect(
+    function focusIntoLayer() {
+      if (!isTopLayer) return undefined;
       const timer = setTimeout(focusFirst, 0);
-      return function release() {
+      return function cancel() {
         clearTimeout(timer);
-        closeLayer();
       };
     },
-    [focusFirst, isOpen, layerId, openLayer],
+    [focusFirst, isTopLayer],
   );
 
   function close(): void {

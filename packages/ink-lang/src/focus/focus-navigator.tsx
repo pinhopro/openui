@@ -20,8 +20,10 @@ interface FocusTarget {
 
 /**
  * The Tab cycle: the host's stops in registration order, then the program's
- * stops in document order. Both leave out inactive stops, so while a modal
- * is open only its own stops are in it.
+ * stops in document order. Both leave out inactive stops; the modal layers
+ * belong to the scope (see `FocusScope`), so while a modal is open every stop
+ * outside it, the host's included, is inactive and only the modal's own
+ * stops are in the cycle.
  */
 function tabCycle(registry: FocusRegistry): CycleStop[] {
   const cycle: CycleStop[] = [];
@@ -82,7 +84,8 @@ export interface FocusNavigatorProps {
  * mounted in), Escape drops focus, and the arrows move to the nearest stop
  * in their direction whenever the focused component does not use that arrow
  * itself (or has nowhere further to go). Provides `FocusCommands` to its
- * children.
+ * children. Without a focus registry above it there are no stops to move
+ * over, so it leaves Ink's own handling on and does nothing.
  */
 export function FocusNavigator({ children }: FocusNavigatorProps) {
   const registry = useContext(FocusRegistryContext);
@@ -90,15 +93,21 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   const managerRef = useRef(manager);
   managerRef.current = manager;
   const disableFocus = manager.disableFocus;
+  const focusById = manager.focus;
+  const hasRegistry = registry !== null;
 
   // A layout effect runs before every stop's mount effects (where `autoFocus`
   // focuses), wherever the navigator sits among them; turning Ink's focus off
-  // later would clear that focus again.
+  // later would clear that focus again. `disableFocus` also clears the focused
+  // id, so a stop focused before a navigator mounting later gets it back.
   useLayoutEffect(
     function takeOverFromInk() {
+      if (!hasRegistry) return;
+      const focusedBefore = managerRef.current.activeId;
       disableFocus();
+      if (focusedBefore !== undefined) focusById(focusedBefore);
     },
-    [disableFocus],
+    [disableFocus, focusById, hasRegistry],
   );
 
   const commands = useMemo(

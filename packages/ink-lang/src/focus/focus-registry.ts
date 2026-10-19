@@ -23,6 +23,15 @@ export interface FocusRegistry {
   register: (entry: FocusEntry) => () => void;
   entries: () => FocusEntry[];
   find: (id: string) => FocusEntry | null;
+  /**
+   * Asks to take focus on mount (`autoFocus`): true for the first stop that
+   * asks while no other one holds the claim. The holder keeps it until it
+   * releases it (once it loses focus) or unregisters, so of the autoFocus
+   * stops mounting in one commit only the first takes focus.
+   */
+  claimAutoFocus: (id: string) => boolean;
+  /** Gives the autoFocus claim back; a no-op unless `id` holds it. */
+  releaseAutoFocus: (id: string) => void;
 }
 
 export const FocusRegistryContext = createContext<FocusRegistry | null>(null);
@@ -30,12 +39,24 @@ export const FocusRegistryContext = createContext<FocusRegistry | null>(null);
 /** The registry the renderer provides: every focus stop with its box, for the arrow keys. */
 export function createFocusRegistry(): FocusRegistry {
   const stops = new Set<FocusEntry>();
+  let autoFocusHolder: string | null = null;
 
   function register(entry: FocusEntry): () => void {
     stops.add(entry);
     return function unregister() {
       stops.delete(entry);
+      releaseAutoFocus(entry.id);
     };
+  }
+
+  function claimAutoFocus(id: string): boolean {
+    if (autoFocusHolder !== null) return false;
+    autoFocusHolder = id;
+    return true;
+  }
+
+  function releaseAutoFocus(id: string): void {
+    if (autoFocusHolder === id) autoFocusHolder = null;
   }
 
   function entries(): FocusEntry[] {
@@ -49,5 +70,5 @@ export function createFocusRegistry(): FocusRegistry {
     return null;
   }
 
-  return { register, entries, find };
+  return { register, entries, find, claimAutoFocus, releaseAutoFocus };
 }
