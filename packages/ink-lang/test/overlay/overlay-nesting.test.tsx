@@ -86,19 +86,25 @@ describe("nested overlays", () => {
     );
     await settle();
     expect(inverseSegments(rendered.frame())).toEqual(["[ Details ]"]);
+    expect(stripAnsi(rendered.frame())).toContain("modal text");
     rendered.instance.stdin.write(KEYS.ENTER);
     await settle();
     const opened = stripAnsi(rendered.frame());
     expect(opened).toContain("Draft saved");
     expect(opened).toContain("Settings");
+    // It floats above the modal: the modal's row under its declaration is covered.
+    expect(opened).not.toContain("modal text");
     // The Dialog takes focus on its first stop, and with it priority: Tab cycles inside it.
     expect(inverseSegments(rendered.frame())).toEqual(["[ Close ]"]);
     const inside = await tabThrough(rendered, 4);
     expect(new Set(inside)).toEqual(new Set(["[ Close ]", "[ Keep ]"]));
-    while (!inverseSegments(rendered.frame()).includes("[ Close ]")) {
+    // Two stops, so at most one more Tab lands on Close.
+    for (let press = 0; press < 2; press += 1) {
+      if (inverseSegments(rendered.frame()).includes("[ Close ]")) break;
       rendered.instance.stdin.write(KEYS.TAB);
       await settle();
     }
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Close ]"]);
     rendered.instance.stdin.write(KEYS.ENTER);
     await settle();
     expect(stripAnsi(rendered.frame())).not.toContain("Draft saved");
