@@ -95,6 +95,23 @@ describe("form and text parts", () => {
     rendered.unmount();
   });
 
+  it("dresses default and large text content from the body and display typography tokens", async () => {
+    const { rendered, line } = await mount(
+      'root = Stack([TextContent("plain words"), TextContent("big words", "large"), TextContent("tiny words", "small-heavy")])',
+      {
+        tokens: {
+          "typography.body.italic": true,
+          "typography.display.transform": "uppercase",
+          "typography.h6.color": "magenta",
+        },
+      },
+    );
+    expect(line("plain words")).toContain("\u001b[3m");
+    expect(stripAnsi(rendered.frame())).toContain("BIG WORDS");
+    expect(line("tiny words")).toContain(MAGENTA_ON);
+    rendered.unmount();
+  });
+
   it("transforms and sizes CardHeader titles through the cascade", async () => {
     const { rendered, line } = await mount('root = Stack([CardHeader("Section", "about it")])', {
       css: "CardHeader .title { text-transform: uppercase; font-size: x-large; color: magenta } CardHeader .subtitle { text-transform: lowercase; color: blue }",

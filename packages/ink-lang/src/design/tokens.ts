@@ -147,6 +147,12 @@ export interface ResolvedTokens {
   tokens: DesignTokens;
   /** One line per token that was unknown or had the wrong kind of value. */
   errors: string[];
+  /**
+   * The dotted paths the input set, in input order: a leaf
+   * (`color.semantic.text.value`) or a whole primitive scale
+   * (`color.primitive.primary`). Derived tokens are not listed.
+   */
+  assigned: string[];
 }
 
 const BORDER_STYLES: string[] = ["none", "single", "double", "round", "bold", "classic"];
@@ -215,7 +221,7 @@ export const defaultTokens: DesignTokens = {
   spacing: { xs: 0, sm: 1, md: 1, lg: 2, xl: 2 },
   grid: { columns: 1, margin: 0, gutter: 1, containerMaxWidth: 0 },
   typography: {
-    display: type("bold", { underline: true }),
+    display: type("bold"),
     h1: type("bold", { underline: true }),
     h2: type("bold"),
     h3: type("bold"),
@@ -420,5 +426,5 @@ export function resolveTokens(
     applyInput(tokens, variant as TokenInput, errors, assigned);
   }
   deriveSemantics(tokens, assigned);
-  return { tokens, errors };
+  return { tokens, errors, assigned: Array.from(assigned) };
 }

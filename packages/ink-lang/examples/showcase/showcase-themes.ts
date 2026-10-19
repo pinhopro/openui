@@ -1,4 +1,5 @@
 import type { DesignSystemInput } from "../../src/design/design-system";
+import { inspiredThemes } from "./inspired-themes";
 import { vscodeThemes } from "./vscode-themes";
 
 /** A design system the showcase can switch to. */
@@ -39,8 +40,11 @@ const handMadeThemes: ShowcaseTheme[] = [
   {
     id: "bordered",
     name: "Bordered",
-    description: "Fields in rounded boxes that light up on focus",
-    designSystem: { tokens: { "shape.fieldBorder": "round", "spacing.sm": 1 } },
+    description: "Fields in rounded boxes whose border turns bold on focus",
+    designSystem: {
+      tokens: { "shape.fieldBorder": "round", "spacing.sm": 1 },
+      css: "Input:focus, TextArea:focus, Select:focus, Combobox:focus, DatePicker:focus { border-style: bold }",
+    },
   },
   {
     id: "minimal",
@@ -65,10 +69,11 @@ const handMadeThemes: ShowcaseTheme[] = [
   {
     id: "daylight",
     name: "Daylight",
-    description: "A light design system: dark text on a white canvas",
+    description: "A light design system: dark text on a white canvas, italic helpers",
     designSystem: {
       mode: "light",
       tokens: {
+        "typography.helper.italic": true,
         "color.primary": "#2563eb",
         "color.error": "#dc2626",
         "color.success": "#16a34a",
@@ -95,7 +100,7 @@ const handMadeThemes: ShowcaseTheme[] = [
       mode: "system",
       tokens: {
         "color.primary": "#8b5cf6",
-        "shape.fieldBorder": "round",
+        "shape.fieldBorder": "classic",
         light: { "color.text.value": "#1e1b4b", "color.canvas.surface": "#ede9fe" },
         dark: { "color.text.value": "#ede9fe", "color.canvas.surface": "#2e1065" },
       },
@@ -132,5 +137,5 @@ const handMadeThemes: ShowcaseTheme[] = [
   },
 ];
 
-/** The hand-made themes first, then the VS Code palettes. */
-export const showcaseThemes: ShowcaseTheme[] = handMadeThemes.concat(vscodeThemes);
+/** The hand-made basics first, then the inspired themes, then the VS Code palettes. */
+export const showcaseThemes: ShowcaseTheme[] = handMadeThemes.concat(inspiredThemes, vscodeThemes);
