@@ -304,4 +304,35 @@ describe("overlay host", () => {
     expect(findCell(frame, "filler three")).toEqual(findCell(standalone, "filler three"));
     instance.unmount();
   });
+
+  it("keeps a standalone renderer's overlays inside its own rows, never over the host's content after it", async () => {
+    const program = `root = Stack([${FILLER}, Floater("anchor")], "column", "none")`;
+    function App({ open }: { open: boolean }) {
+      const response = open
+        ? program
+        : program.replace('Floater("anchor")', 'Floater("anchor", true)');
+      return (
+        <Box flexDirection="column">
+          <InkRenderer response={response} library={overlayLibrary} isStreaming={false} />
+          <Text>FOOTER one</Text>
+          <Text>FOOTER two</Text>
+          <Text>FOOTER three</Text>
+        </Box>
+      );
+    }
+    const instance = render(<App open={false} />);
+    await settle();
+    const closed = stripAnsi(instance.lastFrame() ?? "");
+    const anchor = findCell(closed, "anchor");
+    expect(findCell(closed, "FOOTER one").y).toBe(anchor.y + 1);
+    instance.rerender(<App open={true} />);
+    await settle();
+    const frame = stripAnsi(instance.lastFrame() ?? "");
+    // The root has room under the anchor, but the renderer does not: the overlay flips above.
+    expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: anchor.x + 1, y: anchor.y - 2 });
+    for (const footer of ["FOOTER one", "FOOTER two", "FOOTER three"]) {
+      expect(findCell(frame, footer)).toEqual(findCell(closed, footer));
+    }
+    instance.unmount();
+  });
 });

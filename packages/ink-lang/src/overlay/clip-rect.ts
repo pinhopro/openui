@@ -44,7 +44,7 @@ function boxClip(box: DOMElement, outer: CellRect): CellRect {
 }
 
 /** The cells two rectangles share; zero wide or high when they share none. */
-function intersection(a: CellRect, b: CellRect): CellRect {
+export function rectIntersection(a: CellRect, b: CellRect): CellRect {
   const x = Math.max(a.x, b.x);
   const y = Math.max(a.y, b.y);
   const right = Math.min(a.x + a.width, b.x + b.width);
@@ -54,7 +54,7 @@ function intersection(a: CellRect, b: CellRect): CellRect {
 
 /** True when the two rectangles share at least one cell. */
 export function rectsIntersect(a: CellRect, b: CellRect): boolean {
-  const shared = intersection(a, b);
+  const shared = rectIntersection(a, b);
   return shared.width > 0 && shared.height > 0;
 }
 
@@ -72,7 +72,7 @@ export function clippedBy(element: DOMElement): CellRect | null {
     const style = current.style;
     if (clipsHorizontally(style) || clipsVertically(style)) {
       const box = boxClip(current, rootRect(element));
-      clip = clip === null ? box : intersection(clip, box);
+      clip = clip === null ? box : rectIntersection(clip, box);
     }
     current = current.parentNode;
   }

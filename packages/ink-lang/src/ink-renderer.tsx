@@ -1,5 +1,5 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
-import { Box, Text } from "ink";
+import { Box, Text, type DOMElement } from "ink";
 import { useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import { OpenUIContext } from "./context";
 import {
@@ -159,11 +159,15 @@ export function InkRenderer(props: InkRendererProps) {
   const inheritedOverlays = useContext(OverlayRegistryContext);
   const ownOverlays = useMemo(createOverlayRegistry, []);
   const ownsOverlays = inheritedOverlays === null;
+  // The page's own cells bound the overlays it hosts: without a FocusScope they must not cover
+  // the host's content around the renderer, which is painted after them.
+  const pageRef = useRef<DOMElement | null>(null);
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
   const page = (
     <Box
+      ref={pageRef}
       flexDirection="column"
       marginX={grid.margin}
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
@@ -185,7 +189,7 @@ export function InkRenderer(props: InkRendererProps) {
       </SequenceLevel>
       {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
       {/* Last child, so the overlays paint over the whole page without taking any of its cells. */}
-      {ownsOverlays ? <OverlayHost /> : null}
+      {ownsOverlays ? <OverlayHost boundsRef={pageRef} /> : null}
     </Box>
   );
   const tree = ownsNavigation ? (

@@ -8,7 +8,8 @@ import {
   useSyncExternalStore,
   type RefObject,
 } from "react";
-import type { CellRect } from "../focus/element-rect";
+import { elementRect, type CellRect } from "../focus/element-rect";
+import { rectIntersection } from "./clip-rect";
 import { OverlayBox } from "./overlay-box";
 import {
   measurePlacement,
@@ -73,9 +74,23 @@ function refFor(refs: BoxRefs, id: string): RefObject<DOMElement | null> {
   return ref;
 }
 
-/** The rectangle the host places overlays in: the ink root. */
-function boundsOf(host: DOMElement): CellRect {
-  return rootRect(host);
+/**
+ * The rectangle the host places overlays in: the cells of the bounds box it
+ * was given (inside the ink root), else the whole ink root.
+ */
+function boundsOf(host: DOMElement, boundsBox: DOMElement | null): CellRect {
+  const root = rootRect(host);
+  if (boundsBox === null) return root;
+  return rectIntersection(elementRect(boundsBox), root);
+}
+
+export interface OverlayHostProps {
+  /**
+   * The box overlays must stay inside; default the whole ink root. A
+   * standalone `InkRenderer` passes its page, so its overlays never cover the
+   * host's content around it.
+   */
+  boundsRef?: RefObject<DOMElement | null>;
 }
 
 /**
@@ -93,10 +108,10 @@ function boundsOf(host: DOMElement): CellRect {
  * it is measured, so no frame shows it in a wrong place. Placements are
  * measured after every render of the host and after every layout of the ink
  * root (a scrolled pane, a resize; `useLayoutSignal`): the anchor's cells,
- * each form's size, the ink root as the bounds. Only changed placements
- * re-render.
+ * each form's size and the bounds (`boundsRef`, else the ink root). Only
+ * changed placements re-render.
  */
-export function OverlayHost() {
+export function OverlayHost({ boundsRef }: OverlayHostProps) {
   const registry = useContext(OverlayRegistryContext);
   const overlays = useOverlayList(registry);
   const hostRef = useRef<DOMElement | null>(null);
@@ -109,6 +124,12 @@ export function OverlayHost() {
   const rendered = useRef({ overlays, placements });
   rendered.current = { overlays, placements };
 
+  /** The current bounds, read after layout. */
+  function currentBounds(host: DOMElement): CellRect {
+    const boundsBox = boundsRef === undefined ? null : boundsRef.current;
+    return boundsOf(host, boundsBox);
+  }
+
   /** Measures every open overlay against the layout Ink just computed; sets state only on a change. */
   function placeOverlays(): void {
     const host = hostRef.current;
@@ -118,7 +139,7 @@ export function OverlayHost() {
     for (const overlay of drawn.overlays) open.add(overlay.id);
     forgetClosed(wholeRefs.current, open);
     forgetClosed(compactRefs.current, open);
-    const bounds = boundsOf(host);
+    const bounds = currentBounds(host);
     const next: Placements = new Map();
     for (const overlay of drawn.overlays) {
       const placed = measurePlacement({
@@ -144,7 +165,7 @@ export function OverlayHost() {
     if (measured !== undefined) return measured;
     const host = hostRef.current;
     if (host === null) return null;
-    return unmeasuredPlacement(overlay, host, boundsOf(host));
+    return unmeasuredPlacement(overlay, host, currentBounds(host));
   }
 
   const boxes = [];

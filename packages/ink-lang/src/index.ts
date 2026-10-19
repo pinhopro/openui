@@ -427,6 +427,7 @@ export { clippedBy, rectsIntersect } from "./overlay/clip-rect";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
 export { OverlayHost } from "./overlay/overlay-host";
+export type { OverlayHostProps } from "./overlay/overlay-host";
 export {
   compactWidthLimit,
   overlayFits,
