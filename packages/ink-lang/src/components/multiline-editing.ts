@@ -1,4 +1,5 @@
 import type { Key } from "ink";
+import { verticalStep } from "./arrow-keys";
 import { applyKeyToEditor, countGraphemes, toGraphemes, type EditorState } from "./text-editing";
 
 /** The line and column of a grapheme cursor inside multi-line text. */
@@ -49,8 +50,10 @@ function moveLine(state: EditorState, delta: number): EditorState {
 
 /**
  * The single-line editor plus Enter (a newline at the cursor) and Up / Down
- * (the same column on the previous / next line). Pasted text arrives as one
- * chunk: its line breaks become newlines too.
+ * (the same column on the previous / next line). An Up or Down with Ctrl,
+ * Meta, Super or Hyper held is foreign (`verticalStep`): it moves a dialog
+ * the editor sits in, never the cursor. Pasted text arrives as one chunk:
+ * its line breaks become newlines too.
  */
 export function applyKeyToMultilineEditor(
   state: EditorState,
@@ -59,8 +62,9 @@ export function applyKeyToMultilineEditor(
 ): EditorState {
   if (key.eventType === "release") return state;
   if (key.return) return insertNewline(state);
-  if (key.upArrow) return moveLine(state, -1);
-  if (key.downArrow) return moveLine(state, 1);
+  const step = verticalStep(key);
+  if (step !== 0) return moveLine(state, step);
+  if (key.upArrow || key.downArrow) return state;
   const parts = input.split(/\r\n|\r|\n/);
   if (parts.length === 1) return applyKeyToEditor(state, input, key);
   let next = state;

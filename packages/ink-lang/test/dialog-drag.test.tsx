@@ -368,6 +368,31 @@ describe("dialog moves with Ctrl+arrows", () => {
     rendered.unmount();
   });
 
+  it("moves a Modal with a focused TextArea and leaves its cursor on its line", async () => {
+    const { rendered } = await mount(
+      [
+        "$show = true",
+        `root = Stack([Modal("Notes", $show, [TextArea("notes", "type", 4)]), ${fillerRows(ROWS)}], "column", "none")`,
+      ].join("\n"),
+      false,
+    );
+    await send(rendered, "a");
+    await send(rendered, KEYS.ENTER);
+    await send(rendered, "b");
+    const title = findCell(plain(rendered), "Notes");
+    // Each Ctrl+Up or Ctrl+Down moves the modal; the cursor stays at the end of the second line.
+    await send(rendered, KEYS.CTRL_UP);
+    expect(findCell(plain(rendered), "Notes")).toEqual(moved(title, 0, -1));
+    await send(rendered, "X");
+    await send(rendered, KEYS.CTRL_DOWN);
+    expect(findCell(plain(rendered), "Notes")).toEqual(title);
+    await send(rendered, "Y");
+    const frame = plain(rendered);
+    expect(frame).toContain("bXY");
+    expect(frame).not.toContain("aX");
+    rendered.unmount();
+  });
+
   it("moves the open modal, not a page Dialog, while a modal is open", async () => {
     const { rendered, events } = await mount(noteAndModalProgram(), false);
     expect(lastFocused(events)).toBe("Cancel");
