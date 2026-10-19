@@ -140,8 +140,8 @@ export interface OverlayHostProps {
  * each form's size and the bounds (`boundsRef`, else the ink root). Only
  * changed placements re-render. An overlay with an offset is shown moved by
  * it and clamped into the bounds; an overlay's `onPlaced` is told the cells
- * its shown form takes after each measurement that changed them
- * (`reportPlaced`).
+ * its shown form takes and how it was placed (`PlacedFrame`) after each
+ * measurement that changed them (`reportPlaced`).
  */
 export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostProps) {
   const registry = useContext(OverlayRegistryContext);
@@ -195,6 +195,7 @@ export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostP
           overlays: [],
           placements: new Map(),
           host,
+          bounds: currentBounds(host),
         });
       }
       return;
@@ -226,6 +227,7 @@ export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostP
       overlays: drawn.overlays,
       placements: next,
       host,
+      bounds,
     });
   }
 

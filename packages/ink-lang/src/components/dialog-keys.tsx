@@ -1,5 +1,6 @@
 import { useFocusManager, useInput, type Key } from "ink";
 import { useContext } from "react";
+import { useIsStreaming } from "../context";
 import { FocusRegistryContext, type FocusRegistry } from "../focus/focus-registry";
 import { useOverlayId } from "../overlay/overlay-content-context";
 
@@ -27,14 +28,17 @@ function isCtrlOnly(key: Key): boolean {
 /**
  * Put inside a dialog's overlay content: Ctrl+Left, Right, Up and Down move
  * the dialog one cell while one of its own stops has focus (so a page dialog
- * stays put while focus is in a modal on top, or on the page). The focus
- * navigator ignores modified arrows, so focus stays where it is. Re-rendered
+ * stays put while focus is in a modal on top, or on the page), and not
+ * while the program streams. The focus navigator and the components' own
+ * arrow steps (`horizontalStep`, `verticalStep`) ignore modified arrows, so
+ * focus and the focused value stay as they are. Re-rendered
  * on every focus change (the focus manager's context). Draws nothing.
  */
 export function DialogKeys({ onMove }: DialogKeysProps): null {
   const registry = useContext(FocusRegistryContext);
   const overlay = useOverlayId();
   const activeId = useFocusManager().activeId;
+  const isStreaming = useIsStreaming();
 
   useInput(
     function handleMoveKey(_input, key) {
@@ -44,7 +48,7 @@ export function DialogKeys({ onMove }: DialogKeysProps): null {
       else if (key.upArrow) onMove(0, -1);
       else if (key.downArrow) onMove(0, 1);
     },
-    { isActive: hasFocusIn(registry, activeId, overlay) },
+    { isActive: !isStreaming && hasFocusIn(registry, activeId, overlay) },
   );
   return null;
 }

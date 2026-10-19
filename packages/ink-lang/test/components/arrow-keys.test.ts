@@ -65,3 +65,19 @@ describe("verticalStep", () => {
     expect(verticalStep(key({ downArrow: true, eventType: "release" }))).toBe(0);
   });
 });
+
+describe("modified arrows", () => {
+  it("are no step: Ctrl, Meta, Super or Hyper with an arrow belong to something else (moving a dialog)", () => {
+    for (const modifier of ["ctrl", "meta", "super", "hyper"]) {
+      expect(horizontalStep(key({ rightArrow: true, [modifier]: true }))).toBe(0);
+      expect(horizontalStep(key({ leftArrow: true, [modifier]: true }))).toBe(0);
+      expect(verticalStep(key({ upArrow: true, [modifier]: true }))).toBe(0);
+      expect(verticalStep(key({ downArrow: true, [modifier]: true }))).toBe(0);
+    }
+  });
+
+  it("still step with Shift held", () => {
+    expect(horizontalStep(key({ rightArrow: true, shift: true }))).toBe(1);
+    expect(verticalStep(key({ upArrow: true, shift: true }))).toBe(-1);
+  });
+});

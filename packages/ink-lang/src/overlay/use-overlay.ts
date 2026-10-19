@@ -4,7 +4,12 @@ import type { CellRect } from "../focus/element-rect";
 import { LayerIdContext } from "../focus/modal-layer";
 import { useCapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
-import { OverlayRegistryContext, type Overlay, type OverlayKind } from "./overlay-registry";
+import {
+  OverlayRegistryContext,
+  type Overlay,
+  type OverlayKind,
+  type PlacedFrame,
+} from "./overlay-registry";
 
 export interface UseOverlayOptions {
   /**
@@ -51,12 +56,14 @@ export interface UseOverlayOptions {
   offset?: { x: number; y: number };
   /**
    * Called by the host, outside render, whenever the cells the shown form
-   * takes change, with those cells in the ink root's coordinates (the compact
-   * form's while it shows, else the whole one's); null while nothing shows
-   * (the anchor is missing or clipped out) and once the overlay closes. The
-   * same cells are never reported twice in a row.
+   * takes or how it was placed change: those cells in the ink root's
+   * coordinates (the compact form's while it shows, else the whole one's)
+   * and the `PlacedFrame` (where it went before the offset, and the bounds it
+   * is clamped into); both null while nothing shows (the anchor is missing or
+   * clipped out) and once the overlay closes. The same report is never made
+   * twice in a row.
    */
-  onPlaced?: (rect: CellRect | null) => void;
+  onPlaced?: (rect: CellRect | null, frame: PlacedFrame | null) => void;
 }
 
 export interface OverlayHandle {

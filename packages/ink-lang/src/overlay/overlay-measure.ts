@@ -44,6 +44,11 @@ export interface FormSpot {
    * (the bounds' size), as it is never measured.
    */
   cover: boolean;
+  /**
+   * A shown form's top-left as placed, before the overlay's offset moved it,
+   * in the ink root's cells; null for a hidden or cover form.
+   */
+  origin: OverlayPosition | null;
 }
 
 /** How one open overlay is drawn. */
@@ -155,6 +160,7 @@ function hiddenSpot(input: SpotInput): FormSpot {
     height: input.size.height,
     visible: false,
     cover: false,
+    origin: null,
   };
 }
 
@@ -187,6 +193,7 @@ function shownSpot(overlay: Overlay, placed: OverlayPosition, input: SpotInput):
     height: input.size.height,
     visible: true,
     cover: false,
+    origin: placed,
   };
 }
 
@@ -207,6 +214,7 @@ function coverSpot(host: DOMElement, bounds: CellRect, anchor: CellRect): FormSp
     height: size.height,
     visible: true,
     cover: true,
+    origin: null,
   };
 }
 

@@ -8,7 +8,8 @@ import type { MouseButton, WheelDirection } from "./mouse/mouse-sequence";
  * control); each carries the dialog's type and title. `dragstart`, `drag`
  * and `dragend` report a dialog moved by its title bar (a press, each move
  * that moved it, the release, at the pointer's cell) or by Ctrl+arrows (all
- * three for each key, at the dialog's top-left cell).
+ * three for each key that moves it, at the dialog's top-left cell before
+ * and after).
  */
 export type UiEventType =
   | "focus"

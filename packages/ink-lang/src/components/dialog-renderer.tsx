@@ -2,7 +2,7 @@ import type { ActionPlan } from "@openuidev/lang-core";
 import { Box, type DOMElement } from "ink";
 import { useId, useRef, type ReactNode } from "react";
 import type { z } from "zod/v4";
-import { useTriggerAction } from "../context";
+import { useIsStreaming, useTriggerAction } from "../context";
 import { useComponentStyle } from "../design/design-system-context";
 import { LayerIdContext } from "../focus/modal-layer";
 import { useFormName } from "../form-name-context";
@@ -72,6 +72,7 @@ const MARKS: Record<string, string> = {
 export function DialogRenderer({ props, modal, placement, component }: DialogRendererProps) {
   const theme = useTheme();
   const triggerAction = useTriggerAction();
+  const isStreaming = useIsStreaming();
   const formName = useFormName();
   const emit = useUiEvents();
   const field = useStateField<unknown>("open", props.open);
@@ -89,7 +90,7 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
   function stayWhereDropped(): void {}
 
   const drag = useDrag({
-    enabled: isOpen && props.draggable !== false,
+    enabled: isOpen && !isStreaming && props.draggable !== false,
     name: title,
     component,
     onDrop: stayWhereDropped,

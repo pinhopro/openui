@@ -173,6 +173,68 @@ describe("dialog drag by the title bar", () => {
     rendered.unmount();
   });
 
+  it("keeps no excess from a drag past the edge: dragged back 5 cells, it moves 5 cells", async () => {
+    const { rendered, events } = await mount(modalDialogProgram(true), true);
+    const title = findCell(plain(rendered), MODAL_TITLE);
+    await send(rendered, MOUSE.press(title.x, title.y));
+    await send(rendered, MOUSE.drag(COLUMNS + 20, title.y));
+    await send(rendered, MOUSE.release(COLUMNS + 20, title.y));
+    const clamped = findCell(plain(rendered), MODAL_TITLE);
+    expect(clamped.x).toBeGreaterThan(title.x);
+
+    await send(rendered, MOUSE.press(clamped.x, clamped.y));
+    await send(rendered, MOUSE.drag(clamped.x - 5, clamped.y));
+    await send(rendered, MOUSE.release(clamped.x - 5, clamped.y));
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(moved(clamped, -5, 0));
+
+    // Back at the right edge, Ctrl+Right cannot move it: nothing is reported.
+    await send(rendered, MOUSE.press(clamped.x - 5, clamped.y));
+    await send(rendered, MOUSE.drag(COLUMNS + 20, clamped.y));
+    await send(rendered, MOUSE.release(COLUMNS + 20, clamped.y));
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(clamped);
+    const reported = dragEvents(events).length;
+    await send(rendered, KEYS.CTRL_RIGHT);
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(clamped);
+    expect(dragEvents(events)).toHaveLength(reported);
+    await send(rendered, KEYS.CTRL_LEFT);
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(moved(clamped, -1, 0));
+    rendered.unmount();
+  });
+
+  it("does not drag while streaming, and a drag that streaming interrupts ends", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(inkLibrary, modalDialogProgram(true), {
+      mouse: true,
+      isStreaming: true,
+      onUiEvent: function onUiEvent(event) {
+        events.push(event);
+      },
+    });
+    await settle();
+    const title = findCell(plain(rendered), MODAL_TITLE);
+    await send(rendered, MOUSE.press(title.x, title.y));
+    await send(rendered, MOUSE.drag(title.x + 4, title.y + 2));
+    await send(rendered, MOUSE.release(title.x + 4, title.y + 2));
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(title);
+    await send(rendered, KEYS.CTRL_RIGHT);
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(title);
+    expect(dragEvents(events)).toEqual([]);
+
+    await rendered.update({ isStreaming: false });
+    await send(rendered, MOUSE.press(title.x, title.y));
+    await send(rendered, MOUSE.drag(title.x + 2, title.y));
+    await rendered.update({ isStreaming: true });
+    expect(inverseSegments(rendered.frame())).not.toContain(MODAL_TITLE);
+    await send(rendered, MOUSE.drag(title.x + 6, title.y));
+    expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(moved(title, 2, 0));
+    expect(
+      dragEvents(events).map(function typeOf(event) {
+        return event.type;
+      }),
+    ).toEqual(["dragstart", "drag", "dragend"]);
+    rendered.unmount();
+  });
+
   it("forgets a drag its dialog closed in the middle of: reopened, it is not dragging", async () => {
     const { rendered, events } = await mount(modalDialogProgram(true), true);
     const title = findCell(plain(rendered), MODAL_TITLE);
@@ -260,6 +322,42 @@ describe("dialog moves with Ctrl+arrows", () => {
     expect(lastFocused(events)).toBe("A");
     await send(rendered, KEYS.CTRL_RIGHT);
     expect(findCell(plain(rendered), NOTE_TITLE)).toEqual(moved(title, 1, 0));
+    rendered.unmount();
+  });
+
+  it("reports nothing for a Ctrl+arrow that cannot move the dialog, at the left edge", async () => {
+    const { rendered, events } = await mount(noteProgram(), false);
+    const corner = findCell(plain(rendered), "╭");
+    expect(corner.x).toBe(0);
+    await send(rendered, KEYS.CTRL_LEFT);
+    expect(findCell(plain(rendered), "╭")).toEqual(corner);
+    expect(dragEvents(events)).toEqual([]);
+    // No excess was kept: one Ctrl+Right moves it one cell, reported from the corner.
+    await send(rendered, KEYS.CTRL_RIGHT);
+    expect(findCell(plain(rendered), "╭")).toEqual(moved(corner, 1, 0));
+    expect(dragEvents(events)).toEqual([
+      { type: "dragstart", component: "Dialog", name: NOTE_TITLE, x: corner.x, y: corner.y },
+      { type: "drag", component: "Dialog", name: NOTE_TITLE, x: corner.x + 1, y: corner.y },
+      { type: "dragend", component: "Dialog", name: NOTE_TITLE, x: corner.x + 1, y: corner.y },
+    ]);
+    rendered.unmount();
+  });
+
+  it("moves a Modal with a focused Slider and leaves the slider's value alone", async () => {
+    const { rendered } = await mount(
+      [
+        "$show = true",
+        `root = Stack([Modal("Settings", $show, [Slider("volume", "discrete", 0, 10, 2, [4], "Volume")]), ${fillerRows(ROWS)}], "column", "none")`,
+      ].join("\n"),
+      false,
+    );
+    expect(inverseSegments(rendered.frame())).toEqual(["4"]);
+    const title = findCell(plain(rendered), "Settings");
+    await send(rendered, KEYS.CTRL_RIGHT);
+    expect(findCell(plain(rendered), "Settings")).toEqual(moved(title, 1, 0));
+    expect(plain(rendered)).toContain("┤ 4");
+    await send(rendered, KEYS.RIGHT);
+    expect(plain(rendered)).toContain("┤ 6");
     rendered.unmount();
   });
 

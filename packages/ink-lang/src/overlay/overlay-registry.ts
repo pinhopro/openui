@@ -11,6 +11,17 @@ import type { OverlayPlacement } from "./overlay-placement";
  */
 export type OverlayKind = "tooltip" | "dialog" | "modal" | "backdrop";
 
+/**
+ * How a shown form was placed, in the ink root's cells: where it went before
+ * the overlay's offset moved it (`origin`, its top-left) and the bounds the
+ * moved form was clamped into. With the form's size, an owner can tell where
+ * any offset draws it (`clampIntoBounds(origin + offset, size, bounds)`).
+ */
+export interface PlacedFrame {
+  origin: { x: number; y: number };
+  bounds: CellRect;
+}
+
 /** One open overlay, as `useOverlay` registers it. */
 export interface Overlay {
   id: string;
@@ -41,11 +52,12 @@ export interface Overlay {
   offset: { x: number; y: number };
   /**
    * Told the cells the shown form takes, in the ink root's cells (the compact
-   * form's while it shows, else the whole one's), whenever they change; null
-   * while nothing shows (the anchor is gone, the form is still being measured)
-   * and once the overlay closes. Null when the owner does not listen.
+   * form's while it shows, else the whole one's), and how it was placed
+   * (`PlacedFrame`), whenever either changes; both null while nothing shows
+   * (the anchor is gone, the form is still being measured) and once the
+   * overlay closes. Null when the owner does not listen.
    */
-  onPlaced: ((rect: CellRect | null) => void) | null;
+  onPlaced: ((rect: CellRect | null, frame: PlacedFrame | null) => void) | null;
   /**
    * The modal layer the overlay belongs to (a modal's id for its own backdrop
    * and box, the layer its owner renders in otherwise; null for the page).

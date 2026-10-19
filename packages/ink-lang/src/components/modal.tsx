@@ -80,6 +80,7 @@ const WIDTHS: Record<string, number> = { sm: 40, md: 60, lg: 80 };
 function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) {
   const theme = useTheme();
   const emit = useUiEvents();
+  const isStreaming = useIsStreaming();
   const field = useStateField<unknown>("open", props.open);
   const isOpen = field.value === true || field.value === "true";
   const setValue = field.setValue;
@@ -92,7 +93,7 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   function stayWhereDropped(): void {}
 
   const drag = useDrag({
-    enabled: isOpen,
+    enabled: isOpen && !isStreaming,
     name: title,
     component: "Modal",
     onDrop: stayWhereDropped,

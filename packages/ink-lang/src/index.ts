@@ -461,7 +461,12 @@ export type {
   PlaceOverlayInput,
 } from "./overlay/overlay-placement";
 export { OverlayRegistryContext, createOverlayRegistry } from "./overlay/overlay-registry";
-export type { Overlay, OverlayKind, OverlayRegistry } from "./overlay/overlay-registry";
+export type {
+  Overlay,
+  OverlayKind,
+  OverlayRegistry,
+  PlacedFrame,
+} from "./overlay/overlay-registry";
 export { rootRect } from "./overlay/root-rect";
 export { useDrag } from "./overlay/use-drag";
 export type { DragOffset, DragState, UseDragOptions } from "./overlay/use-drag";

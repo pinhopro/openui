@@ -3,6 +3,7 @@ import { useRef, type ReactNode } from "react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { CellRect } from "../../src/focus/element-rect";
 import { FocusScope } from "../../src/focus/focus-scope";
+import type { PlacedFrame } from "../../src/overlay/overlay-registry";
 import { useOverlay } from "../../src/overlay/use-overlay";
 import { stripAnsi } from "../helpers/ansi";
 import { findCell } from "../helpers/find-cell";
@@ -19,8 +20,12 @@ const OVERLAY_HEIGHT = 3;
 /** Every rect `onPlaced` received, oldest first. */
 const placedReports: (CellRect | null)[] = [];
 
-function recordPlaced(rect: CellRect | null): void {
+/** Every frame `onPlaced` received with those rects, oldest first. */
+const placedFrames: (PlacedFrame | null)[] = [];
+
+function recordPlaced(rect: CellRect | null, frame: PlacedFrame | null): void {
   placedReports.push(rect);
+  placedFrames.push(frame);
 }
 
 interface FloaterProps {
@@ -84,6 +89,7 @@ function charAt(frame: string, x: number, y: number): string {
 
 afterEach(() => {
   placedReports.length = 0;
+  placedFrames.length = 0;
 });
 
 describe("overlay offset", () => {
@@ -129,6 +135,33 @@ describe("overlay onPlaced", () => {
     terminal.rerender(<App open={false} report={true} offset={{ x: 3, y: 1 }} />);
     await settle();
     expect(placedReports).toEqual([opened, moved, null]);
+    terminal.unmount();
+  });
+
+  it("tells where the form was placed before its offset and the bounds it was clamped into", async () => {
+    const terminal = renderTerminal(
+      <App open={true} report={true} offset={{ x: 100, y: 0 }} />,
+      COLUMNS,
+    );
+    await settle();
+    const clamped: CellRect = {
+      x: COLUMNS - OVERLAY_WIDTH,
+      y: 1,
+      width: OVERLAY_WIDTH,
+      height: OVERLAY_HEIGHT,
+    };
+    expect(placedReports).toEqual([clamped]);
+    // Under the anchor, before the offset; the bounds are the root: 40 columns, 9 rows.
+    expect(placedFrames).toEqual([
+      { origin: { x: 0, y: 1 }, bounds: { x: 0, y: 0, width: COLUMNS, height: 9 } },
+    ]);
+
+    terminal.rerender(<App open={false} report={true} offset={{ x: 100, y: 0 }} />);
+    await settle();
+    expect(placedFrames).toEqual([
+      { origin: { x: 0, y: 1 }, bounds: { x: 0, y: 0, width: COLUMNS, height: 9 } },
+      null,
+    ]);
     terminal.unmount();
   });
 });
