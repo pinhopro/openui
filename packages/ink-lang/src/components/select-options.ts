@@ -1,5 +1,8 @@
 import { isElementValue } from "../element-node";
 
+/** What a Select shows while nothing is picked and the model gave no placeholder. */
+export const SELECT_PLACEHOLDER = "Select...";
+
 export interface SelectOption {
   value: string;
   label: string;

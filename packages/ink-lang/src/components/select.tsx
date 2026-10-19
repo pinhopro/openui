@@ -13,12 +13,16 @@ import { useStateField } from "../use-state-field";
 import { verticalStep } from "./arrow-keys";
 import { isPressKey } from "./button-keys";
 import { FieldFrame } from "./field-frame";
-import { indexOfOption, selectOptions, type SelectOption } from "./select-options";
+import {
+  indexOfOption,
+  SELECT_PLACEHOLDER,
+  selectOptions,
+  type SelectOption,
+} from "./select-options";
 import { clampIndex, stepIndex } from "./step-index";
 
 type SelectProps = z.infer<typeof SelectSchema>;
 
-const DEFAULT_PLACEHOLDER = "Select...";
 const SELECTED_MARK = "●";
 const UNSELECTED_MARK = "○";
 
@@ -147,7 +151,7 @@ function SelectRenderer({ props }: ComponentRenderProps<SelectProps>) {
   }
 
   const selected = options[selectedIndex];
-  const placeholder = props.placeholder ?? DEFAULT_PLACEHOLDER;
+  const placeholder = props.placeholder ?? SELECT_PLACEHOLDER;
   const prefix = focusable.isFocused ? "> " : "  ";
   const summary =
     selected === undefined ? (

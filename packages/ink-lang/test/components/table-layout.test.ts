@@ -52,7 +52,7 @@ describe("tableLayout", () => {
     const tag = { type: "element", typeName: "Tag", props: { text: "New" }, partial: false };
     const unknown = { type: "element", typeName: "Steps", props: { items: [] }, partial: false };
     expect(tableLayout([col("", [button])]).columns[0]?.width).toBe("[ Go ]".length);
-    expect(tableLayout([col("", [input])]).columns[0]?.width).toBe("  Type here".length);
+    expect(tableLayout([col("", [input])]).columns[0]?.width).toBe("> Type here".length + 1);
     expect(tableLayout([col("", [tag])]).columns[0]?.width).toBe("[New]".length);
     expect(tableLayout([col("", [unknown])]).columns[0]?.width).toBe(20);
   });
@@ -65,9 +65,24 @@ describe("tableLayout", () => {
       partial: false,
     };
     const button = { type: "element", typeName: "Button", props: { label: "Go" }, partial: false };
-    const layout = tableLayout([col("", [input]), col("", [button])], 4);
-    expect(layout.columns[0]?.width).toBe("  Type here".length + 4);
+    const layout = tableLayout([col("", [input]), col("", [button])], { fieldFrameWidth: 4 });
+    expect(layout.columns[0]?.width).toBe("> Type here".length + 1 + 4);
     expect(layout.columns[1]?.width).toBe("[ Go ]".length);
+  });
+
+  it("measures a field cell by the value its reader returns, not by the binding it was declared with", () => {
+    const binding = { __reactive: "assign", target: "q", expr: null };
+    const input = {
+      type: "element",
+      typeName: "Input",
+      props: { name: "q", placeholder: "Q", value: binding },
+      partial: false,
+    };
+    function readField(name: string, declared: unknown): unknown {
+      return name === "q" && declared === binding ? "a longer search query" : undefined;
+    }
+    const layout = tableLayout([col("Q", [input])], { fieldFrameWidth: 0, readField });
+    expect(layout.columns[0]?.width).toBe("> a longer search query".length + 1);
   });
 
   it("never goes below one cell", () => {

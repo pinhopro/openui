@@ -1,5 +1,8 @@
 import type { SelectOption } from "./select-options";
 
+/** What a Combobox shows while nothing is picked and the model gave no placeholder. */
+export const COMBOBOX_PLACEHOLDER = "Search...";
+
 /** The slice of a long list that fits on screen, and how many rows follow it. */
 export interface ListWindow {
   start: number;

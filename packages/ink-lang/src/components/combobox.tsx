@@ -12,7 +12,7 @@ import { useFieldStyles } from "../use-field-styles";
 import { useFieldValidation } from "../use-field-validation";
 import { useStateField } from "../use-state-field";
 import { verticalStep } from "./arrow-keys";
-import { filterOptions, listWindow } from "./combobox-options";
+import { COMBOBOX_PLACEHOLDER, filterOptions, listWindow } from "./combobox-options";
 import { FieldFrame } from "./field-frame";
 import { indexOfOption, selectOptions, type SelectOption } from "./select-options";
 import { clampIndex, stepIndex } from "./step-index";
@@ -20,7 +20,6 @@ import { applyKeyToEditor, countGraphemes, splitForCursor, type EditorState } fr
 
 type ComboboxProps = z.infer<typeof ComboboxSchema>;
 
-const DEFAULT_PLACEHOLDER = "Search...";
 const LIST_ROWS = 5;
 const SELECTED_MARK = "●";
 const UNSELECTED_MARK = "○";
@@ -239,7 +238,7 @@ function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
 
   const selectedIndex = indexOfOption(options, field.value);
   const selected = options[selectedIndex];
-  const placeholder = props.placeholder ?? DEFAULT_PLACEHOLDER;
+  const placeholder = props.placeholder ?? COMBOBOX_PLACEHOLDER;
   let summary: ReactNode;
   const bold = focusable.isFocused ? true : styles.text.bold;
   if (selected !== undefined) {

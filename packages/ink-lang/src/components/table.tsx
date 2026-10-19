@@ -12,6 +12,7 @@ import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { TableSchema } from "../schemas/table-schema";
 import { boxProps, textProps } from "../theme-styles";
+import { useFieldValueReader } from "./table-field-value";
 import { cellText, tableLayout, type TableColumn } from "./table-layout";
 import { TablePager } from "./table-pager";
 import { pageBounds } from "./table-paging";
@@ -205,10 +206,11 @@ function DataRow({ columns, rowIndex, rowCount, parts, renderNode }: DataRowProp
 function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) {
   const system = useDesignSystem();
   const path = useElementPath();
-  const layout = tableLayout(
-    Array.isArray(props.columns) ? props.columns : [],
-    fieldFrameWidth(system, path),
-  );
+  const readField = useFieldValueReader();
+  const layout = tableLayout(Array.isArray(props.columns) ? props.columns : [], {
+    fieldFrameWidth: fieldFrameWidth(system, path),
+    readField,
+  });
   const isStreaming = useIsStreaming();
   const parts = tableParts(system, path);
   const [page, setPage] = useState(0);

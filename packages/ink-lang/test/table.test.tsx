@@ -187,3 +187,51 @@ describe("Table paging", () => {
     });
   });
 });
+
+describe("Table with field cells", () => {
+  function lineWith(frame: string, text: string): string {
+    return (
+      frame.split("\n").find(function holds(line) {
+        return stripAnsi(line).includes(text);
+      }) ?? ""
+    );
+  }
+
+  it("widens a narrow column to the bound value of its Input so the focused cursor stays on the line", async () => {
+    const program = [
+      "root = Stack([table])",
+      'table = Table([Col("Q", [Input("q", "Search", null, null, $q)]), Col("Name", ["Ada"])])',
+      '$q = "a longer search query"',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    expect(stripAnsi(lineWith(rendered.frame(), "Ada"))).toMatch(
+      /^  a longer search query \s+Ada\s*$/,
+    );
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    const frame = rendered.frame();
+    expect(frame.split("\n")).toHaveLength(3);
+    const focused = lineWith(frame, "> a longer search query");
+    expect(inverseSegments(focused)).toEqual([" "]);
+    expect(stripAnsi(focused)).toMatch(/^> a longer search query \s+Ada\s*$/);
+    rendered.unmount();
+  });
+
+  it("widens the column while the user types into a form field past its placeholder", async () => {
+    const program = [
+      "root = Stack([form])",
+      'form = Form("notes", Buttons([Button("Save", @ToAssistant("Save"))]), [table])',
+      'table = Table([Col("Note", [Input("note", "Note")]), Col("Name", ["Ada"])])',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    rendered.instance.stdin.write("Shipped braille charts");
+    await settle();
+    const frame = rendered.frame();
+    const typed = lineWith(frame, "> Shipped braille charts");
+    expect(inverseSegments(typed)).toEqual([" "]);
+    expect(stripAnsi(typed)).toMatch(/^> Shipped braille charts \s+Ada\s*$/);
+    rendered.unmount();
+  });
+});
