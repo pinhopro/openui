@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ShowcasePage } from "../../examples/showcase/pages";
 import { ShowcaseApp } from "../../examples/showcase/showcase-app";
 import { createShowcaseTools } from "../../examples/showcase/showcase-tools";
-import { inverseSegments, stripAnsi } from "../helpers/ansi";
+import { DIM_ON, inverseSegments, stripAnsi } from "../helpers/ansi";
 import { findCell } from "../helpers/find-cell";
 import { KEYS } from "../helpers/keys";
 import { MOUSE } from "../helpers/mouse";
@@ -355,6 +355,66 @@ describe("ShowcaseApp themes", () => {
     instance.stdin.write(CTRL_T);
     await settle(10);
     expect(lastFrame(instance.frames)).toContain("Minimal ▾");
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp dim behind a modal", () => {
+  const modalPages: ShowcasePage[] = [
+    {
+      id: "notice",
+      title: "Notice",
+      program: [
+        "$open = true",
+        'root = Stack([CardHeader("Notice"), Button("Reopen", @Set($open, true)), dialog])',
+        'dialog = ModalDialog("info", "Saved notice", "Your changes are safe.", null, "OK", $open)',
+      ].join("\n"),
+    },
+    { id: "beta", title: "Beta", program: 'root = Stack([CardHeader("Beta")])' },
+  ];
+
+  /** The last full frame with its escape codes. */
+  function lastRawFrame(frames: string[]): string {
+    for (let index = frames.length - 1; index >= 0; index -= 1) {
+      const frame = frames[index] ?? "";
+      if (!/^(\u001b\[\?\d+[hl])+$/.test(frame)) return frame;
+    }
+    return "";
+  }
+
+  /** The raw codes between `text` and the border just before it, on the line holding `text`. */
+  function codesBefore(frame: string, text: string): string {
+    const line =
+      frame.split("\n").find(function has(candidate) {
+        return stripAnsi(candidate).includes(text);
+      }) ?? "";
+    const at = line.indexOf(text);
+    return line.slice(line.lastIndexOf("│", at) + 1, at);
+  }
+
+  it("dims the sidebar and the event log while a dialog of the page is open", async () => {
+    const instance = render(
+      <ShowcaseApp
+        pages={modalPages}
+        tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+        mouse={false}
+        stream={{ chunkSize: 1000, intervalMs: 1 }}
+      />,
+    );
+    await settle(40);
+    const open = lastRawFrame(instance.frames);
+    expect(stripAnsi(open)).toContain("Your changes are safe.");
+    expect(codesBefore(open, "Beta")).toContain(DIM_ON);
+    expect(codesBefore(open, "Events (")).toContain(DIM_ON);
+    // OK closes it: nothing is dimmed any more.
+    expect(inverseSegments(open)).toEqual(["[ OK ]"]);
+    instance.stdin.write(KEYS.ENTER);
+    await settle(40);
+    const closed = lastRawFrame(instance.frames);
+    // The event log names the dialog; its body is gone.
+    expect(stripAnsi(closed)).not.toContain("Your changes are safe.");
+    expect(codesBefore(closed, "Beta")).not.toContain(DIM_ON);
+    expect(codesBefore(closed, "Events (")).not.toContain(DIM_ON);
     instance.unmount();
   });
 });

@@ -12,10 +12,12 @@ import {
 import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { inkLibrary } from "../../src/default-library";
 import { createDesignSystem } from "../../src/design/design-system";
+import { DimBehind } from "../../src/dim-behind";
 import { elementRect } from "../../src/focus/element-rect";
 import type { FocusStop } from "../../src/focus/focus-order";
 import { FocusRegistryContext, type FocusEntry } from "../../src/focus/focus-registry";
 import { FocusScope } from "../../src/focus/focus-scope";
+import { ModalLayerContext } from "../../src/focus/modal-layer";
 import { InkRenderer } from "../../src/ink-renderer";
 import type { Library } from "../../src/library";
 import { MouseProvider } from "../../src/mouse/mouse-provider";
@@ -62,6 +64,19 @@ interface MouseScopeProps {
 function MouseScope({ enabled, children }: MouseScopeProps) {
   if (!enabled) return children;
   return <MouseProvider options={{ motion: true }}>{children}</MouseProvider>;
+}
+
+interface DimWhileModalProps {
+  children: ReactNode;
+}
+
+/**
+ * Draws the host's own panels faint while a modal of the page is open, as the
+ * renderer draws its page; inside the `FocusScope`, whose modal layers it reads.
+ */
+function DimWhileModal({ children }: DimWhileModalProps) {
+  const modalOpen = useContext(ModalLayerContext).activeLayer !== null;
+  return <DimBehind active={modalOpen}>{children}</DimBehind>;
 }
 
 /** True when `element` sits inside `pane`. */
@@ -293,20 +308,22 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
               borderStyle="single"
               borderDimColor
             >
-              <Sidebar
-                pages={pages}
-                activeIndex={activeIndex}
-                onSelect={selectPage}
-                width={SIDEBAR_WIDTH - 2}
-              />
-              <Box paddingX={1}>
-                <ThemeSelect
-                  themes={showcaseThemes}
-                  activeIndex={themeIndex}
-                  onSelect={setThemeIndex}
-                  width={SIDEBAR_WIDTH - 5}
+              <DimWhileModal>
+                <Sidebar
+                  pages={pages}
+                  activeIndex={activeIndex}
+                  onSelect={selectPage}
+                  width={SIDEBAR_WIDTH - 2}
                 />
-              </Box>
+                <Box paddingX={1}>
+                  <ThemeSelect
+                    themes={showcaseThemes}
+                    activeIndex={themeIndex}
+                    onSelect={setThemeIndex}
+                    width={SIDEBAR_WIDTH - 5}
+                  />
+                </Box>
+              </DimWhileModal>
             </Box>
             <Box flexDirection="column" flexGrow={1} minWidth={0}>
               <PagePane
@@ -322,7 +339,11 @@ export function ShowcaseApp({ pages, tools, mouse, stream }: ShowcaseAppProps) {
                 onError={setErrors}
                 onUiEvent={onUiEvent}
               />
-              <EventLog entries={events} height={LOG_ROWS} columns={columns - SIDEBAR_WIDTH} />
+              <Box flexDirection="column" flexShrink={0}>
+                <DimWhileModal>
+                  <EventLog entries={events} height={LOG_ROWS} columns={columns - SIDEBAR_WIDTH} />
+                </DimWhileModal>
+              </Box>
             </Box>
           </Box>
           <StatusBar
