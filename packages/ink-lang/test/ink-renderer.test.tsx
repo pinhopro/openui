@@ -1,7 +1,9 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { afterEach, describe, expect, it } from "vitest";
+import { inkLibrary } from "../src/default-library";
 import { mouseDisableSequence, mouseEnableSequence } from "../src/mouse/mouse-mode";
 import { DIM_ON, RED_ON, stripAnsi } from "./helpers/ansi";
+import { fillerRows, fillerText } from "./helpers/filler-rows";
 import {
   clicks,
   makeInkTestLibrary,
@@ -185,5 +187,67 @@ describe("InkRenderer", () => {
     const still = await renderProgram(makeInkTestLibrary(), program, { mouse: { motion: false } });
     expect(still.instance.stdout.frames).toContain(mouseEnableSequence(false));
     still.unmount();
+  });
+
+  describe("dim behind a modal", () => {
+    /** A text row, a ModalDialog bound to `$open` and filler rows the dialog floats over. */
+    function dimProgram(open: boolean): string {
+      return [
+        `$open = ${open}`,
+        `root = Stack([TextContent("row above the dialog"), dialog, ${fillerRows(10)}], "column", "none")`,
+        'dialog = ModalDialog("info", "Saved notice", "Your changes are safe.", null, "OK", $open)',
+      ].join("\n");
+    }
+
+    /** The raw line of the frame whose plain text contains `text`. */
+    function rawLine(frame: string, text: string): string {
+      const line = frame.split("\n").find(function has(candidate) {
+        return stripAnsi(candidate).includes(text);
+      });
+      if (line === undefined) throw new Error(`no line with ${text}`);
+      return line;
+    }
+
+    /** The raw text of a line between the dialog's left and right borders. */
+    function insideBorders(line: string): string {
+      return line.slice(line.indexOf("│"), line.lastIndexOf("│") + 1);
+    }
+
+    it("dims the page's text while a modal is open, not the dialog", async () => {
+      const rendered = await renderProgram(inkLibrary, dimProgram(true));
+      const frame = rendered.frame();
+      expect(rawLine(frame, "row above the dialog")).toContain(DIM_ON);
+      expect(rawLine(frame, fillerText(10))).toContain(DIM_ON);
+      const titleLine = rawLine(frame, "Saved notice");
+      expect(insideBorders(titleLine)).toContain("Saved notice");
+      expect(insideBorders(titleLine)).not.toContain(DIM_ON);
+      expect(insideBorders(rawLine(frame, "Your changes are safe."))).not.toContain(DIM_ON);
+      rendered.unmount();
+    });
+
+    it("leaves the page undimmed with dimBehindModal false", async () => {
+      const rendered = await renderProgram(inkLibrary, dimProgram(true), {
+        dimBehindModal: false,
+      });
+      const frame = rendered.frame();
+      expect(stripAnsi(frame)).toContain("Saved notice");
+      expect(frame).not.toContain(DIM_ON);
+      rendered.unmount();
+    });
+
+    it("leaves the page undimmed with no modal open, and undims it once the modal closes", async () => {
+      const closed = await renderProgram(inkLibrary, dimProgram(false));
+      expect(closed.frame()).not.toContain(DIM_ON);
+      closed.unmount();
+
+      const open = await renderProgram(inkLibrary, dimProgram(true));
+      expect(rawLine(open.frame(), "row above the dialog")).toContain(DIM_ON);
+      open.instance.stdin.write("\u001b");
+      // Ink holds a lone Escape for 20ms in case a sequence follows.
+      await settle(60);
+      expect(stripAnsi(open.frame())).not.toContain("Saved notice");
+      expect(open.frame()).not.toContain(DIM_ON);
+      open.unmount();
+    });
   });
 });

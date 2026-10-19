@@ -9,6 +9,7 @@ import {
 } from "./design/design-system";
 import { DesignSystemContext } from "./design/design-system-context";
 import { themeToCss } from "./design/theme-to-css";
+import { DimBehind } from "./dim-behind";
 import { ErrorFooter } from "./error-footer";
 import { FocusNavigator } from "./focus/focus-navigator";
 import { ORDER_LAST } from "./focus/focus-order";
@@ -77,6 +78,12 @@ export interface InkRendererProps {
    * wheel) when `mouse` is on.
    */
   onUiEvent?: (event: UiEvent) => void;
+  /**
+   * Draws the page's text faint while a modal (`ModalDialog`, `Modal`) is
+   * open above it, so the modal reads as in front. Default true. The
+   * overlays themselves are never dimmed.
+   */
+  dimBehindModal?: boolean;
 }
 
 /** The palette colors of a theme as primitive tokens, so the cascade derives every slot from them. */
@@ -168,6 +175,7 @@ export function InkRenderer(props: InkRendererProps) {
   const pageRef = useRef<DOMElement | null>(null);
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
+  const dimsPage = (props.dimBehindModal ?? true) && modalLayers.activeLayer !== null;
 
   const page = (
     <Box
@@ -176,22 +184,25 @@ export function InkRenderer(props: InkRendererProps) {
       marginX={grid.margin}
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
     >
-      {/* Every path of this program starts with its rank among the renderers of the scope. */}
-      <SequenceLevel order={programRank}>
-        {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
-        {showPlaceholder ? <Text dimColor>…</Text> : null}
-        {isStreaming ? <Text dimColor>streaming…</Text> : null}
-        {/* The renderer's own `[ retry ]` is a program stop that comes after the whole program. */}
-        <SequenceLevel order={ORDER_LAST}>
-          <QueryStatus
-            isLoading={runtime.isQueryLoading}
-            hasErrors={runtime.queryErrors.length > 0}
-            isStreaming={isStreaming}
-            onRetry={runtime.retryQueries}
-          />
+      {/* The overlay host stays outside it, so the overlays are never dimmed. */}
+      <DimBehind active={dimsPage}>
+        {/* Every path of this program starts with its rank among the renderers of the scope. */}
+        <SequenceLevel order={programRank}>
+          {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
+          {showPlaceholder ? <Text dimColor>…</Text> : null}
+          {isStreaming ? <Text dimColor>streaming…</Text> : null}
+          {/* The renderer's own `[ retry ]` is a program stop that comes after the whole program. */}
+          <SequenceLevel order={ORDER_LAST}>
+            <QueryStatus
+              isLoading={runtime.isQueryLoading}
+              hasErrors={runtime.queryErrors.length > 0}
+              isStreaming={isStreaming}
+              onRetry={runtime.retryQueries}
+            />
+          </SequenceLevel>
         </SequenceLevel>
-      </SequenceLevel>
-      {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
+        {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
+      </DimBehind>
       {/* Last child, so the overlays paint over the whole page without taking any of its cells. */}
       {ownsOverlays ? <OverlayHost boundsRef={pageRef} /> : null}
     </Box>
