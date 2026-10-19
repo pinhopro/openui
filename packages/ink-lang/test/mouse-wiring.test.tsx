@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import type { UiEvent } from "../src/ui-events";
 import { inverseSegments, stripAnsi } from "./helpers/ansi";
+import { fillerRows } from "./helpers/filler-rows";
 import { cellAfter, findCell } from "./helpers/find-cell";
 import { MOUSE } from "./helpers/mouse";
 import { renderProgram, type RenderedProgram } from "./helpers/render-program";
@@ -248,7 +249,8 @@ describe("a click presses the control under the pointer", () => {
 
   it("Modal close button closes it", async () => {
     const mounted = await mount(
-      '$show = true\nroot = Stack([Modal("Confirm", $show, [TextContent("Sure?")])])',
+      // Filler rows make the page tall enough for the floating modal to show whole.
+      `$show = true\nroot = Stack([Modal("Confirm", $show, [TextContent("Sure?")]), ${fillerRows(4)}])`,
     );
     expect(mounted.plain()).toContain("Sure?");
     await click(mounted, "[ x ]", 2);

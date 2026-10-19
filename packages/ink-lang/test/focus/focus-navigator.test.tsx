@@ -10,6 +10,7 @@ import { useFocusable } from "../../src/focus/use-focusable";
 import { InkRenderer } from "../../src/ink-renderer";
 import type { UiEvent } from "../../src/ui-events";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
+import { fillerRows } from "../helpers/filler-rows";
 import { KEYS } from "../helpers/keys";
 import { renderProgram } from "../helpers/render-program";
 import { settle } from "../helpers/settle";
@@ -293,7 +294,8 @@ describe("FocusNavigator", () => {
   it("keeps a host stop out of the cycle while a dialog of the program is open", async () => {
     const program = [
       "$confirm = false",
-      "root = Stack([open, dialog])",
+      // Filler rows make the app tall enough for the floating dialog to show whole.
+      `root = Stack([open, dialog, ${fillerRows(6)}], "column", "none")`,
       'open = Button("Open", @Set($confirm, true))',
       'dialog = ModalDialog("neutral", "Sure?", "Nothing is undone.", "Cancel", "Go ahead", $confirm)',
     ].join("\n");

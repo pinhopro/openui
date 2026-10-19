@@ -2,6 +2,7 @@ import type { ActionEvent } from "@openuidev/lang-core";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../../src/default-library";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
+import { fillerRows } from "../helpers/filler-rows";
 import { findCell } from "../helpers/find-cell";
 import { KEYS } from "../helpers/keys";
 import { MOUSE } from "../helpers/mouse";
@@ -10,7 +11,8 @@ import { settle } from "../helpers/settle";
 
 const program = [
   "$show = true",
-  "root = Stack([outside, dialog])",
+  // Filler rows make the page tall enough for the floating modal to show whole.
+  `root = Stack([outside, dialog, ${fillerRows(8)}], "column", "none")`,
   'outside = Button("Outside", @ToAssistant("Outside"))',
   'dialog = Modal("Confirm", $show, [TextContent("Sure?"), Buttons([Button("Inside", @ToAssistant("Inside"))])])',
 ].join("\n");
@@ -56,7 +58,7 @@ describe("modal layer", () => {
     rendered.unmount();
   });
 
-  it("ignores clicks outside the open modal", async () => {
+  it("keeps clicks outside the open modal from the page: the backdrop takes them and cancels", async () => {
     const actions: ActionEvent[] = [];
     const rendered = await renderProgram(inkLibrary, program, {
       mouse: true,
@@ -64,14 +66,16 @@ describe("modal layer", () => {
         actions.push(event);
       },
     });
-    const outside = findCell(stripAnsi(rendered.frame()), "[ Outside ]");
-    rendered.instance.stdin.write(MOUSE.click(outside.x + 2, outside.y));
-    await settle();
-    expect(actions).toEqual([]);
-    const inside = findCell(stripAnsi(rendered.frame()), "[ Inside ]");
+    const opened = stripAnsi(rendered.frame());
+    const inside = findCell(opened, "[ Inside ]");
     rendered.instance.stdin.write(MOUSE.click(inside.x + 2, inside.y));
     await settle();
     expect(actions.map((event) => event.humanFriendlyMessage)).toEqual(["Inside"]);
+    const outside = findCell(opened, "[ Outside ]");
+    rendered.instance.stdin.write(MOUSE.click(outside.x + 2, outside.y));
+    await settle();
+    expect(actions.map((event) => event.humanFriendlyMessage)).toEqual(["Inside"]);
+    expect(stripAnsi(rendered.frame())).not.toContain("Sure?");
     rendered.unmount();
   });
 });
