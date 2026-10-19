@@ -204,4 +204,87 @@ describe("Tab follows the sequence of the program tree", () => {
     expect(await tabThrough(rendered, 4)).toEqual(["Plan", "Build", "Ship", "Plan"]);
     rendered.unmount();
   });
+
+  it("adds no stop for a Tooltip around a Button and shows the bubble only while its trigger is focused", async () => {
+    const program = [
+      "root = Stack([first, tip, last])",
+      'first = Button("Before", @ToAssistant("Before"))',
+      'tip = Tooltip(Button("Deploy", @ToAssistant("Deploy")), "Ships the build", "bottom")',
+      'last = Button("After", @ToAssistant("After"))',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    const visited: string[] = [];
+    const bubbleShown: boolean[] = [];
+    for (let step = 0; step < 4; step += 1) {
+      await press(rendered, KEYS.TAB);
+      visited.push(focusedText(rendered.frame()));
+      bubbleShown.push(stripAnsi(rendered.frame()).includes("Ships the build"));
+      // The bubble is never itself a focused (inverse) segment.
+      for (const segment of inverseSegments(rendered.frame())) {
+        expect(segment).not.toContain("Ships the build");
+      }
+    }
+    expect(visited).toEqual(["[ Before ]", "[ Deploy ]", "[ After ]", "[ Before ]"]);
+    expect(bubbleShown).toEqual([false, true, false, false]);
+    rendered.unmount();
+  });
+
+  it("makes a Tooltip around a non-focusable trigger a stop, between its neighbours", async () => {
+    const program = [
+      "root = Stack([first, tip, last])",
+      'first = Button("Before", @ToAssistant("Before"))',
+      'tip = Tooltip(Icon("info"), "More details", "bottom")',
+      'last = Button("After", @ToAssistant("After"))',
+    ].join("\n");
+    expect(await tabThroughEvents(program, 4)).toEqual([
+      "Button:Before",
+      "Tooltip:More details",
+      "Button:After",
+      "Button:Before",
+    ]);
+  });
+
+  it("visits each CompositeCardBlock card as header, body, footer, card by card", async () => {
+    const program = [
+      "root = Stack([block])",
+      "block = CompositeCardBlock([one, two])",
+      'one = CompositeCardItem("one", Button("Head 1", @ToAssistant("Head 1")), [Input("q1", "Q1", null, null, $q1)], {price: BoldText(null, "$9"), button: Button("Foot 1", @ToAssistant("Foot 1"))})',
+      'two = CompositeCardItem("two", Button("Head 2", @ToAssistant("Head 2")), [Input("q2", "Q2", null, null, $q2)], {price: BoldText(null, "$29"), button: Button("Foot 2", @ToAssistant("Foot 2"))})',
+      '$q1 = "alpha"',
+      '$q2 = "beta"',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, program);
+    expect(await tabThrough(rendered, 7)).toEqual([
+      "[ Head 1 ]",
+      "alpha",
+      "[ Foot 1 ]",
+      "[ Head 2 ]",
+      "beta",
+      "[ Foot 2 ]",
+      "[ Head 1 ]",
+    ]);
+    rendered.unmount();
+  });
+
+  it("puts a pressable CompositeCardBlock card before its own header, body and footer", async () => {
+    const program = [
+      "root = Stack([block])",
+      'block = CompositeCardBlock([one, two], "grid", true, @ToAssistant("Pick"))',
+      'one = CompositeCardItem("one", Button("Head 1", @ToAssistant("Head 1")), [Input("q1", "Q1", null, null, $q1)], {price: BoldText(null, "$9"), button: Button("Foot 1", @ToAssistant("Foot 1"))})',
+      'two = CompositeCardItem("two", Button("Head 2", @ToAssistant("Head 2")), [Input("q2", "Q2", null, null, $q2)], {price: BoldText(null, "$29"), button: Button("Foot 2", @ToAssistant("Foot 2"))})',
+      '$q1 = "alpha"',
+      '$q2 = "beta"',
+    ].join("\n");
+    expect(await tabThroughEvents(program, 9)).toEqual([
+      "CompositeCardBlock:one",
+      "Button:Head 1",
+      "Input:q1",
+      "Button:Foot 1",
+      "CompositeCardBlock:two",
+      "Button:Head 2",
+      "Input:q2",
+      "Button:Foot 2",
+      "CompositeCardBlock:one",
+    ]);
+  });
 });
