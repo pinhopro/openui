@@ -9,7 +9,7 @@ import {
   type ParseResult,
   type Store,
 } from "@openuidev/lang-core";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { OpenUIContextValue } from "./context";
 import type { Library } from "./library";
 import { collectErrors, errorsKey } from "./runtime/collect-errors";
@@ -33,7 +33,6 @@ export interface OpenUIRuntimeOptions {
   initialState: Record<string, unknown> | undefined;
   toolProvider: ToolProviderInput;
   onError: ((errors: OpenUIError[]) => void) | undefined;
-  renderNode: (value: unknown) => ReactNode;
 }
 
 export interface OpenUIRuntime {
@@ -86,7 +85,7 @@ function seedStore(
  * `runtime/`; this hook only ties it to React state.
  */
 export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
-  const { response, library, isStreaming, initialState, toolProvider, renderNode } = options;
+  const { response, library, isStreaming, initialState, toolProvider } = options;
 
   const callbacksRef = useRef<HostCallbacks>({
     onAction: options.onAction,
@@ -338,7 +337,6 @@ export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
     function buildContextValue() {
       return {
         library,
-        renderNode,
         triggerAction,
         isStreaming,
         isQueryLoading,
@@ -351,7 +349,6 @@ export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
     },
     [
       library,
-      renderNode,
       triggerAction,
       isStreaming,
       isQueryLoading,

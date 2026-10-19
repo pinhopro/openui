@@ -143,7 +143,9 @@ function trackedTarget(tracker: FocusTracker, focusById: (id: string) => void): 
  * steps from the stop the previous key focused, even before React commits.
  * Provides `FocusCommands` to its children. Without a focus registry above it
  * there are no stops to move over, so it leaves Ink's own handling on and
- * does nothing.
+ * does nothing. Ink's focus switch is one global flag, so several standalone
+ * renderers (without a `FocusScope`) each flip it: an app with more than one
+ * renderer should wrap them in one `FocusScope`.
  */
 export function FocusNavigator({ children }: FocusNavigatorProps) {
   const registry = useContext(FocusRegistryContext);

@@ -23,7 +23,6 @@ import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
 import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
-import { renderValue } from "./render-value";
 import type { ToolProviderInput } from "./runtime/tool-provider";
 import { ThemeContext, type InkThemeOverrides } from "./theme";
 import { UiEventContext, type UiEvent } from "./ui-events";
@@ -100,7 +99,6 @@ export function InkRenderer(props: InkRendererProps) {
     initialState: props.initialState,
     toolProvider: props.toolProvider,
     onError: props.onError,
-    renderNode: renderValue,
   });
 
   const onParseResultRef = useRef(props.onParseResult);

@@ -34,6 +34,14 @@ describe("public hooks", () => {
     const api: Record<string, unknown> = await import("../src/index");
     expect(Object.keys(api)).not.toContain("useRenderNode");
   });
+
+  it("keeps no renderNode field in the context value", async () => {
+    const library = makeInkTestLibrary();
+    const rendered = await renderProgram(library, 'root = Stack([Probe("p")])');
+    expect(probe.context).not.toBeNull();
+    expect("renderNode" in (probe.context as object)).toBe(false);
+    rendered.unmount();
+  });
 });
 
 describe("useFormName", () => {

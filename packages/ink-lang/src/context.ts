@@ -1,5 +1,5 @@
 import type { ActionPlan, EvaluationContext, OpenUIError, Store } from "@openuidev/lang-core";
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext } from "react";
 import type { Library } from "./library";
 import type { LegacyAction } from "./runtime/trigger-action";
 
@@ -23,13 +23,6 @@ export type SetFieldValue = (
 export interface OpenUIContextValue {
   /** The active library (schemas and renderers). */
   library: Library;
-  /**
-   * Renders any evaluated value (element, array, primitive) into Ink nodes
-   * (`renderValue`). It does not number the elements it renders (each takes
-   * order 0), so a component draws its children with its own `renderNode`
-   * prop instead, which numbers them in call order (see `SequenceLevel`).
-   */
-  renderNode: (value: unknown) => ReactNode;
   triggerAction: TriggerAction;
   /** True while the model is still producing the program. */
   isStreaming: boolean;
