@@ -20,6 +20,7 @@ import {
   type PlacedOverlay,
 } from "./overlay-measure";
 import { OverlayRegistryContext, type Overlay, type OverlayRegistry } from "./overlay-registry";
+import { reportPlaced, type PlacedReports } from "./placed-reports";
 import { rootRect } from "./root-rect";
 import { stackingOrder } from "./stacking-order";
 import { useLayoutSignal } from "./use-layout-signal";
@@ -137,7 +138,10 @@ export interface OverlayHostProps {
  * measured after every render of the host and after every layout of the ink
  * root (a scrolled pane, a resize; `useLayoutSignal`): the anchor's cells,
  * each form's size and the bounds (`boundsRef`, else the ink root). Only
- * changed placements re-render.
+ * changed placements re-render. An overlay with an offset is shown moved by
+ * it and clamped into the bounds; an overlay's `onPlaced` is told the cells
+ * its shown form takes after each measurement that changed them
+ * (`reportPlaced`).
  */
 export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostProps) {
   const registry = useContext(OverlayRegistryContext);
@@ -156,6 +160,8 @@ export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostP
   rendered.current = { overlays, placements, onExtraRows };
   // The rows last reported to `onExtraRows`.
   const reportedRows = useRef(0);
+  // The cells last reported to each open overlay's `onPlaced`.
+  const reportedPlaces = useRef<PlacedReports>(new Map());
 
   /** The box the bounds come from, null for the whole ink root. */
   function currentBoundsBox(): DOMElement | null {
@@ -183,6 +189,14 @@ export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostP
     // Every commit of the app lands here: nothing to do while no overlay is open or drawn.
     if (drawn.overlays.length === 0 && drawn.placements.size === 0) {
       reportExtraRows(0);
+      if (reportedPlaces.current.size > 0) {
+        reportPlaced({
+          reported: reportedPlaces.current,
+          overlays: [],
+          placements: new Map(),
+          host,
+        });
+      }
       return;
     }
     const open = new Set<string>();
@@ -207,6 +221,12 @@ export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostP
     }
     if (!samePlacements(drawn.placements, next)) setPlacements(next);
     reportExtraRows(extraRows);
+    reportPlaced({
+      reported: reportedPlaces.current,
+      overlays: drawn.overlays,
+      placements: next,
+      host,
+    });
   }
 
   // After every render of the host, and after every layout of the ink root

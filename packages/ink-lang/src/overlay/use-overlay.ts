@@ -1,5 +1,6 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
+import type { CellRect } from "../focus/element-rect";
 import { LayerIdContext } from "../focus/modal-layer";
 import { useCapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
@@ -41,6 +42,21 @@ export interface UseOverlayOptions {
    * layer this component renders in (`LayerIdContext`, null on the page).
    */
   layer?: string | null;
+  /**
+   * Cells added to the shown form's placed position, `x` to the right and `y`
+   * down (a dragged dialog's displacement); default none. The moved form is
+   * clamped into the bounds (`clampIntoBounds`), so it never leaves them; a
+   * `cover` overlay ignores it. A new offset is drawn on the next render.
+   */
+  offset?: { x: number; y: number };
+  /**
+   * Called by the host, outside render, whenever the cells the shown form
+   * takes change, with those cells in the ink root's coordinates (the compact
+   * form's while it shows, else the whole one's); null while nothing shows
+   * (the anchor is missing or clipped out) and once the overlay closes. The
+   * same cells are never reported twice in a row.
+   */
+  onPlaced?: (rect: CellRect | null) => void;
 }
 
 export interface OverlayHandle {
@@ -75,7 +91,8 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
     renderCompact: options.renderCompact ?? null,
     opaque: options.opaque ?? true,
     captured,
-    offset: NO_OFFSET,
+    offset: options.offset ?? NO_OFFSET,
+    onPlaced: options.onPlaced ?? null,
     layer: options.layer === undefined ? ownerLayer : options.layer,
   };
 

@@ -1,5 +1,6 @@
 import type { DOMElement } from "ink";
 import { createContext, type ReactNode, type RefObject } from "react";
+import type { CellRect } from "../focus/element-rect";
 import type { CapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
 
@@ -32,8 +33,19 @@ export interface Overlay {
   opaque: boolean;
   /** The owner's contexts on its latest render, re-provided around `render()`. */
   captured: CapturedContexts;
-  /** Added to the placed position (a dragged dialog's displacement). */
+  /**
+   * Added to the shown form's placed position (a dragged dialog's
+   * displacement), which is then clamped into the bounds (`clampIntoBounds`);
+   * a cover form ignores it.
+   */
   offset: { x: number; y: number };
+  /**
+   * Told the cells the shown form takes, in the ink root's cells (the compact
+   * form's while it shows, else the whole one's), whenever they change; null
+   * while nothing shows (the anchor is gone, the form is still being measured)
+   * and once the overlay closes. Null when the owner does not listen.
+   */
+  onPlaced: ((rect: CellRect | null) => void) | null;
   /**
    * The modal layer the overlay belongs to (a modal's id for its own backdrop
    * and box, the layer its owner renders in otherwise; null for the page).

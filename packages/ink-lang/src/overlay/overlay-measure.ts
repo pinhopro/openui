@@ -4,6 +4,7 @@ import { anchorBackground } from "./anchor-background";
 import { clippedBy, rectsIntersect } from "./clip-rect";
 import { declarationLine, marksDeclaration } from "./declaration-line";
 import {
+  clampIntoBounds,
   compactWidthLimit,
   overlayFits,
   placeCompact,
@@ -157,12 +158,30 @@ function hiddenSpot(input: SpotInput): FormSpot {
   };
 }
 
-/** A form shown at `placed` (cells of the root), moved by the overlay's offset. */
+/**
+ * Where a form placed at `placed` (cells of the root) is shown: moved by the
+ * overlay's offset, then clamped into the bounds (`clampIntoBounds`), so a
+ * dragged form never leaves them. Without an offset it stays where it was
+ * placed, which may leave rows past the bounds on purpose (`placeOverlay`).
+ */
+function movedPosition(
+  overlay: Overlay,
+  placed: OverlayPosition,
+  input: SpotInput,
+): OverlayPosition {
+  const offset = overlay.offset;
+  if (offset.x === 0 && offset.y === 0) return placed;
+  const moved = { x: placed.x + offset.x, y: placed.y + offset.y };
+  return clampIntoBounds(moved, input.size, input.bounds);
+}
+
+/** A form shown at `placed` (cells of the root), moved by the overlay's offset (`movedPosition`). */
 function shownSpot(overlay: Overlay, placed: OverlayPosition, input: SpotInput): FormSpot {
   const origin = hostOrigin(input.host);
+  const position = movedPosition(overlay, placed, input);
   return {
-    x: placed.x - origin.x + overlay.offset.x,
-    y: placed.y - origin.y + overlay.offset.y,
+    x: position.x - origin.x,
+    y: position.y - origin.y,
     maxWidth: input.maxWidth,
     width: input.size.width,
     height: input.size.height,

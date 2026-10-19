@@ -444,6 +444,7 @@ export {
 export { OverlayHost } from "./overlay/overlay-host";
 export type { OverlayHostProps } from "./overlay/overlay-host";
 export {
+  clampIntoBounds,
   compactWidthLimit,
   overlayFits,
   placeCompact,

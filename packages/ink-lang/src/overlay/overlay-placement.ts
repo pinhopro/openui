@@ -105,6 +105,22 @@ function shiftInto(start: number, length: number, min: number, room: number): nu
 }
 
 /**
+ * The top-left cell of a box of `size` at `position`, shifted (never shrunk)
+ * so the box lies inside `bounds`; at the bounds' origin on an axis where it
+ * is larger than them. A dragged overlay is kept on the screen with it.
+ */
+export function clampIntoBounds(
+  position: OverlayPosition,
+  size: OverlaySize,
+  bounds: CellRect,
+): OverlayPosition {
+  return {
+    x: shiftInto(position.x, size.width, bounds.x, bounds.width),
+    y: shiftInto(position.y, size.height, bounds.y, bounds.height),
+  };
+}
+
+/**
  * The top-left cell of an overlay: on the asked side of its anchor, flipped to
  * the opposite side when it does not fit there and the opposite side does,
  * then shifted (never shrunk) so it lies inside the bounds. A top or bottom

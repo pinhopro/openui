@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CellRect } from "../../src/focus/element-rect";
 import {
+  clampIntoBounds,
   compactWidthLimit,
   overlayFits,
   placeCompact,
@@ -228,5 +229,34 @@ describe("rowsMissingBelow", () => {
 
   it("is 0 for a cover overlay, which spans the bounds", () => {
     expect(missing(anchorAt(4, 2), "cover", { width: 40, height: 30 })).toBe(0);
+  });
+});
+
+describe("clampIntoBounds", () => {
+  const bounds: CellRect = { x: 2, y: 1, width: 40, height: 10 };
+
+  it("keeps a box that lies inside the bounds where it is", () => {
+    expect(clampIntoBounds({ x: 5, y: 3 }, SIZE, bounds)).toEqual({ x: 5, y: 3 });
+  });
+
+  it("shifts a box past the right edge left so it ends at the last column", () => {
+    // The last column is 41: a 10-cell box starts at 32.
+    expect(clampIntoBounds({ x: 38, y: 3 }, SIZE, bounds)).toEqual({ x: 32, y: 3 });
+  });
+
+  it("shifts a box past the bottom edge up so it ends at the last row", () => {
+    // The last row is 10: a 3-row box starts at 8.
+    expect(clampIntoBounds({ x: 5, y: 9 }, SIZE, bounds)).toEqual({ x: 5, y: 8 });
+  });
+
+  it("shifts a box past the top-left edges into the bounds", () => {
+    expect(clampIntoBounds({ x: -4, y: -2 }, SIZE, bounds)).toEqual({ x: 2, y: 1 });
+  });
+
+  it("puts a box larger than the bounds at their origin", () => {
+    expect(clampIntoBounds({ x: 9, y: 4 }, { width: 50, height: 12 }, bounds)).toEqual({
+      x: 2,
+      y: 1,
+    });
   });
 });
