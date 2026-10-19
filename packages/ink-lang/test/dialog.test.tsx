@@ -93,9 +93,9 @@ async function openWithKeys(rendered: { instance: { stdin: { write: (data: strin
 
 const ESCAPE = "\u001b";
 
-/** The opener's program with a dialog of two buttons, Close then Done, shown from the start. */
-function twoButtonProgram(): string {
-  return program(true).replace(
+/** The opener's program with a dialog of two buttons, Close then Done, shown from the start by default. */
+function twoButtonProgram(open = true): string {
+  return program(open).replace(
     noteDialog(""),
     `noteDialog = Dialog("info", "${TITLE}", "Keep editing or close this note.", "Close", "Done", $note)`,
   );
@@ -500,6 +500,47 @@ describe("Dialog priority", () => {
     await send(rendered, MOUSE.click(a.x + 2, a.y));
     expect(actions).toHaveLength(1);
     expect(actions[0]?.humanFriendlyMessage).toBe("A");
+    rendered.unmount();
+  });
+
+  it("takes priority back when the pointer gives one of its stops focus after an Escape", async () => {
+    const { rendered, events } = await mountWithMouse();
+    expect(lastFocused(events)).toBe("Close");
+    const frame = stripAnsi(rendered.frame());
+    const close = findCell(frame, "[ Close ]");
+    const done = findCell(frame, "[ Done ]");
+    const page = findCell(frame, fillerText(ROWS));
+    await send(rendered, MOUSE.move(close.x + 2, close.y));
+    // Escape with the pointer already inside: focus is dropped and the priority by focus released.
+    await pressEscape(rendered);
+    // Moving within the dialog onto Done focuses it (hover focus): the dialog has priority again.
+    await send(rendered, MOUSE.move(done.x + 2, done.y));
+    expect(lastFocused(events)).toBe("Done");
+    await send(rendered, MOUSE.move(page.x, page.y));
+    await send(rendered, KEYS.TAB);
+    expect(lastFocused(events)).toBe("Close");
+    rendered.unmount();
+  });
+
+  it("takes priority back when it opens again after an Escape", async () => {
+    const { rendered, events } = await mount(twoButtonProgram(false));
+    await openWithKeys(rendered);
+    expect(lastFocused(events)).toBe("Close");
+    await pressEscape(rendered);
+    // Released: Tab walks the page into the dialog without being kept there.
+    for (let step = 0; step < 3; step += 1) await send(rendered, KEYS.TAB);
+    expect(lastFocused(events)).toBe("Close");
+    // Its cancel button closes it and gives focus back to the opener, which opens it again.
+    await send(rendered, KEYS.ENTER);
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    expect(lastFocused(events)).toBe("Open");
+    await send(rendered, KEYS.ENTER);
+    expect(stripAnsi(rendered.frame())).toContain(TITLE);
+    expect(lastFocused(events)).toBe("Close");
+    await send(rendered, KEYS.TAB);
+    expect(lastFocused(events)).toBe("Done");
+    await send(rendered, KEYS.TAB);
+    expect(lastFocused(events)).toBe("Close");
     rendered.unmount();
   });
 });

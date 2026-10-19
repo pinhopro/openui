@@ -6,7 +6,10 @@ import { useMouse, type UseMouseOptions } from "../mouse/use-mouse";
 export interface PriorityTrackerProps {
   /** The dialog overlay's id, what `hovered` is set to. */
   overlayId: string;
-  /** The form's box: the pointer anywhere on its cells (over its buttons too) is inside the dialog. */
+  /**
+   * The form's box: the pointer anywhere on its cells (over its buttons too)
+   * is inside the dialog.
+   */
   boxRef: RefObject<DOMElement | null>;
 }
 

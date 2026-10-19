@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { FocusEntry } from "../../src/focus/focus-registry";
+import {
+  createFocusRegistry,
+  type FocusEntry,
+  type FocusRegistry,
+} from "../../src/focus/focus-registry";
+import {
+  escapeKeepsFocus,
+  heldPriority,
+  rearmHoveredFocus,
+  type PriorityInput,
+} from "../../src/focus/held-priority";
 import { priorityOverlay } from "../../src/focus/overlay-priority";
 
 /** A focus stop rendered in the overlay `overlay` (null for the page). */
@@ -33,5 +43,64 @@ describe("priorityOverlay", () => {
   it("is null with no overlay hovered and focus on the page or nowhere", () => {
     expect(priorityOverlay(null, stop("a", null))).toBeNull();
     expect(priorityOverlay(null, null)).toBeNull();
+  });
+});
+
+interface DialogStops {
+  registry: FocusRegistry;
+  a: FocusEntry;
+  close: FocusEntry;
+  done: FocusEntry;
+}
+
+/** A registry holding page stop A and dialog stops Close and Done (overlay "d"). */
+function dialogRegistry(): DialogStops {
+  const registry = createFocusRegistry();
+  const a = stop("a", null);
+  const close = stop("close", "d");
+  const done = stop("done", "d");
+  registry.register(a);
+  registry.register(close);
+  registry.register(done);
+  return { registry, a, close, done };
+}
+
+/** The navigator's input with nothing released yet. */
+function input(hovered: string | null): PriorityInput {
+  return { hovered, released: new Set() };
+}
+
+describe("heldPriority and the Escape release", () => {
+  it("releases the focused stop's overlay on Escape: its stop then holds no priority", () => {
+    const { registry, close } = dialogRegistry();
+    const state = input(null);
+    expect(heldPriority(registry, state, close)).toBe("d");
+    expect(escapeKeepsFocus(registry, state, close)).toBe(false);
+    expect(state.released.has("d")).toBe(true);
+    expect(heldPriority(registry, state, close)).toBeNull();
+  });
+
+  it("keeps focus on Escape while the overlay only has the pointer", () => {
+    const { registry, a } = dialogRegistry();
+    const state = input("d");
+    expect(escapeKeepsFocus(registry, state, a)).toBe(true);
+    expect(state.released.size).toBe(0);
+  });
+
+  it("re-arms a released overlay once its stop has focus under the pointer, not on the drop", () => {
+    const { registry, done } = dialogRegistry();
+    const state = input("d");
+    state.released.add("d");
+    rearmHoveredFocus(state, null);
+    expect(state.released.has("d")).toBe(true);
+    rearmHoveredFocus(state, done);
+    expect(state.released.has("d")).toBe(false);
+    state.hovered = null;
+    expect(heldPriority(registry, state, done)).toBe("d");
+  });
+
+  it("holds nothing for an overlay without a stop that can take focus", () => {
+    const { registry } = dialogRegistry();
+    expect(heldPriority(registry, input("other"), null)).toBeNull();
   });
 });

@@ -12,7 +12,12 @@ import {
 } from "./focus-navigation";
 import { focusOrder, hostStops, nextInOrder, type CycleStop } from "./focus-order";
 import { FocusRegistryContext, type FocusEntry, type FocusRegistry } from "./focus-registry";
-import { escapeKeepsFocus, heldPriority, type PriorityInput } from "./held-priority";
+import {
+  escapeKeepsFocus,
+  heldPriority,
+  rearmHoveredFocus,
+  type PriorityInput,
+} from "./held-priority";
 import { ModalLayerContext } from "./modal-layer";
 import { OverlayPriorityContext } from "./overlay-priority";
 
@@ -188,6 +193,18 @@ function trackedTarget(tracker: FocusTracker, focusById: (id: string) => void): 
 }
 
 /**
+ * The navigator's `PriorityInput`: one object for its whole life (its
+ * `released` set is kept across renders, created once), whose `hovered`
+ * follows the latest render, so a key or a command reads it fresh.
+ */
+function usePriorityInput(hovered: string | null): PriorityInput {
+  const ref = useRef<PriorityInput | null>(null);
+  if (ref.current === null) ref.current = { hovered, released: new Set() };
+  ref.current.hovered = hovered;
+  return ref.current;
+}
+
+/**
  * Owns keyboard focus movement over the registered stops. On mount it turns
  * Ink's own focus handling off (and back on when it unmounts), so Ink never
  * moves focus first: Tab and Shift+Tab follow the Tab cycle (deterministic,
@@ -215,9 +232,7 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   const order = useContext(FocusCycleContext);
   const layers = useContext(ModalLayerContext);
   const hovered = useContext(OverlayPriorityContext).hovered;
-  // Read when a key or a command runs; `released` is kept across renders.
-  const priorityRef = useRef<PriorityInput>({ hovered, released: new Set() });
-  priorityRef.current.hovered = hovered;
+  const priority = usePriorityInput(hovered);
   const manager = useFocusManager();
   const managerRef = useRef(manager);
   managerRef.current = manager;
@@ -253,9 +268,20 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   // The pointer entering a dialog Escape released gives it priority by focus back.
   useEffect(
     function reengageHovered() {
-      if (hovered !== null) priorityRef.current.released.delete(hovered);
+      if (hovered !== null) priority.released.delete(hovered);
     },
-    [hovered],
+    [hovered, priority],
+  );
+
+  // So does one of its stops taking focus while the pointer is over it (a hovered
+  // button focusing itself). Keyed on the focused id too, but the Escape drop
+  // leaves no stop focused, so it never undoes its own release.
+  const activeId = manager.activeId;
+  useEffect(
+    function reengageFocusedHover() {
+      rearmHoveredFocus(priority, activeEntry(registry, activeId));
+    },
+    [activeId, hovered, priority, registry],
   );
 
   const commands = useMemo(
@@ -269,39 +295,39 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
         },
         focusFirstIn: function focusFirstIn(overlayId: string) {
           // An overlay focused on opening has priority by focus again.
-          priorityRef.current.released.delete(overlayId);
+          priority.released.delete(overlayId);
           focusFirstStopIn(registry, order, target(), overlayId);
         },
         focusNext: function focusNext() {
-          stepCycle(registry, order, target(), priorityRef.current, 1);
+          stepCycle(registry, order, target(), priority, 1);
         },
         focusPrevious: function focusPrevious() {
-          stepCycle(registry, order, target(), priorityRef.current, -1);
+          stepCycle(registry, order, target(), priority, -1);
         },
       };
     },
-    [registry, order],
+    [registry, order, priority],
   );
 
   useInput(function handleKey(_input, key) {
     if (registry === null || key.eventType === "release") return;
     const target = trackedTarget(trackerRef.current, manager.focus);
     if (key.tab && isUnmodified(key)) {
-      stepCycle(registry, order, target, priorityRef.current, key.shift ? -1 : 1);
+      stepCycle(registry, order, target, priority, key.shift ? -1 : 1);
       return;
     }
     if (key.escape && !key.shift && isUnmodified(key)) {
       const active = activeEntry(registry, target.activeId);
       if (claimsEscape(active)) return;
       if (layers.cancelActive()) return;
-      if (escapeKeepsFocus(registry, priorityRef.current, active)) return;
+      if (escapeKeepsFocus(registry, priority, active)) return;
       // Ink exposes no way to clear the focused id but this; its flag stays off.
       manager.disableFocus();
       trackerRef.current.current = undefined;
       return;
     }
     const direction = arrowDirection(key);
-    if (direction !== null) moveByArrow(registry, target, priorityRef.current, direction);
+    if (direction !== null) moveByArrow(registry, target, priority, direction);
   });
 
   return <FocusCommandsContext.Provider value={commands}>{children}</FocusCommandsContext.Provider>;

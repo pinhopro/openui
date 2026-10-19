@@ -36,8 +36,9 @@ export interface FocusScopeProps {
 
 /**
  * One focus registry, one modal layer stack, one hovered dialog (the
- * overlay priority) and one navigator for a whole app: wrap the app in it and every `useFocusable` inside (the host's own
- * sidebar as much as the programs rendered by `InkRenderer`) joins the same
+ * overlay priority) and one navigator for a whole app: wrap the app in it
+ * and every `useFocusable` inside (the host's own sidebar as much as the
+ * programs rendered by `InkRenderer`) joins the same
  * Tab cycle and the same arrow-key map, so the arrows cross from a page into
  * the panel beside it, and while a program's modal is open the host's stops
  * are inert too. `order` decides where the host's stops sit in the cycle.

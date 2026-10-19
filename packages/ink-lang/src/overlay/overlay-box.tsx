@@ -62,8 +62,9 @@ function OverlayContent({ render }: OverlayContentProps) {
  * form of a non-modal dialog also tracks the pointer over its box
  * (`PriorityTracker`), which gives the dialog Tab and the arrows. The fill,
  * the shield and the tracker keep their slots, so the content never
- * remounts when the form starts to show. A cover form's box spans the bounds (`spot.width` by
- * `spot.height`) and its content column grows to fill it, so a backdrop can.
+ * remounts when the form starts to show. A cover form's box spans the bounds
+ * (`spot.width` by `spot.height`) and its content column grows to fill it, so
+ * a backdrop can.
  */
 export function OverlayBox(props: OverlayBoxProps) {
   const spot = props.spot;

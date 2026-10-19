@@ -9,7 +9,8 @@ export interface PriorityInput {
    * The overlays whose priority by focus Escape ended: a stop of theirs that
    * has focus (reached again by Tab, say) gives no priority, so the dialog
    * keeps its place in the page's cycle. An overlay leaves the set once the
-   * pointer enters it or it opens again (`focusFirstIn`).
+   * pointer enters it, once one of its stops takes focus while the pointer is
+   * over it (`rearmHoveredFocus`), or once it opens again (`focusFirstIn`).
    */
   released: Set<string>;
 }
@@ -22,7 +23,10 @@ function hasActiveStopIn(registry: FocusRegistry, overlay: string): boolean {
   return false;
 }
 
-/** The focused stop when it gives its overlay priority: it renders in one Escape has not released. */
+/**
+ * The focused stop when it gives its overlay priority: it renders in one
+ * Escape has not released.
+ */
 function focusHolder(input: PriorityInput, active: FocusEntry | null): FocusEntry | null {
   if (active === null || active.overlay === null) return null;
   return input.released.has(active.overlay) ? null : active;
@@ -62,4 +66,16 @@ export function escapeKeepsFocus(
   if (active === null || active.overlay !== priority) return true;
   input.released.add(priority);
   return false;
+}
+
+/**
+ * Gives a released overlay its priority by focus back once one of its stops
+ * has focus while the pointer is over it (the pointer focused one of its
+ * buttons, say). Escape's own drop leaves no stop focused, so it never undoes
+ * the release it just made.
+ */
+export function rearmHoveredFocus(input: PriorityInput, active: FocusEntry | null): void {
+  const hovered = input.hovered;
+  if (hovered === null || active === null || active.overlay !== hovered) return;
+  input.released.delete(hovered);
 }
