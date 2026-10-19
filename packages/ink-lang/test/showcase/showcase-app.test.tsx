@@ -1,6 +1,6 @@
 import { render } from "ink-testing-library";
 import { describe, expect, it } from "vitest";
-import type { ShowcasePage } from "../../examples/showcase/pages";
+import { showcasePages, type ShowcasePage } from "../../examples/showcase/pages";
 import { ShowcaseApp } from "../../examples/showcase/showcase-app";
 import { createShowcaseTools } from "../../examples/showcase/showcase-tools";
 import { DIM_ON, inverseSegments, stripAnsi } from "../helpers/ansi";
@@ -302,6 +302,63 @@ describe("ShowcaseApp with the mouse", () => {
     instance.stdin.write(MOUSE.wheelUp(50, 10, 3));
     await settle(10);
     expect(lastFrame(instance.frames)).toContain("line 0");
+    instance.unmount();
+  });
+});
+
+describe("ShowcaseApp dialog drag", () => {
+  const NOTE_TITLE = "Draft saved";
+  const NOTE_BODY = "Keep editing or close this note.";
+
+  function dialogsPage(): ShowcasePage {
+    const page = showcasePages.find(function isDialogs(candidate) {
+      return candidate.id === "dialogs";
+    });
+    if (page === undefined) throw new Error("the showcase has no dialogs page");
+    return page;
+  }
+
+  it("drags the note dialog by its title while the page stays where it is", async () => {
+    const instance = render(
+      <ShowcaseApp
+        pages={[dialogsPage()]}
+        tools={createShowcaseTools({ latencyMs: 0, healthFailsFirst: false })}
+        mouse={true}
+        stream={{ chunkSize: 5000, intervalMs: 1 }}
+      />,
+    );
+    await settle(40);
+    // Shift+Tab from the sidebar wraps to the page's last stop, the note's opener, and scrolls it into view.
+    instance.stdin.write(KEYS.SHIFT_TAB);
+    await settle(40);
+    const opener = findCell(lastFrame(instance.frames), "[ Show a note ]");
+    instance.stdin.write(KEYS.ENTER);
+    await settle(40);
+    const before = lastFrame(instance.frames);
+    // The note floats on the row after the openers, under the pane's last visible row. Its
+    // title row is the one over its body ("Draft saved" is in the event log too).
+    const body = findCell(before, NOTE_BODY);
+    const grab = { x: body.x + 4, y: body.y - 1 };
+    expect(before.split("\n")[grab.y]).toContain(NOTE_TITLE);
+    const firstOpener = findCell(before, "[ Delete a contact ]");
+    const warning = findCell(before, "[ Show a warning ]");
+
+    instance.stdin.write(MOUSE.press(grab.x, grab.y));
+    await settle(10);
+    instance.stdin.write(MOUSE.drag(grab.x - 2, grab.y - 1));
+    await settle(10);
+    instance.stdin.write(MOUSE.drag(grab.x - 6, grab.y - 3));
+    await settle(10);
+    instance.stdin.write(MOUSE.release(grab.x - 6, grab.y - 3));
+    await settle(40);
+
+    const after = lastFrame(instance.frames);
+    expect(findCell(after, NOTE_BODY)).toEqual({ x: body.x - 6, y: body.y - 3 });
+    expect(after.split("\n")[grab.y - 3]).toContain(NOTE_TITLE);
+    expect(findCell(after, "[ Delete a contact ]")).toEqual(firstOpener);
+    expect(findCell(after, "[ Show a warning ]")).toEqual(warning);
+    expect(findCell(after, "[ Show a note ]")).toEqual(opener);
+    expect(after).toContain(`dragend Dialog "${NOTE_TITLE}"`);
     instance.unmount();
   });
 });

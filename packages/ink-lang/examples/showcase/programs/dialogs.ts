@@ -1,7 +1,9 @@
 /**
  * Every kind of dialog: destructive confirm, info, warning, a form and a
  * choice, each blocking the page behind it, and a note that floats at the
- * right of the openers while the page stays interactive.
+ * right of the openers while the page stays interactive. Every dialog drags
+ * by its title bar or moves with Ctrl+arrows; a dropped note re-anchors to
+ * the button behind it.
  */
 export const dialogsProgram = [
   "$confirm = false",
@@ -14,7 +16,7 @@ export const dialogsProgram = [
   '$plan = ""',
   "root = Stack([header, intro, openers, confirmDialog, infoDialog, warnDialog, formDialog, optionsDialog, noteDialog])",
   'header = CardHeader("Dialogs", "Confirm, inform, warn, fill a form, choose or leave a note")',
-  'intro = TextContent("While a modal dialog is open, Tab, the arrows and the mouse only reach the dialog; a note leaves the page interactive. Cancel closes it; confirm fires its action and closes it.")',
+  'intro = TextContent("While a modal dialog is open, Tab, the arrows and the mouse only reach the dialog; a note leaves the page interactive. Cancel closes it; confirm fires its action and closes it. Drag a dialog by its title bar, or move it with Ctrl+arrows while one of its buttons has focus; a note dropped over the page joins the Tab order right after the button behind it.")',
   'openers = Buttons([openConfirm, openInfo, openWarn, openForm, openOptions, openNote], "column")',
   'openConfirm = Button("Delete a contact", @Set($confirm, true), "secondary", "destructive")',
   'openInfo = Button("Show an info dialog", @Set($info, true), "secondary")',

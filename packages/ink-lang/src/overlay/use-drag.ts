@@ -92,17 +92,18 @@ function sameOffset(a: DragOffset, b: DragOffset): boolean {
  * past an edge never lingers. When the host places the form differently
  * while the button is held (a resize re-centres a modal, moves an anchor or
  * shrinks the bounds), the next move goes on from the pointer's last cell
- * and from where the form is drawn now, so it never jumps. A move that arrives with no button held means
- * the release was lost (outside the terminal): it drops there. `moveBy`
- * moves it from the keyboard and drops at once, and does nothing when the
- * bounds leave no room that way. Reports `dragstart`, `drag` (only for a
- * move that changed the offset) and `dragend` through `useUiEvents`, at the
- * pointer's cell, or for a keyboard move at the overlay's top-left cell
- * before and after it. `onDrop` is told where the form is drawn after the
- * drop; an owner that then gives the overlay another anchor calls
- * `setOrigin` with where the host will place it, so it stays put. The mouse
- * handlers must be registered by a `DragHandle` inside the overlay's
- * content, so the handle takes events in the overlay's layer.
+ * and from where the form is drawn now, so it never jumps. A move that
+ * arrives with no button held means the release was lost (outside the
+ * terminal): it drops there. `moveBy` moves it from the keyboard and drops
+ * at once, and does nothing when the bounds leave no room that way. Reports
+ * `dragstart`, `drag` (only for a move that changed the offset) and
+ * `dragend` through `useUiEvents`, at the pointer's cell, or for a keyboard
+ * move at the overlay's top-left cell before and after it. `onDrop` is told
+ * where the form is drawn after the drop; an owner that then gives the
+ * overlay another anchor calls `setOrigin` with where the host will place
+ * it, so it stays put. The mouse handlers must be registered by a
+ * `DragHandle` inside the overlay's content, so the handle takes events in
+ * the overlay's layer.
  */
 export function useDrag(options: UseDragOptions): DragState {
   const emit = useUiEvents();

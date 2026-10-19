@@ -82,7 +82,7 @@ The terminal has no transparency: a "transparent" backdrop paints nothing and on
 ### Anchoring and drag
 
 - Default anchor: the tree. An overlay's place in the order is its anchor's place.
-- A dialog is draggable by its title bar when the mouse is on: mousedown captures, mousemove moves, mouseup drops; clamped to the screen. With the mouse off, Ctrl+arrows move it.
+- A dialog is draggable by its title bar when the mouse is on: mousedown captures, mousemove moves, mouseup drops; clamped to the screen. Ctrl+arrows move it one cell while one of its stops has focus, with the mouse on or off.
 - On drop, the dialog re-anchors to the stop behind it: the base stop whose rectangle contains the dialog's top-left cell, else the last base stop before that cell in reading order (the row above, or to the left on the same row), else its tree anchor. The anchor is stored as a stop id, not as coordinates. Re-anchoring happens on drop only, never during the drag. The dialog does not move on drop: it is placed right under its anchor stop and its offset is rebased to keep it where it was dropped. Its stops sort right after the anchor stop, before anything that stop nests under it (an open accordion section under its header). It keeps the background of the cells its anchor stop sits on, never the stop's own fill.
 - A dialog may anchor to a stop of another program in the same `FocusScope`; its stops then sit in that program's part of the cycle.
 - A modal dialog never re-anchors (it is centred in its own layer), and neither does a Dialog declared inside a modal: its candidates are the modal's stops, which are not base stops.
@@ -110,10 +110,10 @@ While `isStreaming` is true the stops of the program are inactive, overlays incl
 
 ### OpenUI Lang components
 
-- `ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?)`: unchanged signature; gains the backdrop, `cancel` on backdrop click and Escape, drag and the layer rules.
+- `ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, draggable?)`: react-ui's signature plus a last `draggable?` (step 4); gains the backdrop, `cancel` on backdrop click and Escape, drag and the layer rules.
 - `Dialog(...)`: the same slots and props, non-modal: no backdrop, base stays interactive, priority by hover or focus-within.
-- Step 3 ships `Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?)` with `placement` `"bottom"` by default, against the line where it is declared; `draggable` (and so the drag of either dialog) arrives in step 4.
-- Both: `draggable` (default true) and an optional initial placement relative to the anchor.
+- Step 3 ships `Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?)` with `placement` `"bottom"` by default, against the line where it is declared; step 4 delivered `draggable` and the drag of either dialog.
+- Both: `draggable` (default true; delivered in step 4, the last argument of each) and an optional initial placement relative to the anchor (`Dialog`'s `placement`). `Modal` keeps react-ui's schema and is always draggable.
 - `Tooltip`: unchanged signature; rendered as an overlay instead of in the flow.
 - `Modal` (the generic one): same layer rules as `ModalDialog`; the `[ x ]` control is last in its sequence.
 
@@ -149,7 +149,7 @@ Four steps, each with its tests, docs (README "Focus order", AGENTS module table
 1. Sequence paths in `renderNode` and the registry; `focusOrder` by sequence path; Tab, Shift+Tab, Escape and autoFocus owned by the library; audit of every container's sequence; `FocusScope.order` for the host; the showcase placing its sidebar and theme select through it.
 2. `OverlayHost` and the floating `Tooltip`; `FocusScope.portal`; tmux check of painting. (`portal` is superseded: the scope always hosts overlays, and `OverlayHost` plus `OverlayRegistryContext` are exported for a manual portal.)
 3. Backdrop and `cancel`, `Dialog`, auto focus, priority by hover or focus-within, layer-aware Tab, arrows and mouse hit-test, nested overlays, streaming rule, dim-behind context.
-4. Drag (mouse and Ctrl+arrows), re-anchoring on drop, resize behaviour, the focus map's `layer` and `anchor`, drag events.
+4. Drag (mouse and Ctrl+arrows), re-anchoring on drop, resize behaviour, the focus map's `layer` and `anchor`, drag events. Done.
 
 ## Out of scope
 
