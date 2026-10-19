@@ -2,7 +2,7 @@ import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core
 import { afterEach, describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 import { mouseDisableSequence, mouseEnableSequence } from "../src/mouse/mouse-mode";
-import { DIM_ON, RED_ON, stripAnsi } from "./helpers/ansi";
+import { DIM_ON, isFaintAt, RED_ON, stripAnsi } from "./helpers/ansi";
 import { fillerRows, fillerText } from "./helpers/filler-rows";
 import {
   clicks,
@@ -222,6 +222,23 @@ describe("InkRenderer", () => {
       expect(insideBorders(titleLine)).toContain("Saved notice");
       expect(insideBorders(titleLine)).not.toContain(DIM_ON);
       expect(insideBorders(rawLine(frame, "Your changes are safe."))).not.toContain(DIM_ON);
+      rendered.unmount();
+    });
+
+    it("keeps the text after a bold run dim", async () => {
+      const rendered = await renderProgram(
+        inkLibrary,
+        [
+          "$open = true",
+          `root = Stack([MarkDownRenderer("Some **bold** then the plain tail"), dialog, ${fillerRows(10)}], "column", "none")`,
+          'dialog = ModalDialog("info", "Saved notice", "Your changes are safe.", null, "OK", $open)',
+        ].join("\n"),
+      );
+      // Read as a terminal does: the SGR 22 that ends the bold run ends faint too.
+      const line = rawLine(rendered.frame(), "then the plain tail");
+      expect(isFaintAt(line, "Some")).toBe(true);
+      expect(isFaintAt(line, "bold")).toBe(true);
+      expect(isFaintAt(line, "then the plain tail")).toBe(true);
       rendered.unmount();
     });
 

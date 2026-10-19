@@ -1,12 +1,24 @@
 import { createElement, type ReactNode } from "react";
 
-/** SGR "faint" on, and "normal intensity" (which ends it). */
+/** SGR "faint" on, and "normal intensity" (which ends it, and bold). */
 const DIM_ON = "\u001b[2m";
 const DIM_OFF = "\u001b[22m";
+/** SGR "bold" on, as chalk writes it for Ink's `bold`. */
+const BOLD_ON = "\u001b[1m";
 
-/** One output line of the dimmed content, drawn faint. */
+/**
+ * One output line of the dimmed content, drawn faint. SGR 22 ends bold and
+ * faint alike, so the faint style is switched on again after every 22 inside
+ * the line (the end of a bold or `dimColor` run). Bold is dropped inside a
+ * dimmed line: Ink re-serializes the styled cells (`@alcalzone/ansi-tokenize`),
+ * and from a bold and faint cell to a faint one it writes only 22, which a
+ * terminal reads as the end of faint too, so the text after a bold run would
+ * lose the dim. A full reset (`\u001b[0m`) inside the line would still end
+ * the faint style for the rest of it; nothing in the library writes one.
+ */
 export function dimLine(line: string): string {
-  return DIM_ON + line + DIM_OFF;
+  const faint = line.replaceAll(BOLD_ON, "").replaceAll(DIM_OFF, DIM_OFF + DIM_ON);
+  return DIM_ON + faint + DIM_OFF;
 }
 
 export interface DimBehindProps {
@@ -15,8 +27,11 @@ export interface DimBehindProps {
   children: ReactNode;
 }
 
-/** The style of the box: a column that fills its parent, like the page box it sits in. */
-const STYLE = { flexDirection: "column", flexGrow: 1, flexShrink: 1 } as const;
+/**
+ * The style of the box: a column sized by its content, as `<Box
+ * flexDirection="column">` is, so wrapping a panel's content changes no layout.
+ */
+const STYLE = { flexDirection: "column", flexGrow: 0, flexShrink: 1 } as const;
 
 /**
  * A column box whose text is drawn faint while `active` (a modal is open
@@ -29,8 +44,7 @@ const STYLE = { flexDirection: "column", flexGrow: 1, flexShrink: 1 } as const;
  * `internal_transform` prop on the node, and `renderNodeToOutput` passes a
  * node's `internal_transform` down to every descendant, which applies it to
  * each line of text it writes. Borders and backgrounds are written without
- * transformers, so they keep their colors; a descendant's own SGR 22 (the end
- * of a bold run) ends the faint style for the rest of that line.
+ * transformers, so they keep their colors.
  *
  * It is always the same raw element, the transform switched on and off, so
  * toggling never remounts the page: its state and focus ids survive a modal.

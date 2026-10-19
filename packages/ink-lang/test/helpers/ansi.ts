@@ -12,6 +12,32 @@ export function stripAnsi(text: string): string {
   return stripVTControlCharacters(text);
 }
 
+/**
+ * True when a terminal draws the first character of `text` in `line` faint:
+ * the SGR sequences before it are read in order, `2` turning faint on and
+ * `22` or a reset (`0` or empty) turning it off, as a terminal does.
+ */
+export function isFaintAt(line: string, text: string): boolean {
+  const pattern = /\u001b\[([\d;]*)m|([^\u001b])/g;
+  let faint = false;
+  let plain = "";
+  const target = stripAnsi(line).indexOf(text);
+  let match = pattern.exec(line);
+  while (match !== null) {
+    if (match[2] !== undefined) {
+      if (plain.length === target) return faint;
+      plain += match[2];
+    } else {
+      for (const param of (match[1] ?? "").split(";")) {
+        if (param === "2") faint = true;
+        if (param === "22" || param === "0" || param === "") faint = false;
+      }
+    }
+    match = pattern.exec(line);
+  }
+  return false;
+}
+
 /** The plain text of every inverse (focused) segment in the frame. */
 export function inverseSegments(frame: string): string[] {
   const segments: string[] = [];
