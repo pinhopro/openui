@@ -7,7 +7,7 @@ import type { MouseTarget } from "../../src/mouse/mouse-target";
 import { settle } from "../helpers/settle";
 
 function target(): MouseTarget {
-  return { ref: { current: null }, handlers: {} };
+  return { ref: { current: null }, handlers: {}, layer: 0 };
 }
 
 function measured(
@@ -16,8 +16,9 @@ function measured(
   width: number,
   height: number,
   depth: number,
+  layer = 0,
 ): MeasuredTarget {
-  return { target: target(), rect: { x, y, width, height }, depth };
+  return { target: { ...target(), layer }, rect: { x, y, width, height }, depth };
 }
 
 describe("targetsUnderCell", () => {
@@ -52,6 +53,13 @@ describe("targetsUnderCell", () => {
     expect(targetsUnderCell([twinA, twinB], 0, 0)).toEqual([twinB.target, twinA.target]);
   });
 
+  it("puts a higher layer first even when it is shallower and larger", () => {
+    const page = measured(0, 0, 3, 1, 5);
+    const overlay = measured(0, 0, 20, 5, 1, 1);
+    expect(targetsUnderCell([page, overlay], 0, 0)).toEqual([overlay.target, page.target]);
+    expect(targetsUnderCell([overlay, page], 0, 0)).toEqual([overlay.target, page.target]);
+  });
+
   it("ignores rects without a size", () => {
     const empty = measured(0, 0, 0, 0, 5);
     const real = measured(0, 0, 4, 1, 1);
@@ -83,7 +91,9 @@ describe("measureTargets", () => {
     await settle();
     const ref = captured as RefObject<DOMElement | null> | null;
     expect(ref).not.toBeNull();
-    const [first] = measureTargets([{ ref: ref as RefObject<DOMElement | null>, handlers: {} }]);
+    const [first] = measureTargets([
+      { ref: ref as RefObject<DOMElement | null>, handlers: {}, layer: 0 },
+    ]);
     expect(first?.rect).toEqual({ x: 0, y: 1, width: 1, height: 1 });
     instance.unmount();
   });

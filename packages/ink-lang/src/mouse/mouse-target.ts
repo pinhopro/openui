@@ -39,4 +39,6 @@ export interface MouseHandlers {
 export interface MouseTarget {
   ref: RefObject<DOMElement | null>;
   handlers: MouseHandlers;
+  /** The stacking layer it paints in: 0 for the page, higher for overlays (they win the hit-test). */
+  layer: number;
 }

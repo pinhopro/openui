@@ -48,8 +48,10 @@ function area(rect: CellRect): number {
   return rect.width * rect.height;
 }
 
-/** Innermost first: deeper, then smaller, then registered later. */
+/** Topmost first: higher layer, then deeper, then smaller, then registered later. */
 function compareInnermost(a: Candidate, b: Candidate): number {
+  const layerDelta = b.measured.target.layer - a.measured.target.layer;
+  if (layerDelta !== 0) return layerDelta;
   if (a.measured.depth !== b.measured.depth) return b.measured.depth - a.measured.depth;
   const areaDelta = area(a.measured.rect) - area(b.measured.rect);
   if (areaDelta !== 0) return areaDelta;

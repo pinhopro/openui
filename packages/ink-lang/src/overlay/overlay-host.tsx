@@ -1,6 +1,7 @@
 import { Box, measureElement, type DOMElement } from "ink";
 import { useContext, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { elementRect, type CellRect } from "../focus/element-rect";
+import { MouseLayerContext } from "../mouse/mouse-layer";
 import { BridgedContexts } from "./context-bridge";
 import { placeOverlay, type OverlayPosition } from "./overlay-placement";
 import { OverlayRegistryContext, type Overlay, type OverlayRegistry } from "./overlay-registry";
@@ -97,7 +98,8 @@ function samePlacements(previous: Placements, next: Placements): boolean {
  * of its container holding one absolutely positioned box per overlay, so the
  * container's layout does not change and later overlays overwrite earlier
  * cells. Each overlay's content is rendered with the contexts of the
- * component that opened it. Positions are measured after every render (the
+ * component that opened it and in its own mouse layer (stacking index plus
+ * one), so it wins the mouse hit-test over what it covers. Positions are measured after every render (the
  * anchor's cells, the overlay's size, the ink root as the bounds) and only
  * changed positions re-render.
  */
@@ -128,7 +130,8 @@ export function OverlayHost() {
   }
 
   const boxes = [];
-  for (const overlay of overlays) {
+  for (let index = 0; index < overlays.length; index += 1) {
+    const overlay = overlays[index] as Overlay;
     const placed = placements.get(overlay.id);
     const position = placed === undefined ? firstPosition(overlay, hostRef.current) : placed;
     if (position === null) continue;
@@ -141,7 +144,11 @@ export function OverlayHost() {
         top={position.y}
         flexDirection="column"
       >
-        <BridgedContexts captured={overlay.captured}>{overlay.render()}</BridgedContexts>
+        <BridgedContexts captured={overlay.captured}>
+          <MouseLayerContext.Provider value={index + 1}>
+            {overlay.render()}
+          </MouseLayerContext.Provider>
+        </BridgedContexts>
       </Box>,
     );
   }

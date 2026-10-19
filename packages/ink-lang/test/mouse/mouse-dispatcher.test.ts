@@ -29,7 +29,7 @@ function makeTarget(name: string, log: Recorded[]): MouseTarget {
   handlers.onWheel = function recordWheel(event: MouseWheelEvent) {
     log.push({ name: "onWheel", target: name, event });
   };
-  return { ref: { current: null }, handlers };
+  return { ref: { current: null }, handlers, layer: 0 };
 }
 
 function at(kind: MouseEvent["kind"], button: MouseEvent["button"], x = 0, y = 0): MouseEvent {
@@ -168,6 +168,7 @@ describe("createMouseDispatcher", () => {
           log.push({ name: "onClick", target: "trigger", event });
         },
       },
+      layer: 0,
     };
     const dispatcher = createMouseDispatcher();
     dispatcher.handle(at("down", "left"), [trigger, strip]);
@@ -187,7 +188,7 @@ describe("createMouseDispatcher", () => {
   it("tracks hover on the innermost box only", () => {
     const log: Recorded[] = [];
     const strip = makeTarget("strip", log);
-    const inner: MouseTarget = { ref: { current: null }, handlers: {} };
+    const inner: MouseTarget = { ref: { current: null }, handlers: {}, layer: 0 };
     const dispatcher = createMouseDispatcher();
     dispatcher.handle(at("move", "none"), [inner, strip]);
     dispatcher.handle(at("move", "none"), [strip]);

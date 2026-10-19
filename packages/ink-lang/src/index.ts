@@ -484,6 +484,7 @@ export { measureTargets, targetsUnderCell } from "./mouse/hit-test";
 export type { CellRect, MeasuredTarget } from "./mouse/hit-test";
 export { createMouseDispatcher } from "./mouse/mouse-dispatcher";
 export type { MouseDispatcher } from "./mouse/mouse-dispatcher";
+export { MouseLayerContext } from "./mouse/mouse-layer";
 export { mouseDisableSequence, mouseEnableSequence } from "./mouse/mouse-mode";
 export { resolveMouseOptions } from "./mouse/mouse-options";
 export type { MouseOptions } from "./mouse/mouse-options";
