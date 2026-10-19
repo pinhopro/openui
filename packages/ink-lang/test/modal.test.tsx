@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
+import { InkRenderer } from "../src/ink-renderer";
 import type { UiEvent } from "../src/ui-events";
 import { inverseSegments, stripAnsi } from "./helpers/ansi";
 import { fillerRows, wholeFillerRows } from "./helpers/filler-rows";
@@ -7,6 +8,7 @@ import { findCell } from "./helpers/find-cell";
 import { KEYS } from "./helpers/keys";
 import { MOUSE } from "./helpers/mouse";
 import { renderProgram } from "./helpers/render-program";
+import { renderTerminal } from "./helpers/render-terminal";
 import { settle } from "./helpers/settle";
 
 const ESCAPE = "\u001b";
@@ -101,6 +103,38 @@ describe("Modal", () => {
     const sm = await mount(program(true, CONFIRM, '"sm"'));
     expect(topBorderWidth(stripAnsi(sm.rendered.frame()))).toBe(40);
     sm.rendered.unmount();
+  });
+
+  it("keeps focus on the stop it was on when a resize re-measures it", async () => {
+    const events: UiEvent[] = [];
+    const twoButtons =
+      'TextContent("Are you sure?"), Buttons([Button("Yes", @ToAssistant("Yes")), Button("No", @ToAssistant("No"))])';
+    const terminal = renderTerminal(
+      <InkRenderer
+        response={program(true, twoButtons)}
+        library={inkLibrary}
+        isStreaming={false}
+        onUiEvent={function onUiEvent(event) {
+          events.push(event);
+        }}
+      />,
+      100,
+    );
+    await settle();
+    expect(inverseSegments(terminal.lastFrame())).toEqual(["[ Yes ]"]);
+    terminal.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(terminal.lastFrame())).toEqual(["[ No ]"]);
+    // A narrower terminal changes the overlay's width limit: it is measured again, hidden.
+    terminal.resize(90);
+    await settle();
+    expect(stripAnsi(terminal.lastFrame())).toContain("Are you sure?");
+    expect(inverseSegments(terminal.lastFrame())).toEqual(["[ No ]"]);
+    const yesFocus = ofType(events, "focus").filter(function isYes(event) {
+      return event.name === "Yes";
+    });
+    expect(yesFocus).toHaveLength(1);
+    terminal.unmount();
   });
 
   it("closes on Escape and reports cancel", async () => {

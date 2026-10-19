@@ -78,4 +78,32 @@ describe("modal layer", () => {
     expect(stripAnsi(rendered.frame())).not.toContain("Sure?");
     rendered.unmount();
   });
+
+  it("returns focus to the outer modal's stop when a modal opened from it closes", async () => {
+    const nested = [
+      "$outer = true",
+      "$inner = false",
+      `root = Stack([outside, outer, ${fillerRows(12)}], "column", "none")`,
+      'outside = Button("Outside", @ToAssistant("Outside"))',
+      'outer = Modal("Outer", $outer, [Buttons([Button("First", @ToAssistant("First")), Button("Nested", @Set($inner, true))]), inner])',
+      'inner = ModalDialog("neutral", "Inner", "Nested dialog", "Back", "Go", $inner)',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, nested);
+    expect(inverseSegments(rendered.frame())).toEqual(["[ First ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Nested ]"]);
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(stripAnsi(rendered.frame())).toContain("Nested dialog");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Back ]"]);
+    rendered.instance.stdin.write("\u001b");
+    // Ink holds a lone Escape for 20ms in case a sequence follows; it cancels the inner dialog only.
+    await settle(60);
+    const frame = stripAnsi(rendered.frame());
+    expect(frame).not.toContain("Nested dialog");
+    expect(frame).toContain("Outer");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Nested ]"]);
+    rendered.unmount();
+  });
 });

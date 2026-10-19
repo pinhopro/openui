@@ -1,4 +1,6 @@
-import { useContext, useEffect, useRef } from "react";
+import { useFocusManager } from "ink";
+import { useCallback, useContext, useEffect, useRef } from "react";
+import { FocusRegistryContext } from "../focus/focus-registry";
 import { ModalLayerContext } from "../focus/modal-layer";
 import { useUiEvents, type UiEvent } from "../ui-events";
 
@@ -7,7 +9,13 @@ export interface DialogLayerOptions {
   isOpen: boolean;
   /** It blocks everything behind it: it holds a modal layer while shown. */
   modal: boolean;
-  /** What Escape runs while its layer is on top; the latest one is called. */
+  /**
+   * Cancelling closes the dialog (it has an `open` binding): further cancels
+   * before it closes do nothing. False for a dialog that stays shown, whose
+   * every cancel runs.
+   */
+  closesOnCancel: boolean;
+  /** What a cancel runs; the latest one is called. */
   onCancel: () => void;
   /** The layer's id, the value of `LayerIdContext` around the dialog's content. */
   layerId: string;
@@ -17,17 +25,31 @@ export interface DialogLayerOptions {
   title: string;
 }
 
+export interface DialogLayer {
+  /**
+   * Cancels the dialog: runs the latest `onCancel`, once per open for a
+   * dialog that closes on cancel (Escape and a backdrop click read in one
+   * input chunk cancel once). Stable; what the cancel controls, the backdrop
+   * and the layer's Escape all call.
+   */
+  cancel: () => void;
+}
+
 /**
  * A dialog's layer: while `isOpen && modal` it holds a modal layer whose
- * cancel (Escape, through the navigator) runs the latest `onCancel`, and it
+ * cancel (Escape, through the navigator) is the dialog's `cancel`; it
  * reports `open` when the dialog shows and `close` when it hides or unmounts
- * while shown. Moving focus into the dialog once it shows is
- * `DialogFocusOnShow`'s job, inside the overlay content, where the shown
- * state is known.
+ * while shown; and when the layer closes it gives focus back to the stop
+ * that had it when the layer opened (the dialog's opener, or an outer
+ * modal's stop), if that stop can still take focus. Moving focus into the
+ * dialog once it shows is `DialogFocusOnShow`'s job, inside the overlay
+ * content, where the shown state is known.
  */
-export function useDialogLayer(options: DialogLayerOptions): void {
+export function useDialogLayer(options: DialogLayerOptions): DialogLayer {
   const layers = useContext(ModalLayerContext);
   const openLayer = layers.open;
+  const registry = useContext(FocusRegistryContext);
+  const manager = useFocusManager();
   const emit = useUiEvents();
   const layerId = options.layerId;
   const isOpen = options.isOpen;
@@ -37,20 +59,38 @@ export function useDialogLayer(options: DialogLayerOptions): void {
   latest.current = options;
   const emitRef = useRef(emit);
   emitRef.current = emit;
+  const managerRef = useRef(manager);
+  managerRef.current = manager;
+  const cancelled = useRef(false);
+
+  const cancel = useCallback(function cancel(): void {
+    if (cancelled.current) return;
+    if (latest.current.closesOnCancel) cancelled.current = true;
+    latest.current.onCancel();
+  }, []);
 
   useEffect(
     function holdLayer() {
       if (!holdsLayer) return undefined;
-      return openLayer(layerId, function cancelLatest() {
-        latest.current.onCancel();
-      });
+      const opener = managerRef.current.activeId;
+      const close = openLayer(layerId, cancel);
+      return function releaseLayer() {
+        close();
+        // The opener's layer becomes active once React re-renders; Ink only focuses an active id.
+        setTimeout(function giveFocusBack() {
+          if (opener === undefined || registry === null) return;
+          const entry = registry.find(opener);
+          if (entry !== null && entry.isActive) managerRef.current.focus(opener);
+        }, 0);
+      };
     },
-    [holdsLayer, layerId, openLayer],
+    [cancel, holdsLayer, layerId, openLayer, registry],
   );
 
   useEffect(
     function reportOpenAndClose() {
       if (!isOpen) return undefined;
+      cancelled.current = false;
       emitRef.current(layerEvent("open", latest.current));
       return function reportClose() {
         emitRef.current(layerEvent("close", latest.current));
@@ -58,6 +98,8 @@ export function useDialogLayer(options: DialogLayerOptions): void {
     },
     [isOpen],
   );
+
+  return { cancel };
 }
 
 /** An `open` or `close` event of the dialog. */

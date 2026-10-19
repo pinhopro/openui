@@ -199,6 +199,53 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("gives focus back to the stop that opened it once it closes", async () => {
+    const { rendered } = await mount(program(false));
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Outside ]"]);
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Outside ]"]);
+    rendered.unmount();
+  });
+
+  it("cancels once for two backdrop clicks in one input chunk", async () => {
+    const { rendered, actions, events } = await mount(
+      program(true, '@ToAssistant("Kept Carlos")'),
+      true,
+    );
+    const corner = findCell(stripAnsi(rendered.frame()), "base row 10");
+    rendered.instance.stdin.write(
+      MOUSE.click(corner.x, corner.y) + MOUSE.click(corner.x + 1, corner.y),
+    );
+    await settle();
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    expect(actions.map((event) => event.humanFriendlyMessage)).toEqual(["Kept Carlos"]);
+    expect(ofType(events, "cancel")).toHaveLength(1);
+    rendered.unmount();
+  });
+
+  it("names a cancel action after its title when it has no cancel button", async () => {
+    const { rendered, actions } = await mount(
+      [
+        "$confirm = true",
+        `root = Stack([dialog, ${fillerRows(ROWS)}], "column", "none")`,
+        'dialog = ModalDialog("info", "Saved", "Your changes are safe.", null, "OK", $confirm, null, {type: "dismissed"})',
+      ].join("\n"),
+    );
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    expect(actions.map((event) => [event.type, event.humanFriendlyMessage])).toEqual([
+      ["dismissed", "Saved"],
+    ]);
+    rendered.unmount();
+  });
+
   it("cancels on a click on the backdrop, not on a click inside the dialog", async () => {
     const { rendered, actions, states, events } = await mount(program(true), true);
     const opened = stripAnsi(rendered.frame());

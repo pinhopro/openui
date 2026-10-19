@@ -65,8 +65,9 @@ const WIDTHS: Record<string, number> = { sm: 40, md: 60, lg: 80 };
 
 /**
  * A dialog with an accent border, the title with a close button and the
- * children, as wide as its `size` (narrower in narrow bounds), floating centred over the page above a see-through backdrop (two
- * overlays opened from here, so the page keeps its layout). It shows while
+ * children, as wide as its `size` (narrower in narrow bounds), floating
+ * centred over the page above a see-through backdrop (two overlays opened
+ * from here, so the page keeps its layout). It shows while
  * the `$open` binding is true, as the only active layer, and focus moves to
  * its first stop once it shows. `[ x ]`, Escape and a click on the backdrop
  * cancel it: the binding becomes false, like the React library, and `cancel`
@@ -82,12 +83,20 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   const anchorRef = useRef<DOMElement | null>(null);
   const title = displayText(props.title);
 
-  function cancel(): void {
+  function runCancel(): void {
     setValue(false);
     emit({ type: "cancel", component: "Modal", name: title });
   }
 
-  useDialogLayer({ isOpen, modal: true, onCancel: cancel, layerId, component: "Modal", title });
+  const cancel = useDialogLayer({
+    isOpen,
+    modal: true,
+    closesOnCancel: true,
+    onCancel: runCancel,
+    layerId,
+    component: "Modal",
+    title,
+  }).cancel;
 
   // Rendered here, so the children keep this element's sequence path and contexts.
   const children = isOpen ? renderNode(props.children) : null;

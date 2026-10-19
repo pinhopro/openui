@@ -67,10 +67,12 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
     if (hasBinding) setValue(false);
   }
 
-  function cancel(): void {
+  function runCancel(): void {
     const action = props.cancelAction as unknown as ActionPlan | null | undefined;
     if (action !== undefined && action !== null) {
-      void triggerAction(displayText(props.cancelLabel), formName, action);
+      // Without a cancel button the action is named after the dialog.
+      const label = displayText(props.cancelLabel);
+      void triggerAction(label === "" ? title : label, formName, action);
     }
     close();
     emit({ type: "cancel", component: "ModalDialog", name: title });
@@ -85,14 +87,15 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
     close();
   }
 
-  useDialogLayer({
+  const cancel = useDialogLayer({
     isOpen,
     modal: true,
-    onCancel: cancel,
+    closesOnCancel: hasBinding,
+    onCancel: runCancel,
     layerId,
     component: "ModalDialog",
     title,
-  });
+  }).cancel;
 
   const cancelLabel = displayText(props.cancelLabel);
   const confirmLabel = displayText(props.confirmLabel);

@@ -121,8 +121,9 @@ function FilterLine({ editor, fallback }: FilterLineProps) {
  * the picked label (or the placeholder); focused, typing narrows the option
  * list, Up and Down move the highlight, Enter stores the highlighted option's
  * value and Escape clears the filter (an Escape with no filter typed is the
- * navigator's: it cancels an open modal or drops focus). With the mouse, a click opens it, a
- * click on a match picks it and the wheel moves the highlight.
+ * navigator's: it cancels an open modal or drops focus). With the mouse, a
+ * click opens it, a click on a match picks it and the wheel moves the
+ * highlight.
  */
 function ComboboxRenderer({ props }: ComponentRenderProps<ComboboxProps>) {
   const isStreaming = useIsStreaming();
