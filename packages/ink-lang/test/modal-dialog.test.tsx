@@ -343,6 +343,39 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("stays closed while its open argument has not streamed yet, and once it arrives as false", async () => {
+    const cut = [
+      "$confirm = false",
+      `root = Stack([outside, dialog, after, ${fillerRows(ROWS)}], "column", "none")`,
+      'outside = Button("Outside", @Set($confirm, true))',
+      'after = TextContent("row after the dialog")',
+      `dialog = ModalDialog("destructive", "${TITLE}", "Carlos Ruiz will no longer appear in your contacts.", "Cancel", "Delete contact"`,
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, cut, { isStreaming: true });
+    await settle();
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    await rendered.update({ response: `${cut}, $confirm)` });
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    await rendered.update({ isStreaming: false });
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    rendered.unmount();
+  });
+
+  it("shows an unbound one only once the stream ends, then focuses its button", async () => {
+    const rendered = await renderProgram(
+      inkLibrary,
+      `root = Stack([ModalDialog("info", "Saved", "Your changes are safe.", null, "OK"), ${fillerRows(ROWS)}], "column", "none")`,
+      { isStreaming: true },
+    );
+    await settle();
+    expect(stripAnsi(rendered.frame())).not.toContain("Saved");
+    await rendered.update({ isStreaming: false });
+    await settle();
+    expect(stripAnsi(rendered.frame())).toContain("Saved");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ OK ]"]);
+    rendered.unmount();
+  });
+
   it("covers the page with its backdrop while streaming: a click never reaches the page", async () => {
     const events: UiEvent[] = [];
     const rendered = await renderProgram(inkLibrary, program(true), {

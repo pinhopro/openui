@@ -329,6 +329,25 @@ describe("Dialog", () => {
     rendered.unmount();
   });
 
+  it("stays closed while its open argument has not streamed yet", async () => {
+    const cut = [
+      "$note = false",
+      `root = Stack([opener, noteDialog, ${fillerRows(ROWS)}], "column", "none")`,
+      'opener = Button("Open", @Set($note, true))',
+      `noteDialog = Dialog("info", "${TITLE}", "Keep editing or close this note.", "Close"`,
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, cut, { isStreaming: true });
+    await settle();
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    await rendered.update({ response: `${cut}, null, $note)` });
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
+    await rendered.update({
+      response: `${cut}, null, $note)`.replace("$note = false", "$note = true"),
+    });
+    expect(stripAnsi(rendered.frame())).toContain(TITLE);
+    rendered.unmount();
+  });
+
   it("centres itself in the bounds with the center placement", async () => {
     const { rendered } = await mount(program(true, "center"));
     const frame = stripAnsi(rendered.frame());

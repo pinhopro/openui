@@ -75,7 +75,9 @@ const MARKS: Record<string, string> = {
  * Escape and a click on the backdrop) sets `$open` to false, runs
  * `cancelAction` and reports `cancel`; confirm fires its action (or sends the
  * label to the assistant) and closes it. Without an `open` binding it is
- * always shown and its buttons only fire.
+ * always shown and its buttons only fire; while the program streams a
+ * missing `open` may still be on its way, so the dialog stays closed until
+ * the argument arrives or the stream ends.
  */
 export function DialogRenderer({ props, modal, placement, component }: DialogRendererProps) {
   const theme = useTheme();
@@ -85,7 +87,11 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
   const emit = useUiEvents();
   const field = useStateField<unknown>("open", props.open);
   const hasBinding = props.open !== undefined && props.open !== null;
-  const isOpen = !hasBinding || field.value === true || field.value === "true";
+  // While the program streams, an `open` argument that has not arrived yet
+  // looks like none: the dialog stays closed until it does (or the stream
+  // ends), so it never shows for a moment before its binding closes it.
+  const alwaysShown = !hasBinding && !isStreaming;
+  const isOpen = alwaysShown || field.value === true || field.value === "true";
   const setValue = field.setValue;
   // The modal layer's id and the id of the overlay the dialog renders in.
   const dialogId = useId();
