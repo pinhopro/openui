@@ -3,7 +3,7 @@ import type { CellRect } from "../focus/element-rect";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers } from "../mouse/mouse-target";
 import { useUiEvents, type UiEventType } from "../ui-events";
-import { drawnOffset, drawnTopLeft, type ShownPlacement } from "./drawn-offset";
+import { drawnOffset, drawnTopLeft, sameReference, type ShownPlacement } from "./drawn-offset";
 import type { PlacedFrame } from "./overlay-registry";
 
 /** Cells an overlay is moved from where it is placed: `x` to the right, `y` down. */
@@ -69,6 +69,8 @@ interface Press {
   /** The pointer's cell at the last event of the drag. */
   lastX: number;
   lastY: number;
+  /** The placement `x`, `y` and `offsetAtPress` are measured against. */
+  shown: ShownPlacement | null;
 }
 
 const NO_OFFSET: DragOffset = Object.freeze({ x: 0, y: 0 });
@@ -87,7 +89,10 @@ function sameOffset(a: DragOffset, b: DragOffset): boolean {
  * (`onDrop`). The host clamps the drawn overlay into its bounds; the offset
  * is brought back to what was drawn (`drawnOffset`, from the last placement
  * `onPlaced` heard of) at every press, drop and keyboard move, so an excess
- * past an edge never lingers. A move that arrives with no button held means
+ * past an edge never lingers. When the host places the form differently
+ * while the button is held (a resize re-centres a modal, moves an anchor or
+ * shrinks the bounds), the next move goes on from the pointer's last cell
+ * and from where the form is drawn now, so it never jumps. A move that arrives with no button held means
  * the release was lost (outside the terminal): it drops there. `moveBy`
  * moves it from the keyboard and drops at once, and does nothing when the
  * bounds leave no room that way. Reports `dragstart`, `drag` (only for a
@@ -169,9 +174,23 @@ export function useDrag(options: UseDragOptions): DragState {
       offsetAtPress: rebase(),
       lastX: event.x,
       lastY: event.y,
+      shown: shown.current,
     };
     setDragging(true);
     report("dragstart", event.x, event.y);
+  }
+
+  /**
+   * The host placed the form differently while the button was held (a
+   * resize re-placed it): the travel so far was measured against the old
+   * placement, so the drag goes on from the pointer's last cell and from
+   * where the form is drawn now, without the excess the new clamp cut off.
+   */
+  function restartFromLastCell(started: Press): void {
+    started.x = started.lastX;
+    started.y = started.lastY;
+    started.offsetAtPress = rebase();
+    started.shown = shown.current;
   }
 
   function handleMouseMove(event: MouseEvent): void {
@@ -181,6 +200,7 @@ export function useDrag(options: UseDragOptions): DragState {
       drop(event);
       return;
     }
+    if (!sameReference(started.shown, shown.current)) restartFromLastCell(started);
     started.lastX = event.x;
     started.lastY = event.y;
     const next = {

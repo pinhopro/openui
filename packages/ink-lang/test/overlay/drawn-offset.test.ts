@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { drawnOffset, drawnTopLeft, type ShownPlacement } from "../../src/overlay/drawn-offset";
+import {
+  drawnOffset,
+  drawnTopLeft,
+  sameReference,
+  type ShownPlacement,
+} from "../../src/overlay/drawn-offset";
 
 /** A 10 by 4 form placed at (20, 5) in 40 by 12 bounds. */
 const SHOWN: ShownPlacement = {
@@ -35,5 +40,28 @@ describe("drawnTopLeft", () => {
   it("is the placed origin moved by the offset, or the offset when the placement is unknown", () => {
     expect(drawnTopLeft({ x: 3, y: 1 }, SHOWN)).toEqual({ x: 23, y: 6 });
     expect(drawnTopLeft({ x: 3, y: 1 }, null)).toEqual({ x: 3, y: 1 });
+  });
+});
+
+describe("sameReference", () => {
+  it("ignores where the form is drawn, and tells a new origin, bounds or size apart", () => {
+    const frame = SHOWN.frame;
+    if (frame === null) throw new Error("SHOWN has a frame");
+    const dragged = { ...SHOWN, rect: { ...SHOWN.rect, x: 27, y: 2 } };
+    expect(sameReference(SHOWN, dragged)).toBe(true);
+    const recentred = { ...SHOWN, frame: { ...frame, origin: { x: 15, y: 5 } } };
+    expect(sameReference(SHOWN, recentred)).toBe(false);
+    const narrower = { ...SHOWN, frame: { ...frame, bounds: { ...frame.bounds, width: 30 } } };
+    expect(sameReference(SHOWN, narrower)).toBe(false);
+    const wrapped = { ...SHOWN, rect: { ...SHOWN.rect, width: 8, height: 5 } };
+    expect(sameReference(SHOWN, wrapped)).toBe(false);
+  });
+
+  it("is true for two unknown placements only", () => {
+    expect(sameReference(null, null)).toBe(true);
+    expect(sameReference(SHOWN, null)).toBe(false);
+    const unplaced = { rect: SHOWN.rect, frame: null };
+    expect(sameReference(unplaced, { ...unplaced })).toBe(true);
+    expect(sameReference(unplaced, SHOWN)).toBe(false);
   });
 });

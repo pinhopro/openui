@@ -41,3 +41,23 @@ export function drawnTopLeft(offset: OffsetCells, shown: ShownPlacement | null):
   if (shown === null || shown.frame === null) return offset;
   return { x: shown.frame.origin.x + offset.x, y: shown.frame.origin.y + offset.y };
 }
+
+function sameRect(a: CellRect, b: CellRect): boolean {
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+/**
+ * True when an offset draws the form in the same place under both
+ * placements: the same origin, the same bounds and a form of the same size
+ * (the clamp depends on it). A resize, or an anchor that moved, changes one
+ * of them; where the form itself is drawn does not count. Two unknown
+ * placements are the same.
+ */
+export function sameReference(a: ShownPlacement | null, b: ShownPlacement | null): boolean {
+  if (a === null || b === null) return a === b;
+  if (a.rect.width !== b.rect.width || a.rect.height !== b.rect.height) return false;
+  if (a.frame === null || b.frame === null) return a.frame === b.frame;
+  const origin = a.frame.origin;
+  const sameOrigin = origin.x === b.frame.origin.x && origin.y === b.frame.origin.y;
+  return sameOrigin && sameRect(a.frame.bounds, b.frame.bounds);
+}
