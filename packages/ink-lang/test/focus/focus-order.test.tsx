@@ -10,11 +10,17 @@ import {
   nextInOrder,
   type FocusStop,
 } from "../../src/focus/focus-order";
-import { FocusRegistryContext, type FocusEntry } from "../../src/focus/focus-registry";
+import {
+  FocusRegistryContext,
+  type FocusEntry,
+  type FocusRegistry,
+} from "../../src/focus/focus-registry";
 import { FocusScope } from "../../src/focus/focus-scope";
 import { useFocusable } from "../../src/focus/use-focusable";
 import { InkRenderer } from "../../src/ink-renderer";
 import { inverseSegments, stripAnsi } from "../helpers/ansi";
+import { fillerRows } from "../helpers/filler-rows";
+import { findCell } from "../helpers/find-cell";
 import { KEYS } from "../helpers/keys";
 import { renderProgram } from "../helpers/render-program";
 import { settle } from "../helpers/settle";
@@ -81,6 +87,65 @@ describe("focusOrder", () => {
     expect(seen[0]?.arrows).toEqual({ up: false, down: false, left: false, right: false });
     expect(nextInOrder(seen, undefined, 1)).toBe(seen[0]?.id);
     expect(nextInOrder(seen, seen[1]?.id, 1)).toBe(seen[0]?.id);
+    instance.unmount();
+  });
+});
+
+describe("focusOrder layer and anchor", () => {
+  it("reports each stop's layer, and the stop a dropped dialog re-anchored to", async () => {
+    let registry: FocusRegistry | null = null;
+    function Probe() {
+      registry = useContext(FocusRegistryContext);
+      return null;
+    }
+    const program = [
+      "$note = true",
+      `root = Stack([a, open, noteDialog, b, c, ${fillerRows(10)}])`,
+      'a = Button("A", @ToAssistant("A"))',
+      'open = Button("Open", @Set($note, true))',
+      'noteDialog = Dialog("info", "Draft saved", "Keep editing or close this note.", "Close", null, $note)',
+      'b = Button("B", @ToAssistant("B"))',
+      'c = Button("C", @ToAssistant("C"))',
+    ].join("\n");
+    const instance = render(
+      <FocusScope>
+        <InkRenderer response={program} library={inkLibrary} />
+        <Probe />
+      </FocusScope>,
+    );
+    await settle();
+    function stops(): Map<string, FocusStop> {
+      const byName = new Map<string, FocusStop>();
+      if (registry === null) return byName;
+      for (const stop of focusOrder(registry)) byName.set(stop.name, stop);
+      return byName;
+    }
+    function frame(): string {
+      return stripAnsi(instance.lastFrame() ?? "");
+    }
+
+    // Never dragged: the dialog's stop has no anchor; a page stop is on the base layer.
+    const shown = stops();
+    const close = shown.get("Close");
+    expect(close?.overlay).not.toBeNull();
+    expect(close?.layer).toBe(close?.overlay);
+    expect(close?.anchor).toBeNull();
+    expect(shown.get("A")?.layer).toBe("base");
+    expect(shown.get("A")?.anchor).toBeNull();
+
+    // Ctrl+Down moves the focused dialog a row at a time, each move a drop, until its corner is on C.
+    const c = shown.get("C")?.rect;
+    const corner = findCell(frame(), "╭");
+    for (let row = corner.y; row < (c?.y ?? 0); row += 1) {
+      instance.stdin.write(KEYS.CTRL_DOWN);
+      await settle();
+    }
+    expect(findCell(frame(), "╭")).toEqual({ x: c?.x, y: c?.y });
+    const dropped = stops();
+    expect(dropped.get("Close")?.anchor).toBe(dropped.get("C")?.id);
+    expect(dropped.get("Close")?.layer).toBe(close?.overlay);
+    expect(dropped.get("A")?.layer).toBe("base");
+    expect(dropped.get("A")?.anchor).toBeNull();
     instance.unmount();
   });
 });

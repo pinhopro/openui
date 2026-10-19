@@ -23,6 +23,21 @@ export const OverlayVisibleContext: Context<boolean> = createContext<boolean>(tr
  */
 export const OverlayWidthLimitContext: Context<number | null> = createContext<number | null>(null);
 
+/**
+ * The id of the base focus stop the overlay the content renders in is
+ * anchored to: a dropped dialog re-anchors to the stop behind it and
+ * provides it around its content. Null outside any overlay and in an overlay
+ * anchored to the tree (where it is declared). Unlike the contexts above, the
+ * overlay's owner provides it inside its `render`, not the host; it is not
+ * bridged either, so an overlay opened inside this one starts at null.
+ */
+export const OverlayAnchorContext: Context<string | null> = createContext<string | null>(null);
+
+/** The id of the stop the calling component's overlay is anchored to; null when none. */
+export function useOverlayAnchor(): string | null {
+  return useContext(OverlayAnchorContext);
+}
+
 /** The id of the overlay the calling component renders in; null outside any overlay. */
 export function useOverlayId(): string | null {
   return useContext(OverlayIdContext);

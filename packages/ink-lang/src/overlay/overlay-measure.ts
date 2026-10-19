@@ -10,6 +10,7 @@ import {
   placeCompact,
   placeOverlay,
   rowsMissingBelow,
+  type OverlayPlacement,
   type OverlayPosition,
   type OverlaySize,
 } from "./overlay-placement";
@@ -92,7 +93,11 @@ function coveredCells(rect: CellRect): CellRect {
  * (`declarationLine`), seen when that line's row or column is.
  */
 function anchorRect(overlay: Overlay): CellRect | null {
-  const anchor = overlay.anchorRef.current;
+  return anchorCells(overlay.anchorRef.current);
+}
+
+/** The cells an anchor box stands for, or null; see `anchorRect`. */
+function anchorCells(anchor: DOMElement | null): CellRect | null {
   if (anchor === null) return null;
   const isLine = marksDeclaration(anchor);
   const rect = isLine ? declarationLine(anchor) : elementRect(anchor);
@@ -104,8 +109,13 @@ function anchorRect(overlay: Overlay): CellRect | null {
 }
 
 /** True for the placements that ignore the anchor's cells: they go against the bounds. */
+function inBounds(placement: OverlayPlacement): boolean {
+  return placement === "cover" || placement === "center";
+}
+
+/** True for an overlay placed in the bounds, whatever its anchor (`inBounds`). */
 function placedInBounds(overlay: Overlay): boolean {
-  return overlay.placement === "cover" || overlay.placement === "center";
+  return inBounds(overlay.placement);
 }
 
 /**
@@ -343,6 +353,37 @@ export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
     compact: forms.compact,
     background: backgroundOf(input.overlay, input.host, input.boundsBox),
   };
+}
+
+export interface PlacedOriginInput {
+  /** The box the form is placed against; an absolute box taking no cells marks a declaration. */
+  anchor: DOMElement | null;
+  placement: OverlayPlacement;
+  gap: number;
+  /** The whole form's size, as measured. */
+  size: OverlaySize;
+  /** The rectangle the overlays are placed in. */
+  bounds: CellRect;
+}
+
+/**
+ * Where the host places the whole form of an overlay with no compact form
+ * (a dialog) against `anchor` after the last layout, before its offset moves
+ * it: the `origin` of the `PlacedFrame` it reports. An owner about to give
+ * its overlay another anchor reads it to keep the form where it is drawn.
+ * Null when nothing would be drawn (the anchor is missing, empty or clipped
+ * out); a `center` or `cover` placement goes in the bounds whatever the anchor.
+ */
+export function placedOrigin(input: PlacedOriginInput): OverlayPosition | null {
+  const anchor = inBounds(input.placement) ? input.bounds : anchorCells(input.anchor);
+  if (anchor === null) return null;
+  return placeOverlay({
+    anchor,
+    size: input.size,
+    placement: input.placement,
+    gap: input.gap,
+    bounds: input.bounds,
+  });
 }
 
 /**

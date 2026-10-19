@@ -26,7 +26,18 @@ export interface FocusStop {
   arrows: ArrowMap;
   /** The id of the overlay the stop renders in; null for a stop outside any overlay. */
   overlay: string | null;
+  /** The layer the stop is drawn in: `"base"` for the page, else the id of its overlay. */
+  layer: string;
+  /**
+   * The id of the base stop the stop's overlay is anchored to (a dropped
+   * dialog re-anchors to the stop behind it); null on the base and for an
+   * overlay anchored to the tree (where it is declared).
+   */
+  anchor: string | null;
 }
+
+/** The `layer` of the stops outside every overlay. */
+export const BASE_LAYER = "base";
 
 /** The largest order: a stop that comes after every other child of its element. */
 export const ORDER_LAST = Number.MAX_SAFE_INTEGER;
@@ -92,6 +103,8 @@ export function focusOrder(registry: FocusRegistry): FocusStop[] {
       rect,
       arrows: arrowMap(entry),
       overlay: entry.overlay,
+      layer: entry.overlay ?? BASE_LAYER,
+      anchor: entry.anchor,
     });
   }
   stops.sort(compareStops);

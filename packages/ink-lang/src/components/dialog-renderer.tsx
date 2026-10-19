@@ -5,11 +5,13 @@ import type { z } from "zod/v4";
 import { useIsStreaming, useTriggerAction } from "../context";
 import { useComponentStyle } from "../design/design-system-context";
 import { LayerIdContext } from "../focus/modal-layer";
+import { SequencePathContext } from "../focus/sequence-path";
 import { useFormName } from "../form-name-context";
 import { Backdrop } from "../overlay/backdrop";
 import { DragHandle } from "../overlay/drag-handle";
+import { OverlayAnchorContext } from "../overlay/overlay-content-context";
 import type { OverlayPlacement } from "../overlay/overlay-placement";
-import { useDrag } from "../overlay/use-drag";
+import { useDrag, type DroppedForm } from "../overlay/use-drag";
 import { useOverlay } from "../overlay/use-overlay";
 import type { ModalDialogSchema } from "../schemas/modal-dialog-schema";
 import { useTheme } from "../theme";
@@ -21,6 +23,7 @@ import { DialogFocusOnShow } from "./dialog-focus-on-show";
 import { DialogKeys } from "./dialog-keys";
 import { DialogSurface } from "./dialog-surface";
 import { displayText } from "./pad";
+import { useDialogAnchor } from "./use-dialog-anchor";
 import { useDialogLayer } from "./use-dialog-layer";
 import { variantColor } from "./variant-color";
 
@@ -63,7 +66,9 @@ const MARKS: Record<string, string> = {
  * Either moves focus to its first stop once it shows and gives it back to its
  * opener when it closes. Unless `draggable` is false it moves by its title
  * bar (a mouse drag) and with Ctrl+arrows while one of its stops has focus
- * (`useDrag`), clamped into the screen. Cancel (its cancel button; for a modal one also
+ * (`useDrag`), clamped into the screen; a dropped non-modal one re-anchors
+ * to the page stop behind it, without moving, and its stops then follow that
+ * stop in the Tab cycle (`useDialogAnchor`). Cancel (its cancel button; for a modal one also
  * Escape and a click on the backdrop) sets `$open` to false, runs
  * `cancelAction` and reports `cancel`; confirm fires its action (or sends the
  * label to the assistant) and closes it. Without an `open` binding it is
@@ -86,14 +91,23 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
   const variant = props.variant;
   const title = displayText(props.title);
 
-  /** A dropped dialog keeps its offset against its declaration anchor. */
-  function stayWhereDropped(): void {}
+  /** A dropped non-modal dialog re-anchors to the stop behind it (`useDialogAnchor`). */
+  function reanchor(dropped: DroppedForm | null): void {
+    anchor.drop(dropped);
+  }
 
   const drag = useDrag({
     enabled: isOpen && !isStreaming && props.draggable !== false,
     name: title,
     component,
-    onDrop: stayWhereDropped,
+    onDrop: reanchor,
+  });
+  // A modal dialog floats centred in its own layer: it has no place in the page to re-anchor to.
+  const anchor = useDialogAnchor({
+    enabled: !modal,
+    declarationRef: anchorRef,
+    placement: modal ? "center" : placement,
+    drag,
   });
   const color = variant === "destructive" ? theme.danger : variantColor(variant, theme);
   const dialogStyle = useComponentStyle([variant]);
@@ -180,32 +194,49 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     return inLayer(<Backdrop onCancel={cancel} />);
   }
 
+  /**
+   * The content sorts in the Tab cycle after the dialog's anchor stop, and its
+   * stops report it (`OverlayAnchorContext`); both providers always render,
+   * so re-anchoring never remounts the content.
+   */
+  function anchored(content: ReactNode): ReactNode {
+    return (
+      <SequencePathContext.Provider value={anchor.path}>
+        <OverlayAnchorContext.Provider value={anchor.stopId}>
+          {content}
+        </OverlayAnchorContext.Provider>
+      </SequencePathContext.Provider>
+    );
+  }
+
   function renderDialog(): ReactNode {
     return inLayer(
-      <>
-        <DialogFocusOnShow />
-        <DialogKeys onMove={drag.moveBy} />
-        <DragHandle handleRef={titleRef} handlers={drag.handlers} />
-        <DialogSurface
-          width={undefined}
-          maxWidth={DIALOG_MAX_WIDTH}
-          borderStyle={box.borderStyle ?? "round"}
-          borderColor={box.borderColor ?? color}
-          background={box.backgroundColor}
-          paddingX={box.paddingX ?? 1}
-          paddingY={box.paddingY}
-          mark={MARKS[variant] ?? MARKS["neutral"] ?? null}
-          markColor={color}
-          title={title}
-          titleText={titleText}
-          titleRef={titleRef}
-          dragging={drag.isDragging}
-          titleAction={null}
-          body={body}
-          bodyText={bodyText}
-          buttons={buttons}
-        />
-      </>,
+      anchored(
+        <>
+          <DialogFocusOnShow />
+          <DialogKeys onMove={drag.moveBy} />
+          <DragHandle handleRef={titleRef} handlers={drag.handlers} />
+          <DialogSurface
+            width={undefined}
+            maxWidth={DIALOG_MAX_WIDTH}
+            borderStyle={box.borderStyle ?? "round"}
+            borderColor={box.borderColor ?? color}
+            background={box.backgroundColor}
+            paddingX={box.paddingX ?? 1}
+            paddingY={box.paddingY}
+            mark={MARKS[variant] ?? MARKS["neutral"] ?? null}
+            markColor={color}
+            title={title}
+            titleText={titleText}
+            titleRef={titleRef}
+            dragging={drag.isDragging}
+            titleAction={null}
+            body={body}
+            bodyText={bodyText}
+            buttons={buttons}
+          />
+        </>,
+      ),
     );
   }
 
@@ -219,16 +250,17 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     layer: dialogId,
   });
   // A modal dialog is in its own layer; a non-modal one stays in the layer it is declared in.
+  // A non-modal one is placed against its anchor (`useDialogAnchor`).
   useOverlay({
     id: dialogId,
     kind: modal ? "modal" : "dialog",
-    anchorRef,
-    placement: modal ? "center" : placement,
+    anchorRef: anchor.anchorRef,
+    placement: anchor.placement,
     isOpen,
     render: renderDialog,
     layer: modal ? dialogId : undefined,
-    offset: drag.offset,
-    onPlaced: drag.onPlaced,
+    offset: anchor.offset,
+    onPlaced: anchor.onPlaced,
   });
 
   // The overlays are placed in the bounds or against the line this box marks

@@ -24,8 +24,20 @@ export interface UseDragOptions {
   name: string;
   /** The component the drag events report (`ModalDialog`, `Dialog`, `Modal`). */
   component: string;
-  /** Called when a move is dropped: on the release, and after each `moveBy` that moved it. */
-  onDrop: () => void;
+  /**
+   * Called when a move is dropped: on the release, and after each `moveBy`
+   * that moved it, with where the form is drawn now (null while no placement
+   * was reported yet).
+   */
+  onDrop: (dropped: DroppedForm | null) => void;
+}
+
+/** Where a dropped form is drawn, in the ink root's cells. */
+export interface DroppedForm {
+  /** The cells it takes. */
+  rect: CellRect;
+  /** The bounds it is kept in. */
+  bounds: CellRect;
 }
 
 export interface DragState {
@@ -39,6 +51,14 @@ export interface DragState {
   handlers: MouseHandlers;
   /** The overlay's `onPlaced`: keeps the last placement it was shown with. */
   onPlaced: (rect: CellRect | null, frame: PlacedFrame | null) => void;
+  /**
+   * The overlay is placed at `origin` from its next render on (its owner
+   * gave it another anchor): the offset becomes the one that keeps the form
+   * drawn where it is. Does nothing while no placement was reported yet.
+   */
+  setOrigin: (origin: DragOffset) => void;
+  /** Drops the offset: the form shows where it is placed. */
+  resetOffset: () => void;
 }
 
 /** Where a press on the handle started a drag. */
@@ -73,9 +93,11 @@ function sameOffset(a: DragOffset, b: DragOffset): boolean {
  * bounds leave no room that way. Reports `dragstart`, `drag` (only for a
  * move that changed the offset) and `dragend` through `useUiEvents`, at the
  * pointer's cell, or for a keyboard move at the overlay's top-left cell
- * before and after it. The mouse handlers must be registered by a
- * `DragHandle` inside the overlay's content, so the handle takes events in
- * the overlay's layer.
+ * before and after it. `onDrop` is told where the form is drawn after the
+ * drop; an owner that then gives the overlay another anchor calls
+ * `setOrigin` with where the host will place it, so it stays put. The mouse
+ * handlers must be registered by a `DragHandle` inside the overlay's
+ * content, so the handle takes events in the overlay's layer.
  */
 export function useDrag(options: UseDragOptions): DragState {
   const emit = useUiEvents();
@@ -122,12 +144,21 @@ export function useDrag(options: UseDragOptions): DragState {
     [enabled],
   );
 
+  /** Where the form is drawn with the current offset (which has no excess); null while unknown. */
+  function droppedForm(): DroppedForm | null {
+    const placed = shown.current;
+    if (placed === null || placed.frame === null) return null;
+    const topLeft = drawnTopLeft(offsetRef.current, placed);
+    const size = { width: placed.rect.width, height: placed.rect.height };
+    return { rect: { x: topLeft.x, y: topLeft.y, ...size }, bounds: placed.frame.bounds };
+  }
+
   function drop(event: MouseEvent): void {
     press.current = null;
     setDragging(false);
     rebase();
     report("dragend", event.x, event.y);
-    latest.current.onDrop();
+    latest.current.onDrop(droppedForm());
   }
 
   function handleMouseDown(event: MouseEvent): void {
@@ -178,7 +209,7 @@ export function useDrag(options: UseDragOptions): DragState {
     apply(target);
     report("drag", to.x, to.y);
     report("dragend", to.x, to.y);
-    latest.current.onDrop();
+    latest.current.onDrop(droppedForm());
   }
 
   function onPlaced(rect: CellRect | null, frame: PlacedFrame | null): void {
@@ -186,8 +217,29 @@ export function useDrag(options: UseDragOptions): DragState {
     if (rect !== null) shown.current = { rect, frame };
   }
 
+  function setOrigin(origin: DragOffset): void {
+    const placed = shown.current;
+    if (placed === null || placed.frame === null) return;
+    const topLeft = drawnTopLeft(rebase(), placed);
+    // Until the host reports the new placement, moves are measured from the new origin.
+    shown.current = { rect: placed.rect, frame: { origin, bounds: placed.frame.bounds } };
+    apply({ x: topLeft.x - origin.x, y: topLeft.y - origin.y });
+  }
+
+  function resetOffset(): void {
+    apply(NO_OFFSET);
+  }
+
   const handlers: MouseHandlers = enabled
     ? { onMouseDown: handleMouseDown, onMouseMove: handleMouseMove, onMouseUp: handleMouseUp }
     : NO_HANDLERS;
-  return { offset, isDragging: enabled && isDragging, moveBy, handlers, onPlaced };
+  return {
+    offset,
+    isDragging: enabled && isDragging,
+    moveBy,
+    handlers,
+    onPlaced,
+    setOrigin,
+    resetOffset,
+  };
 }

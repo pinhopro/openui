@@ -24,6 +24,7 @@ function stop(id: string, overlay: string | null): FocusEntry {
     name: id,
     path: null,
     overlay,
+    anchor: null,
   };
 }
 

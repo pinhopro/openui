@@ -4,7 +4,11 @@ import { useElementType } from "../element-type-context";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers, MouseWheelEvent } from "../mouse/mouse-target";
 import { useMouse } from "../mouse/use-mouse";
-import { useOverlayId, useOverlayVisible } from "../overlay/overlay-content-context";
+import {
+  useOverlayAnchor,
+  useOverlayId,
+  useOverlayVisible,
+} from "../overlay/overlay-content-context";
 import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
 import type { ArrowClaims, ArrowClaimsInput } from "./focus-navigation";
 import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
@@ -81,6 +85,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
   const layerActive = useLayerIsActive();
   const visible = useOverlayVisible();
   const overlay = useOverlayId();
+  const anchor = useOverlayAnchor();
   const isActive = options.isActive && layerActive && visible;
   // Ink's own autoFocus is off with its focus handling (see FocusNavigator); the effect below does it.
   const focus = useFocus({ id, isActive });
@@ -115,6 +120,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
     name,
     path,
     overlay,
+    anchor,
   });
   entryRef.current.isActive = isActive;
   entryRef.current.arrows = options.arrows ?? NO_CLAIMS;
@@ -123,6 +129,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
   entryRef.current.name = name;
   entryRef.current.path = path;
   entryRef.current.overlay = overlay;
+  entryRef.current.anchor = anchor;
 
   useEffect(
     function registerStop() {

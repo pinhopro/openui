@@ -26,6 +26,12 @@ export interface FocusEntry {
   path: number[] | null;
   /** The id of the overlay the stop renders in (`useOverlayId`); null outside any overlay. */
   overlay: string | null;
+  /**
+   * The id of the base stop the stop's overlay is anchored to
+   * (`useOverlayAnchor`: a dropped dialog re-anchored to the stop behind it);
+   * null for a stop on the base or in an overlay anchored to the tree.
+   */
+  anchor: string | null;
 }
 
 export interface FocusRegistry {

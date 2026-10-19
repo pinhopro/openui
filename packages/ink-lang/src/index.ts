@@ -390,6 +390,8 @@ export { useOptionGroup } from "./components/use-option-group";
 export type { OptionGroup, OptionGroupOptions } from "./components/use-option-group";
 export { variantColor } from "./components/variant-color";
 export { ElementPathContext, useElementPath, useElementType } from "./element-type-context";
+export { anchorBehind } from "./focus/anchor-behind";
+export type { CellPoint } from "./focus/anchor-behind";
 export { elementRect } from "./focus/element-rect";
 export type { CellRect as ElementRect } from "./focus/element-rect";
 export { FocusCommandsContext, useFocusCommands } from "./focus/focus-commands";
@@ -407,6 +409,7 @@ export type {
 export { FocusNavigator } from "./focus/focus-navigator";
 export type { FocusNavigatorProps } from "./focus/focus-navigator";
 export {
+  BASE_LAYER,
   ORDER_LAST,
   compareSequencePath,
   focusOrder,
@@ -436,9 +439,11 @@ export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-b
 export { DragHandle } from "./overlay/drag-handle";
 export type { DragHandleProps } from "./overlay/drag-handle";
 export {
+  OverlayAnchorContext,
   OverlayIdContext,
   OverlayVisibleContext,
   OverlayWidthLimitContext,
+  useOverlayAnchor,
   useOverlayId,
   useOverlayVisible,
   useOverlayWidthLimit,
@@ -469,7 +474,7 @@ export type {
 } from "./overlay/overlay-registry";
 export { rootRect } from "./overlay/root-rect";
 export { useDrag } from "./overlay/use-drag";
-export type { DragOffset, DragState, UseDragOptions } from "./overlay/use-drag";
+export type { DragOffset, DragState, DroppedForm, UseDragOptions } from "./overlay/use-drag";
 export { useOverlay } from "./overlay/use-overlay";
 export type { OverlayHandle, UseOverlayOptions } from "./overlay/use-overlay";
 export { UiEventContext, useUiEvents } from "./ui-events";
