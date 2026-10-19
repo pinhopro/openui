@@ -70,7 +70,7 @@ describe("Tab follows the sequence of the program tree", () => {
   it("visits a stop deep inside a Table in a Card before the stops after it", async () => {
     const program = [
       'root = Stack([left, right], "row")',
-      'left = Card([Table([Col("Search query", [Input("q", "Search", null, null, $q)])]), Button("Under", @ToAssistant("Under"))])',
+      'left = Card([Table([Col("Q", [Input("q", "Search", null, null, $q)])]), Button("Under", @ToAssistant("Under"))])',
       'right = Card([Button("Right", @ToAssistant("Right"))])',
       '$q = "abc"',
     ].join("\n");
