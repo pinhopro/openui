@@ -39,25 +39,28 @@ async function tabThrough(rendered: RenderedProgram, count: number): Promise<str
 }
 
 /**
- * The stop each of `count` presses of Tab lands on, from the UI events: the
- * last focus event of each press (a pressable card shows focus by its border).
+ * The stop each of `count` presses of Tab lands on, from the UI events (a
+ * pressable card shows focus by its border): the focus events of each press
+ * joined by " + ", so a press that focuses more than one stop on its way
+ * shows up as a mismatch.
  */
 async function tabThroughEvents(
   program: string,
   count: number,
   designSystem: DesignSystemInput = {},
 ): Promise<string[]> {
-  let last = "";
+  let focused: string[] = [];
   const rendered = await renderProgram(inkLibrary, program, {
     designSystem,
     onUiEvent: function onUiEvent(event: UiEvent) {
-      if (event.type === "focus") last = event.component + ":" + event.name;
+      if (event.type === "focus") focused.push(event.component + ":" + event.name);
     },
   });
   const visited: string[] = [];
   for (let step = 0; step < count; step += 1) {
+    focused = [];
     await press(rendered, KEYS.TAB);
-    visited.push(last);
+    visited.push(focused.join(" + "));
   }
   rendered.unmount();
   return visited;

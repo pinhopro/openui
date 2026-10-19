@@ -10,7 +10,7 @@ import {
 import { DesignSystemContext } from "./design/design-system-context";
 import { themeToCss } from "./design/theme-to-css";
 import { ErrorFooter } from "./error-footer";
-import { ArrowNavigator } from "./focus/arrow-navigator";
+import { FocusNavigator } from "./focus/focus-navigator";
 import { ORDER_LAST } from "./focus/focus-order";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
@@ -172,14 +172,12 @@ export function InkRenderer(props: InkRendererProps) {
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
-  const tree = (
+  const page = (
     <Box
       flexDirection="column"
       marginX={grid.margin}
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
     >
-      {ownsNavigation ? <ArrowNavigator /> : null}
-      {ownsNavigation ? <KeyReporter /> : null}
       {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
       {showPlaceholder ? <Text dimColor>…</Text> : null}
       {isStreaming ? <Text dimColor>streaming…</Text> : null}
@@ -194,6 +192,14 @@ export function InkRenderer(props: InkRendererProps) {
       </SequenceLevel>
       {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
     </Box>
+  );
+  const tree = ownsNavigation ? (
+    <FocusNavigator>
+      <KeyReporter />
+      {page}
+    </FocusNavigator>
+  ) : (
+    page
   );
 
   return (

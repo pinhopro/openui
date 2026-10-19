@@ -1,7 +1,7 @@
 import { useFocusManager, useInput } from "ink";
 import { useContext } from "react";
 import { useUiEvents } from "../ui-events";
-import { activeEntry } from "./arrow-navigator";
+import { activeEntry } from "./focus-navigator";
 import { FocusRegistryContext } from "./focus-registry";
 import { keyName } from "./key-name";
 

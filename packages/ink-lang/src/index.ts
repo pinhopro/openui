@@ -387,9 +387,10 @@ export { useOptionGroup } from "./components/use-option-group";
 export type { OptionGroup, OptionGroupOptions } from "./components/use-option-group";
 export { variantColor } from "./components/variant-color";
 export { ElementPathContext, useElementPath, useElementType } from "./element-type-context";
-export { ArrowNavigator } from "./focus/arrow-navigator";
 export { elementRect } from "./focus/element-rect";
 export type { CellRect as ElementRect } from "./focus/element-rect";
+export { FocusCommandsContext, useFocusCommands } from "./focus/focus-commands";
+export type { FocusCommands } from "./focus/focus-commands";
 export { arrowDirection, claimsDirection, nextInDirection } from "./focus/focus-navigation";
 export type {
   ArrowClaimFn,
@@ -398,8 +399,16 @@ export type {
   ArrowDirection,
   NavigationCandidate,
 } from "./focus/focus-navigation";
-export { focusOrder, nextInOrder } from "./focus/focus-order";
-export type { ArrowMap, FocusStop } from "./focus/focus-order";
+export { FocusNavigator } from "./focus/focus-navigator";
+export type { FocusNavigatorProps } from "./focus/focus-navigator";
+export {
+  ORDER_LAST,
+  compareSequencePath,
+  focusOrder,
+  hostStops,
+  nextInOrder,
+} from "./focus/focus-order";
+export type { ArrowMap, CycleStop, FocusStop } from "./focus/focus-order";
 export { FocusRegistryContext, createFocusRegistry } from "./focus/focus-registry";
 export type { FocusEntry, FocusRegistry } from "./focus/focus-registry";
 export { FocusScope } from "./focus/focus-scope";

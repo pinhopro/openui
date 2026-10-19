@@ -1,7 +1,8 @@
-import { Box, Text, useFocusManager, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import { useContext, useEffect, useId } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
+import { useFocusCommands } from "../focus/focus-commands";
 import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
@@ -59,22 +60,21 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
   const setValue = field.setValue;
   const layerId = useId();
   const layers = useContext(ModalLayerContext);
-  const manager = useFocusManager();
   const openLayer = layers.open;
-  const focusNext = manager.focusNext;
+  const focusFirst = useFocusCommands().focusFirst;
 
   // While shown, the dialog is the only active layer; focus moves into it.
   useEffect(
     function holdLayer() {
       if (!isOpen) return undefined;
       const closeLayer = openLayer(layerId);
-      const timer = setTimeout(focusNext, 0);
+      const timer = setTimeout(focusFirst, 0);
       return function release() {
         clearTimeout(timer);
         closeLayer();
       };
     },
-    [focusNext, isOpen, layerId, openLayer],
+    [focusFirst, isOpen, layerId, openLayer],
   );
 
   function close(): void {

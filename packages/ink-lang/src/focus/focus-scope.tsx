@@ -1,6 +1,6 @@
 import { useContext, useMemo, useRef, type ReactNode } from "react";
 import { UiEventContext, type UiEvent } from "../ui-events";
-import { ArrowNavigator } from "./arrow-navigator";
+import { FocusNavigator } from "./focus-navigator";
 import { createFocusRegistry, FocusRegistryContext } from "./focus-registry";
 import { KeyReporter } from "./key-reporter";
 
@@ -35,9 +35,10 @@ export function FocusScope({ children, onUiEvent }: FocusScopeProps) {
   return (
     <FocusRegistryContext.Provider value={registry}>
       <UiEventContext.Provider value={emit}>
-        <ArrowNavigator />
-        <KeyReporter />
-        {children}
+        <FocusNavigator>
+          <KeyReporter />
+          {children}
+        </FocusNavigator>
       </UiEventContext.Provider>
     </FocusRegistryContext.Provider>
   );

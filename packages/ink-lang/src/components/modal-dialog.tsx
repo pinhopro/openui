@@ -1,9 +1,10 @@
 import type { ActionPlan } from "@openuidev/lang-core";
-import { Box, Text, useFocusManager, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import { useContext, useEffect, useId } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming, useTriggerAction } from "../context";
 import { useComponentStyle, useStyleAs } from "../design/design-system-context";
+import { useFocusCommands } from "../focus/focus-commands";
 import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
@@ -85,9 +86,8 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
   const setValue = field.setValue;
   const layerId = useId();
   const layers = useContext(ModalLayerContext);
-  const manager = useFocusManager();
   const openLayer = layers.open;
-  const focusNext = manager.focusNext;
+  const focusFirst = useFocusCommands().focusFirst;
   const variant = props.variant;
   const color = variant === "destructive" ? theme.danger : variantColor(variant, theme);
   const dialogStyle = useComponentStyle([variant]);
@@ -98,13 +98,13 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
     function holdLayer() {
       if (!isOpen) return undefined;
       const closeLayer = openLayer(layerId);
-      const timer = setTimeout(focusNext, 0);
+      const timer = setTimeout(focusFirst, 0);
       return function release() {
         clearTimeout(timer);
         closeLayer();
       };
     },
-    [focusNext, isOpen, layerId, openLayer],
+    [focusFirst, isOpen, layerId, openLayer],
   );
 
   function close(): void {

@@ -70,7 +70,8 @@ export function useFocusable(options: FocusableOptions): Focusable {
   // A modal open above this component takes it out of the Tab cycle and off the mouse.
   const layerActive = useLayerIsActive();
   const isActive = options.isActive && layerActive;
-  const focus = useFocus({ id, isActive, autoFocus: options.autoFocus === true });
+  // Ink's own autoFocus is off with its focus handling (see FocusNavigator); the effect below does it.
+  const focus = useFocus({ id, isActive });
   const [isHovered, setHovered] = useState(false);
   const [isPressed, setPressed] = useState(false);
   const manager = useFocusManager();
@@ -113,6 +114,21 @@ export function useFocusable(options: FocusableOptions): Focusable {
       return registry.register(entryRef.current);
     },
     [registry],
+  );
+
+  // `autoFocus` acts once, when the stop mounts, and only if nothing has focus
+  // yet: a later Escape or a stop mounting next to it leaves the focus be.
+  const autoFocusOnMountRef = useRef(
+    options.autoFocus === true && isActive && manager.activeId === undefined,
+  );
+  const focusById = manager.focus;
+  useEffect(
+    function focusOnMount() {
+      if (!autoFocusOnMountRef.current) return;
+      autoFocusOnMountRef.current = false;
+      focusById(id);
+    },
+    [focusById, id],
   );
 
   const wasFocusedRef = useRef(false);
