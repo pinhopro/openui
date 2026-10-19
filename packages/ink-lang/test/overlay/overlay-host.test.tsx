@@ -17,6 +17,7 @@ import { useOverlay } from "../../src/overlay/use-overlay";
 import { stripAnsi } from "../helpers/ansi";
 import { findCell } from "../helpers/find-cell";
 import { renderProgram } from "../helpers/render-program";
+import { renderTerminal } from "../helpers/render-terminal";
 import { settle } from "../helpers/settle";
 
 interface FloaterProps {
@@ -250,21 +251,23 @@ describe("overlay host", () => {
 
   it("re-places an overlay when the terminal is resized", async () => {
     const row = 'Stack([TextContent("a lead-in of words"), Floater("anchor")], "row", "none")';
-    const rendered = await renderProgram(
-      overlayLibrary,
-      `root = Stack([${row}, ${FILLER}], "column", "none")`,
+    const program = `root = Stack([${row}, ${FILLER}], "column", "none")`;
+    // Ink follows resizes only when interactive, as in a real terminal.
+    const terminal = renderTerminal(
+      <InkRenderer response={program} library={overlayLibrary} isStreaming={false} />,
     );
-    let frame = stripAnsi(rendered.frame());
+    await settle();
+    let frame = stripAnsi(terminal.lastFrame());
     const anchor = findCell(frame, "anchor");
     expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: anchor.x + 1, y: anchor.y + 2 });
-    // At 30 columns the 16-cell overlay no longer fits from the anchor's column: it is shifted left.
-    Object.defineProperty(rendered.instance.stdout, "columns", { value: 30, configurable: true });
-    rendered.instance.stdout.emit("resize");
+    // At 30 columns the 16-cell overlay no longer fits from the anchor's column: it is shifted
+    // left. Nothing in the tree re-renders: Ink's layout after the resize moves the overlay.
+    terminal.resize(30);
     await settle();
-    frame = stripAnsi(rendered.frame());
+    frame = stripAnsi(terminal.lastFrame());
     expect(findCell(frame, "anchor").x).toBe(anchor.x);
     expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: 30 - 16 + 1, y: anchor.y + 2 });
-    rendered.unmount();
+    terminal.unmount();
   });
 
   it("is painted once, by the FocusScope's host, for a renderer inside a scope", async () => {

@@ -23,7 +23,7 @@ import {
 } from "./overlay-placement";
 import { OverlayRegistryContext, type Overlay, type OverlayRegistry } from "./overlay-registry";
 import { rootRect } from "./root-rect";
-import { useResizeCount } from "./use-resize-count";
+import { useLayoutSignal } from "./use-layout-signal";
 
 /** Where an overlay is drawn, relative to the host box, the size it was measured at and its form. */
 interface PlacedOverlay {
@@ -198,21 +198,23 @@ function OverlayContent({ render }: OverlayContentProps) {
  * (stacking index plus one), where its box takes the presses and clicks on
  * its cells, so nothing under it receives them. An overlay that does not fit
  * whole around its anchor draws its compact form beside it, when it has one.
- * Placements are measured after every render and every terminal resize (the
- * anchor's cells, the overlay's size, the ink root as the bounds) and only
+ * Placements are measured after every render of the host and after every
+ * layout of the ink root (a scrolled pane, a resize; `useLayoutSignal`): the
+ * anchor's cells, the overlay's size, the ink root as the bounds. Only
  * changed placements re-render.
  */
 export function OverlayHost() {
   const registry = useContext(OverlayRegistryContext);
   const overlays = useOverlayList(registry);
-  // Read so a resize re-renders the host and the layout effect measures again.
-  useResizeCount();
   const hostRef = useRef<DOMElement | null>(null);
   const boxRefs = useRef(new Map<string, RefObject<DOMElement | null>>());
   const fullSizes = useRef(new Map<string, OverlaySize>());
   const [placements, setPlacements] = useState<Placements>(function noPlacements() {
     return new Map();
   });
+  // What the latest render drew, for measurements that run outside a render.
+  const rendered = useRef({ overlays, placements });
+  rendered.current = { overlays, placements };
 
   /** The same ref object for an overlay's box on every render while it is open. */
   function boxRefFor(id: string): RefObject<DOMElement | null> {
@@ -224,26 +226,33 @@ export function OverlayHost() {
     return ref;
   }
 
-  useLayoutEffect(function placeOverlays() {
+  /** Measures every open overlay against the layout Ink just computed; sets state only on a change. */
+  function placeOverlays(): void {
     const host = hostRef.current;
     if (host === null) return;
+    const drawn = rendered.current;
     const open = new Set<string>();
-    for (const overlay of overlays) open.add(overlay.id);
+    for (const overlay of drawn.overlays) open.add(overlay.id);
     forgetClosed(boxRefs.current, open);
     forgetClosed(fullSizes.current, open);
     const next: Placements = new Map();
-    for (const overlay of overlays) {
+    for (const overlay of drawn.overlays) {
       const placed = measurePlacement({
         overlay,
         box: boxRefFor(overlay.id).current,
         host,
-        previous: placements.get(overlay.id) ?? null,
+        previous: drawn.placements.get(overlay.id) ?? null,
         fullSizes: fullSizes.current,
       });
       next.set(overlay.id, placed);
     }
-    if (!samePlacements(placements, next)) setPlacements(next);
-  });
+    if (!samePlacements(drawn.placements, next)) setPlacements(next);
+  }
+
+  // After every render of the host, and after every layout of the ink root
+  // (a scrolled pane or a resize moves an anchor without rendering the host).
+  useLayoutEffect(placeOverlays);
+  useLayoutSignal(hostRef, placeOverlays);
 
   const boxes = [];
   for (let index = 0; index < overlays.length; index += 1) {

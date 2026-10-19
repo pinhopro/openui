@@ -2,7 +2,7 @@ import type { DOMElement } from "ink";
 import type { CellRect } from "../focus/element-rect";
 
 /** The ink root above `element`: the node reached through `parentNode` that has no parent. */
-function inkRoot(element: DOMElement): DOMElement {
+export function inkRoot(element: DOMElement): DOMElement {
   let current = element;
   while (current.parentNode !== undefined) current = current.parentNode;
   return current;
