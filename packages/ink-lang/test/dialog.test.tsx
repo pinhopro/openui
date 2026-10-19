@@ -95,7 +95,8 @@ const ESCAPE = "\u001b";
 
 /** The opener's program with a dialog of two buttons, Close then Done, shown from the start by default. */
 function twoButtonProgram(open = true): string {
-  return program(open).replace(
+  const source = program(open);
+  return source.replace(
     noteDialog(""),
     `noteDialog = Dialog("info", "${TITLE}", "Keep editing or close this note.", "Close", "Done", $note)`,
   );
@@ -141,7 +142,8 @@ async function pressEscape(rendered: {
 /** The names of the stops that took focus after the first `skip` focus events. */
 function focusedAfter(events: UiEvent[], skip: number): string[] {
   const names: string[] = [];
-  for (const event of ofType(events, "focus").slice(skip)) names.push(event.name ?? "");
+  const focused = ofType(events, "focus");
+  for (const event of focused.slice(skip)) names.push(event.name ?? "");
   return names;
 }
 

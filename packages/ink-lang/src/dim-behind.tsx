@@ -18,7 +18,8 @@ const BOLD_ON = "\u001b[1m";
  * the faint style for the rest of it; nothing in the library writes one.
  */
 export function dimLine(line: string): string {
-  const faint = line.replaceAll(BOLD_ON, "").replaceAll(DIM_OFF, DIM_OFF + DIM_ON);
+  const withoutBold = line.replaceAll(BOLD_ON, "");
+  const faint = withoutBold.replaceAll(DIM_OFF, DIM_OFF + DIM_ON);
   return DIM_ON + faint + DIM_OFF;
 }
 

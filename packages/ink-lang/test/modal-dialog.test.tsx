@@ -256,6 +256,22 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("reports exactly one focus event when it opens, on its first stop", async () => {
+    const { rendered, events } = await mount(program(false));
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Outside ]"]);
+    const before = ofType(events, "focus").length;
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    const focused = ofType(events, "focus");
+    expect(focused.slice(before)).toEqual([
+      expect.objectContaining({ type: "focus", name: "Cancel" }),
+    ]);
+    rendered.unmount();
+  });
+
   it("gives focus back to the stop that opened it once it closes", async () => {
     const { rendered } = await mount(program(false));
     rendered.instance.stdin.write(KEYS.TAB);
