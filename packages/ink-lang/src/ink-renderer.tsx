@@ -11,9 +11,11 @@ import { DesignSystemContext } from "./design/design-system-context";
 import { themeToCss } from "./design/theme-to-css";
 import { ErrorFooter } from "./error-footer";
 import { ArrowNavigator } from "./focus/arrow-navigator";
+import { ORDER_LAST } from "./focus/focus-order";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
 import { LayerIdContext, ModalLayerContext, type ModalLayers } from "./focus/modal-layer";
+import { SequenceLevel } from "./focus/sequence-level";
 import type { Library } from "./library";
 import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
@@ -181,12 +183,15 @@ export function InkRenderer(props: InkRendererProps) {
       {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
       {showPlaceholder ? <Text dimColor>…</Text> : null}
       {isStreaming ? <Text dimColor>streaming…</Text> : null}
-      <QueryStatus
-        isLoading={runtime.isQueryLoading}
-        hasErrors={runtime.queryErrors.length > 0}
-        isStreaming={isStreaming}
-        onRetry={runtime.retryQueries}
-      />
+      {/* The renderer's own `[ retry ]` is a program stop that comes after the whole program. */}
+      <SequenceLevel order={ORDER_LAST}>
+        <QueryStatus
+          isLoading={runtime.isQueryLoading}
+          hasErrors={runtime.queryErrors.length > 0}
+          isStreaming={isStreaming}
+          onRetry={runtime.retryQueries}
+        />
+      </SequenceLevel>
       {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
     </Box>
   );

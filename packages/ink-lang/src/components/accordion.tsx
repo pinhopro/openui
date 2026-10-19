@@ -5,9 +5,9 @@ import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { isElementValue } from "../element-node";
 import { SequenceLevel } from "../focus/sequence-level";
-import { createSequencedRenderer } from "../focus/sequenced-render";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { renderValue } from "../render-value";
 import { AccordionSchema } from "../schemas/accordion-schema";
 import { useTheme } from "../theme";
 import { textProps } from "../theme-styles";
@@ -66,12 +66,9 @@ interface SectionProps {
 
 /**
  * One collapsible section; closed until its header is pressed. Its content
- * sits one level below the header's order, numbered by a renderer of the
- * section's own: the section re-renders alone when it opens or closes, and
- * the Accordion's `renderNode` would keep counting from its last render.
+ * sits one level below the header's order, its items numbered from 0.
  */
 function AccordionSection({ item, index }: SectionProps) {
-  const renderContent = createSequencedRenderer();
   const [isOpen, setIsOpen] = useState(false);
 
   function toggle(): void {
@@ -89,7 +86,7 @@ function AccordionSection({ item, index }: SectionProps) {
       <SectionHeader trigger={title} index={index} isOpen={isOpen} onToggle={toggle} />
       {isOpen ? (
         <Box flexDirection="column" paddingLeft={2}>
-          <SequenceLevel order={index}>{renderContent(item.props["content"])}</SequenceLevel>
+          <SequenceLevel order={index}>{renderValue(item.props["content"])}</SequenceLevel>
         </Box>
       ) : null}
     </Box>

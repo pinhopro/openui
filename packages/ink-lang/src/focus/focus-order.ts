@@ -51,6 +51,18 @@ function compareStops(a: FocusStop, b: FocusStop): number {
 }
 
 /**
+ * Where a stop the Tab cycle can visit sits on screen; null for a stop that is
+ * inactive, not mounted or takes up no room. Program and host stops share it.
+ */
+function reachableRect(entry: FocusEntry): CellRect | null {
+  const element = entry.ref.current;
+  if (!entry.isActive || element === null) return null;
+  const rect = elementRect(element);
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  return rect;
+}
+
+/**
  * The active, mounted stops of the program in document order: the
  * deterministic Tab order, sorted by sequence path, so it follows the program
  * tree whatever order the components mounted in and wherever they are laid
@@ -60,10 +72,9 @@ function compareStops(a: FocusStop, b: FocusStop): number {
 export function focusOrder(registry: FocusRegistry): FocusStop[] {
   const stops: FocusStop[] = [];
   for (const entry of registry.entries()) {
-    const element = entry.ref.current;
-    if (!entry.isActive || element === null || entry.path === null) continue;
-    const rect = elementRect(element);
-    if (rect.width <= 0 || rect.height <= 0) continue;
+    if (entry.path === null) continue;
+    const rect = reachableRect(entry);
+    if (rect === null) continue;
     stops.push({
       id: entry.id,
       component: entry.component,
@@ -77,11 +88,14 @@ export function focusOrder(registry: FocusRegistry): FocusStop[] {
   return stops;
 }
 
-/** The active stops outside the renderer (the host's own), in registration order. */
+/**
+ * The active, mounted stops outside the renderer (the host's own), in
+ * registration order.
+ */
 export function hostStops(registry: FocusRegistry): FocusEntry[] {
   const stops: FocusEntry[] = [];
   for (const entry of registry.entries()) {
-    if (entry.isActive && entry.path === null) stops.push(entry);
+    if (entry.path === null && reachableRect(entry) !== null) stops.push(entry);
   }
   return stops;
 }

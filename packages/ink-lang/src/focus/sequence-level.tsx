@@ -14,6 +14,9 @@ export interface SequenceLevelProps {
  * section under its header, a pressable card around its content) wraps each
  * item's content at the item's order, so everything inside comes after the
  * item's stop and before the next item, whatever orders the content took.
+ * A level at an order the same element's `renderNode` also hands out (by its
+ * counter or an explicit `{ order }`) interleaves the two groups under that
+ * one number; keeping them apart is the caller's responsibility.
  */
 export function SequenceLevel({ order, children }: SequenceLevelProps) {
   const parent = useSequencePath();

@@ -76,13 +76,14 @@ export function useFocusable(options: FocusableOptions): Focusable {
   const manager = useFocusManager();
   const ref = useRef<DOMElement | null>(null);
   const elementType = useElementType();
+  const elementPath = useSequencePath();
   const component = options.component ?? elementType;
   const name = options.name ?? "";
   const emit = useUiEvents();
   const registry = useContext(FocusRegistryContext);
   const mouse = options.mouse ?? NO_HANDLERS;
   const hoverFocus = options.hoverFocus === true;
-  const path = stopPath(useSequencePath(), options.order ?? 0);
+  const path = stopPath(elementPath, options.order ?? 0);
 
   const focusSelf = useCallback(
     function focusSelf() {

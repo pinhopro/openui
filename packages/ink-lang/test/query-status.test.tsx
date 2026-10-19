@@ -70,4 +70,30 @@ describe("query status", () => {
     expect(stripAnsi(rendered.frame())).not.toContain("loading");
     rendered.unmount();
   });
+
+  it("puts the retry button after every stop of the program in the Tab order", async () => {
+    const tools = {
+      stats: async function stats() {
+        throw new Error("down");
+      },
+    };
+    const withButton = [
+      'root = Stack([Button("Go", @ToAssistant("Go")), TextContent("Rows: " + data.total)])',
+      'data = Query("stats", {}, {total: 0})',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, withButton, {
+      toolProvider: tools,
+      onError: function ignoreErrors() {},
+    });
+    await settle();
+    expect(stripAnsi(rendered.frame())).toContain("[ retry ]");
+    const visited: string[][] = [];
+    for (let step = 0; step < 3; step += 1) {
+      rendered.instance.stdin.write(KEYS.TAB);
+      await settle();
+      visited.push(inverseSegments(rendered.frame()));
+    }
+    expect(visited).toEqual([["[ Go ]"], ["[ retry ]"], ["[ Go ]"]]);
+    rendered.unmount();
+  });
 });

@@ -102,6 +102,18 @@ function Panel() {
   );
 }
 
+/** A host stop whose box is never mounted. */
+function Detached() {
+  useFocusable({ isActive: true, name: "detached" });
+  return null;
+}
+
+/** A host stop whose box takes up no room. */
+function Empty() {
+  const focusable = useFocusable({ isActive: true, name: "empty" });
+  return <Box ref={focusable.ref} />;
+}
+
 describe("hostStops", () => {
   it("lists the stops outside the renderer, which have no path and stay out of focusOrder", async () => {
     let program: FocusStop[] = [];
@@ -120,6 +132,8 @@ describe("hostStops", () => {
         <FocusScope>
           <InkRenderer response={response} library={inkLibrary} />
           <Panel />
+          <Detached />
+          <Empty />
           <Probe />
         </FocusScope>
       );
@@ -129,6 +143,7 @@ describe("hostStops", () => {
     instance.rerender(<App />);
     await settle();
     expect(program.map((stop) => stop.name)).toEqual(["Page"]);
+    // Like the program's stops, an unmounted or zero-size host stop is left out.
     expect(host.map((entry) => entry.name)).toEqual(["panel"]);
     expect(host[0]?.path).toBeNull();
     instance.unmount();
