@@ -135,6 +135,8 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
     const host = hostRef.current;
     if (host === null) return;
     const drawn = rendered.current;
+    // Every commit of the app lands here: nothing to do while no overlay is open or drawn.
+    if (drawn.overlays.length === 0 && drawn.placements.size === 0) return;
     const open = new Set<string>();
     for (const overlay of drawn.overlays) open.add(overlay.id);
     forgetClosed(wholeRefs.current, open);
