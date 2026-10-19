@@ -109,6 +109,7 @@ While `isStreaming` is true the stops of the program are inactive, overlays incl
 
 - `ModalDialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?)`: unchanged signature; gains the backdrop, `cancel` on backdrop click and Escape, drag and the layer rules.
 - `Dialog(...)`: the same slots and props, non-modal: no backdrop, base stays interactive, priority by hover or focus-within.
+- Step 3 ships `Dialog(variant, title, body, cancelLabel?, confirmLabel?, open?, confirmAction?, cancelAction?, placement?)` with `placement` `"bottom"` by default, against the line where it is declared; `draggable` (and so the drag of either dialog) arrives in step 4.
 - Both: `draggable` (default true) and an optional initial placement relative to the anchor.
 - `Tooltip`: unchanged signature; rendered as an overlay instead of in the flow.
 - `Modal` (the generic one): same layer rules as `ModalDialog`; the `[ x ]` control is last in its sequence.
