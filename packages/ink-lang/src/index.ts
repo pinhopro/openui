@@ -424,6 +424,8 @@ export type { RenderNodeOptions, SequencedRenderNode } from "./focus/sequenced-r
 export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
 export { anchorBackground } from "./overlay/anchor-background";
+export { Backdrop } from "./overlay/backdrop";
+export type { BackdropProps } from "./overlay/backdrop";
 export { clippedBy, rectIntersection, rectsIntersect } from "./overlay/clip-rect";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";

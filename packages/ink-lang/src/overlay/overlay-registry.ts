@@ -3,8 +3,12 @@ import { createContext, type ReactNode, type RefObject } from "react";
 import type { CapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
 
-/** What an overlay is: a hint, a dialog that leaves the base interactive, or a modal. */
-export type OverlayKind = "tooltip" | "dialog" | "modal";
+/**
+ * What an overlay is: a hint, a dialog that leaves the base interactive, a
+ * modal, or the see-through backdrop under a modal (a cover overlay whose
+ * click cancels the modal).
+ */
+export type OverlayKind = "tooltip" | "dialog" | "modal" | "backdrop";
 
 /** One open overlay, as `useOverlay` registers it. */
 export interface Overlay {
@@ -12,6 +16,7 @@ export interface Overlay {
   kind: OverlayKind;
   /** The box the overlay is placed against; nothing is drawn while it is null or empty. */
   anchorRef: RefObject<DOMElement | null>;
+  /** Where it goes against its anchor; `cover` spans the bounds whatever the anchor. */
   placement: OverlayPlacement;
   /** Empty cells between the anchor and the overlay. */
   gap: number;

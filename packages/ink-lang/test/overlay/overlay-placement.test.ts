@@ -97,6 +97,16 @@ describe("placeOverlay", () => {
       placeOverlay({ anchor: anchorAt(4, 2), size, placement: "center", gap: 0, bounds: inset }),
     ).toEqual({ x: 15, y: 6 });
   });
+
+  it("puts a cover overlay at the bounds' top-left, whatever its anchor and size", () => {
+    const inset = { x: 10, y: 5, width: 20, height: 6 };
+    // The size is never used: a cover box is as large as the bounds.
+    const size = { width: 4, height: 2 };
+    expect(
+      placeOverlay({ anchor: anchorAt(30, 9), size, placement: "cover", gap: 2, bounds: inset }),
+    ).toEqual({ x: 10, y: 5 });
+    expect(place(anchorAt(4, 2), "cover", 0, size)).toEqual({ x: 0, y: 0 });
+  });
 });
 
 describe("overlayFits", () => {
@@ -136,6 +146,12 @@ describe("overlayFits", () => {
     const short: CellRect = { x: 0, y: 0, width: 40, height: 1 };
     const input = { anchor: anchorAt(4, 0), size: SIZE, gap: 0, bounds: short };
     expect(overlayFits({ ...input, placement: "center" })).toBe(true);
+  });
+
+  it("always fits a cover overlay", () => {
+    const short: CellRect = { x: 0, y: 0, width: 40, height: 1 };
+    const input = { anchor: anchorAt(4, 0), size: { width: 40, height: 1 }, gap: 0, bounds: short };
+    expect(overlayFits({ ...input, placement: "cover" })).toBe(true);
   });
 });
 

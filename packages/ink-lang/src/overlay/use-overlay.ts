@@ -6,8 +6,12 @@ import { OverlayRegistryContext, type Overlay, type OverlayKind } from "./overla
 
 export interface UseOverlayOptions {
   kind: OverlayKind;
-  /** The box the overlay is placed against. */
+  /**
+   * The box the overlay is placed against; nothing is drawn while it is
+   * missing, empty or clipped out, even for a `cover` overlay.
+   */
   anchorRef: RefObject<DOMElement | null>;
+  /** Where it goes against its anchor; `cover` spans the bounds (a backdrop). */
   placement: OverlayPlacement;
   /** Empty cells between the anchor and the overlay; default 0. */
   gap?: number;

@@ -1,7 +1,10 @@
 import type { CellRect } from "../focus/element-rect";
 
-/** Where an overlay goes relative to its anchor; `center` centres it in the bounds. */
-export type OverlayPlacement = "top" | "bottom" | "left" | "right" | "center";
+/**
+ * Where an overlay goes relative to its anchor; `center` centres it in the
+ * bounds; `cover` spans the bounds (a backdrop), at their top-left.
+ */
+export type OverlayPlacement = "top" | "bottom" | "left" | "right" | "center" | "cover";
 
 export interface OverlaySize {
   width: number;
@@ -25,13 +28,13 @@ export interface PlaceOverlayInput {
   bounds: CellRect;
 }
 
-/** The side opposite to `placement`; `center` has none. */
+/** The side opposite to `placement`; `center` and `cover` have none and are their own. */
 function oppositeOf(placement: OverlayPlacement): OverlayPlacement {
   if (placement === "top") return "bottom";
   if (placement === "bottom") return "top";
   if (placement === "left") return "right";
   if (placement === "right") return "left";
-  return "center";
+  return placement;
 }
 
 /** The top-left cell of the overlay on one side of its anchor, before any flip or shift. */
@@ -43,6 +46,7 @@ function sidePosition(input: PlaceOverlayInput, placement: OverlayPlacement): Ov
   if (placement === "top") return { x: anchor.x, y: anchor.y - size.height - input.gap };
   if (placement === "right") return { x: anchor.x + anchor.width + input.gap, y: anchor.y };
   if (placement === "left") return { x: anchor.x - size.width - input.gap, y: anchor.y };
+  if (placement === "cover") return { x: bounds.x, y: bounds.y };
   return {
     x: bounds.x + Math.floor((bounds.width - size.width) / 2),
     y: bounds.y + Math.floor((bounds.height - size.height) / 2),
@@ -108,9 +112,11 @@ function shiftInto(start: number, length: number, min: number, room: number): nu
  * the side with more room and the rows past the bounds are cut, as Ink draws
  * no rows outside its root. A left or right one that fits neither side is
  * shifted inside the bounds anyway, since a row longer than the terminal would
- * wrap, so in a narrow terminal it may cover its trigger.
+ * wrap, so in a narrow terminal it may cover its trigger. A cover overlay
+ * spans the bounds: it sits at their top-left, never shifted.
  */
 export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
+  if (input.placement === "cover") return sidePosition(input, "cover");
   const side = chooseSide(input);
   const position = sidePosition(input, side);
   const bounds = input.bounds;
@@ -132,12 +138,12 @@ function fitsEitherSide(input: PlaceOverlayInput): boolean {
  * True when the overlay can be shown whole at its placement without covering
  * its anchor: a top or bottom one fits on one side of its anchor or the other,
  * a left or right one is no taller than the bounds and fits beside its anchor
- * on one side or the other, a center one always fits. An owner with a compact
- * form shows that one instead when this is false.
+ * on one side or the other, a center or cover one always fits. An owner with
+ * a compact form shows that one instead when this is false.
  */
 export function overlayFits(input: PlaceOverlayInput): boolean {
   const placement = input.placement;
-  if (placement === "center") return true;
+  if (placement === "center" || placement === "cover") return true;
   if (isVertical(placement)) return fitsEitherSide(input);
   return input.size.height <= input.bounds.height && fitsEitherSide(input);
 }

@@ -56,7 +56,8 @@ function OverlayContent({ render }: OverlayContentProps) {
  * targets take nothing. The content knows its overlay through
  * `OverlayIdContext`; both are provided below the bridged contexts. The fill
  * and the shield keep their slots, so the content never remounts when the
- * form starts to show.
+ * form starts to show. A cover form's box spans the bounds (`spot.width` by
+ * `spot.height`) and its content column grows to fill it, so a backdrop can.
  */
 export function OverlayBox(props: OverlayBoxProps) {
   const spot = props.spot;
@@ -67,6 +68,8 @@ export function OverlayBox(props: OverlayBoxProps) {
       left={spot.x}
       top={spot.y}
       maxWidth={spot.maxWidth}
+      width={spot.cover ? spot.width : undefined}
+      height={spot.cover ? spot.height : undefined}
       // A row, so Yoga fits the width to the limit first and then sizes the
       // height from the wrapped content; a column box would keep the height
       // of the unwrapped content and cut the wrapped rows.
@@ -81,7 +84,7 @@ export function OverlayBox(props: OverlayBoxProps) {
           <OverlayIdContext.Provider value={props.overlayId}>
             <OverlayVisibleContext.Provider value={spot.visible}>
               {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
-              <Box flexDirection="column">
+              <Box flexDirection="column" flexGrow={spot.cover ? 1 : 0}>
                 <OverlayContent render={props.render} />
               </Box>
             </OverlayVisibleContext.Provider>

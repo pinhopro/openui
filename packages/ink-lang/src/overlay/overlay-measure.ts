@@ -25,7 +25,10 @@ export interface FormSpot {
    * the bounds instead of running past the terminal's edge.
    */
   maxWidth: number;
-  /** The form's size as measured, 0 by 0 before that; an opaque overlay's fill covers it. */
+  /**
+   * The form's size as measured, 0 by 0 before that (a cover form's is the
+   * bounds' size); an opaque overlay's fill covers it.
+   */
   width: number;
   height: number;
   /**
@@ -33,6 +36,11 @@ export interface FormSpot {
    * last row, which Ink does not output, so it never shows.
    */
   visible: boolean;
+  /**
+   * True for a cover overlay's form: its box is given `width` and `height`
+   * (the bounds' size), as it is never measured.
+   */
+  cover: boolean;
 }
 
 /** How one open overlay is drawn. */
@@ -114,6 +122,7 @@ function hiddenSpot(input: SpotInput): FormSpot {
     width: input.size.width,
     height: input.size.height,
     visible: false,
+    cover: false,
   };
 }
 
@@ -127,20 +136,50 @@ function shownSpot(overlay: Overlay, placed: OverlayPosition, input: SpotInput):
     width: input.size.width,
     height: input.size.height,
     visible: true,
+    cover: false,
+  };
+}
+
+/**
+ * A cover overlay's form: as large as the bounds and shown at once at their
+ * top-left (`placeOverlay`), with no offset; never measured, since its size
+ * is the bounds' size, so it needs no hidden first pass.
+ */
+function coverSpot(host: DOMElement, bounds: CellRect, anchor: CellRect): FormSpot {
+  const origin = hostOrigin(host);
+  const size: OverlaySize = { width: bounds.width, height: bounds.height };
+  const placed = placeOverlay({ anchor, size, placement: "cover", gap: 0, bounds });
+  return {
+    x: placed.x - origin.x,
+    y: placed.y - origin.y,
+    maxWidth: bounds.width,
+    width: size.width,
+    height: size.height,
+    visible: true,
+    cover: true,
   };
 }
 
 /**
  * How an overlay is drawn before it was ever measured: its whole form hidden
  * below the root, so the first frame never shows it in a wrong place (over
- * its anchor); null when its anchor is missing, empty or clipped out.
+ * its anchor), except a cover form, which shows at once; null when its anchor
+ * is missing, empty or clipped out.
  */
 export function unmeasuredPlacement(
   overlay: Overlay,
   host: DOMElement,
   bounds: CellRect,
 ): PlacedOverlay | null {
-  if (anchorRect(overlay) === null) return null;
+  const anchor = anchorRect(overlay);
+  if (anchor === null) return null;
+  if (overlay.placement === "cover") {
+    return {
+      whole: coverSpot(host, bounds, anchor),
+      compact: null,
+      background: backgroundOf(overlay),
+    };
+  }
   const maxWidth = wholeWidthLimit(bounds);
   return {
     whole: hiddenSpot({ host, bounds, maxWidth, size: NO_SIZE }),
@@ -167,6 +206,9 @@ function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
   const overlay = input.overlay;
   const host = input.host;
   const bounds = input.bounds;
+  if (overlay.placement === "cover") {
+    return { whole: coverSpot(host, bounds, anchor), compact: null };
+  }
   const wholeLimit = wholeWidthLimit(bounds);
   const wholeSize = measuredSize(input.wholeBox, wholeLimit);
   if (wholeSize === null) {
@@ -215,7 +257,8 @@ function placeForms(input: MeasureInput, anchor: CellRect): PlacedForms {
  * (`overlayFits`) or the overlay has no compact form; otherwise it stays
  * hidden and the compact form, limited to the room beside the anchor
  * (`compactWidthLimit`), is shown beside it (`placeCompact`). A form not
- * measured yet at its current width limit is drawn hidden first. The
+ * measured yet at its current width limit is drawn hidden first. A cover
+ * form is never measured: it spans the bounds and shows at once. The
  * overlay takes the background its anchor sits on (`anchorBackground`).
  */
 export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
@@ -227,7 +270,7 @@ export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
 
 function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {
   if (a === null || b === null) return a === b;
-  if (a.x !== b.x || a.y !== b.y || a.visible !== b.visible) return false;
+  if (a.x !== b.x || a.y !== b.y || a.visible !== b.visible || a.cover !== b.cover) return false;
   return a.maxWidth === b.maxWidth && a.width === b.width && a.height === b.height;
 }
 
