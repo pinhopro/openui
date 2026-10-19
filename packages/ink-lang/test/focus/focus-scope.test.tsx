@@ -1,9 +1,10 @@
 import { Box, Text } from "ink";
 import { render } from "ink-testing-library";
+import { useContext } from "react";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../../src/default-library";
-import type { FocusStop } from "../../src/focus/focus-order";
-import type { FocusEntry } from "../../src/focus/focus-registry";
+import { focusOrder, type FocusStop } from "../../src/focus/focus-order";
+import { FocusRegistryContext, type FocusEntry } from "../../src/focus/focus-registry";
 import { defaultCycle, FocusScope } from "../../src/focus/focus-scope";
 import { useFocusable } from "../../src/focus/use-focusable";
 import { InkRenderer } from "../../src/ink-renderer";
@@ -65,6 +66,7 @@ function stop(id: string, path: number[]): FocusStop {
     id,
     component: "Button",
     name: id,
+    program: path[0] ?? 0,
     path,
     rect: { x: 0, y: 0, width: 1, height: 1 },
     arrows: { up: false, down: false, left: false, right: false },
@@ -131,6 +133,75 @@ describe("FocusScope order", () => {
     await settle();
     expect(await visit(instance, KEYS.TAB, 2)).toEqual(["[ Side ]", "[ A ]"]);
     expect(await visit(instance, KEYS.SHIFT_TAB, 2)).toEqual(["[ Side ]", "[ B ]"]);
+    instance.unmount();
+  });
+});
+
+function twoButtonProgram(first: string, second: string): string {
+  return `root = Stack([Button("${first}", @ToAssistant("${first}")), Button("${second}", @ToAssistant("${second}"))])`;
+}
+
+describe("several renderers in one FocusScope", () => {
+  it("visits every stop of the first program before the second program's", async () => {
+    let seen: FocusStop[] = [];
+    function Probe() {
+      const registry = useContext(FocusRegistryContext);
+      if (registry !== null) seen = focusOrder(registry);
+      return null;
+    }
+    function App() {
+      return (
+        <FocusScope>
+          <InkRenderer response={twoButtonProgram("A1", "A2")} library={inkLibrary} />
+          <InkRenderer response={twoButtonProgram("B1", "B2")} library={inkLibrary} />
+          <Probe />
+        </FocusScope>
+      );
+    }
+    const instance = render(<App />);
+    await settle();
+    instance.rerender(<App />);
+    await settle();
+    const programs: number[] = [];
+    for (const stop of seen) programs.push(stop.program);
+    expect(programs).toEqual([0, 0, 1, 1]);
+    expect(await visit(instance, KEYS.TAB, 5)).toEqual([
+      "[ A1 ]",
+      "[ A2 ]",
+      "[ B1 ]",
+      "[ B2 ]",
+      "[ A1 ]",
+    ]);
+    expect(await visit(instance, KEYS.SHIFT_TAB, 2)).toEqual(["[ B2 ]", "[ B1 ]"]);
+    instance.unmount();
+  });
+
+  it("puts the retry of the first program right after its stops, before the second program's", async () => {
+    const failing = [
+      'root = Stack([TextContent("Rows: " + data.total), Button("A1", @ToAssistant("A1")), Button("A2", @ToAssistant("A2"))])',
+      'data = Query("stats", {}, {total: 0})',
+    ].join("\n");
+    const tools = {
+      stats: async function stats() {
+        throw new Error("down");
+      },
+    };
+    const instance = render(
+      <FocusScope>
+        <InkRenderer response={failing} library={inkLibrary} toolProvider={tools} />
+        <InkRenderer response={twoButtonProgram("B1", "B2")} library={inkLibrary} />
+      </FocusScope>,
+    );
+    await settle();
+    await settle();
+    expect(await visit(instance, KEYS.TAB, 6)).toEqual([
+      "[ A1 ]",
+      "[ A2 ]",
+      "[ retry ]",
+      "[ B1 ]",
+      "[ B2 ]",
+      "[ A1 ]",
+    ]);
     instance.unmount();
   });
 });

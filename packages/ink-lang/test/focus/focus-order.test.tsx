@@ -72,9 +72,11 @@ describe("focusOrder", () => {
     expect(seen.map((stop) => stop.component + ":" + stop.name)).toEqual(["Input:q", "Button:Go"]);
     expect(seen[0]?.rect.y).toBe(0);
     expect(seen[1]?.rect.y).toBeGreaterThan(0);
-    // Root Stack at 0, its children at 0 and 1, each stop at order 0 within its element.
-    expect(seen[0]?.path).toEqual([0, 0, 0]);
-    expect(seen[1]?.path).toEqual([0, 1, 0]);
+    // The program's rank 0, the root Stack at 0, its children at 0 and 1, each
+    // stop at order 0 within its element.
+    expect(seen[0]?.path).toEqual([0, 0, 0, 0]);
+    expect(seen[1]?.path).toEqual([0, 0, 1, 0]);
+    expect(seen[0]?.program).toBe(0);
     // An empty Input has no cursor room: no arrow is kept; a button keeps none either.
     expect(seen[0]?.arrows).toEqual({ up: false, down: false, left: false, right: false });
     expect(nextInOrder(seen, undefined, 1)).toBe(seen[0]?.id);

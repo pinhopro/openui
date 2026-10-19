@@ -6,6 +6,7 @@ import type { FocusStop } from "./focus-order";
 import { createFocusRegistry, FocusRegistryContext, type FocusEntry } from "./focus-registry";
 import { KeyReporter } from "./key-reporter";
 import { ModalLayerContext } from "./modal-layer";
+import { createProgramRanks, ProgramRankContext } from "./program-rank";
 import { useModalLayers } from "./use-modal-layers";
 
 export { defaultCycle } from "./focus-cycle";
@@ -35,11 +36,16 @@ export interface FocusScopeProps {
  * Tab cycle and the same arrow-key map, so the arrows cross from a page into
  * the panel beside it, and while a program's modal is open the host's stops
  * are inert too. `order` decides where the host's stops sit in the cycle.
- * `InkRenderer` creates its own scope only when none is above it.
+ * Each `InkRenderer` inside takes a program rank in the order the renderers
+ * first render, and its stops sort by that rank first, so the stops of one
+ * program all come before the next program's. `InkRenderer` creates its own
+ * scope only when none is above it. A scope nested in another one (inside its
+ * registry) joins the outer scope and ignores its own `order` and `onUiEvent`.
  */
 export function FocusScope({ children, onUiEvent, order }: FocusScopeProps) {
   const inherited = useContext(FocusRegistryContext);
   const registry = useMemo(createFocusRegistry, []);
+  const programRanks = useMemo(createProgramRanks, []);
   const modalLayers = useModalLayers();
   const listenerRef = useRef(onUiEvent);
   listenerRef.current = onUiEvent;
@@ -64,10 +70,12 @@ export function FocusScope({ children, onUiEvent, order }: FocusScopeProps) {
       <UiEventContext.Provider value={emit}>
         <ModalLayerContext.Provider value={modalLayers}>
           <FocusCycleContext.Provider value={cycle}>
-            <FocusNavigator>
-              <KeyReporter />
-              {children}
-            </FocusNavigator>
+            <ProgramRankContext.Provider value={programRanks}>
+              <FocusNavigator>
+                <KeyReporter />
+                {children}
+              </FocusNavigator>
+            </ProgramRankContext.Provider>
           </FocusCycleContext.Provider>
         </ModalLayerContext.Provider>
       </UiEventContext.Provider>

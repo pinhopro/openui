@@ -15,7 +15,12 @@ export interface FocusStop {
   id: string;
   component: string;
   name: string;
-  /** The stop's sequence path (see `useFocusable`): the Tab order sorts by it. */
+  /**
+   * The rank of the stop's program among the renderers of its `FocusScope`
+   * (0 for a standalone renderer): the first number of `path`.
+   */
+  program: number;
+  /** The stop's sequence path (see `useFocusable`), program rank first: the Tab order sorts by it. */
   path: number[];
   rect: CellRect;
   arrows: ArrowMap;
@@ -63,11 +68,12 @@ function reachableRect(entry: FocusEntry): CellRect | null {
 }
 
 /**
- * The active, mounted stops of the program in document order: the
- * deterministic Tab order, sorted by sequence path, so it follows the program
- * tree whatever order the components mounted in and wherever they are laid
- * out. Stops outside the renderer have no path and are left out (see
- * `hostStops`).
+ * The active, mounted stops of the programs in document order: the
+ * deterministic Tab order, sorted by sequence path (program rank first, so
+ * every stop of one renderer comes before the next renderer's), so it follows
+ * the program tree whatever order the components mounted in and wherever they
+ * are laid out. Stops outside the renderers have no path and are left out
+ * (see `hostStops`).
  */
 export function focusOrder(registry: FocusRegistry): FocusStop[] {
   const stops: FocusStop[] = [];
@@ -79,6 +85,7 @@ export function focusOrder(registry: FocusRegistry): FocusStop[] {
       id: entry.id,
       component: entry.component,
       name: entry.name,
+      program: entry.path[0] ?? 0,
       path: entry.path,
       rect,
       arrows: arrowMap(entry),

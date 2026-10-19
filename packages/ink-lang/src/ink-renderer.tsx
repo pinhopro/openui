@@ -15,6 +15,7 @@ import { ORDER_LAST } from "./focus/focus-order";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
 import { LayerIdContext, ModalLayerContext, NO_MODAL_LAYERS } from "./focus/modal-layer";
+import { useProgramRank } from "./focus/program-rank";
 import { SequenceLevel } from "./focus/sequence-level";
 import { useModalLayers } from "./focus/use-modal-layers";
 import type { Library } from "./library";
@@ -153,6 +154,7 @@ export function InkRenderer(props: InkRendererProps) {
   const ownRegistry = useMemo(createFocusRegistry, []);
   const focusRegistry = inheritedRegistry ?? ownRegistry;
   const ownsNavigation = inheritedRegistry === null;
+  const programRank = useProgramRank();
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
@@ -162,17 +164,20 @@ export function InkRenderer(props: InkRendererProps) {
       marginX={grid.margin}
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
     >
-      {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
-      {showPlaceholder ? <Text dimColor>…</Text> : null}
-      {isStreaming ? <Text dimColor>streaming…</Text> : null}
-      {/* The renderer's own `[ retry ]` is a program stop that comes after the whole program. */}
-      <SequenceLevel order={ORDER_LAST}>
-        <QueryStatus
-          isLoading={runtime.isQueryLoading}
-          hasErrors={runtime.queryErrors.length > 0}
-          isStreaming={isStreaming}
-          onRetry={runtime.retryQueries}
-        />
+      {/* Every path of this program starts with its rank among the renderers of the scope. */}
+      <SequenceLevel order={programRank}>
+        {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
+        {showPlaceholder ? <Text dimColor>…</Text> : null}
+        {isStreaming ? <Text dimColor>streaming…</Text> : null}
+        {/* The renderer's own `[ retry ]` is a program stop that comes after the whole program. */}
+        <SequenceLevel order={ORDER_LAST}>
+          <QueryStatus
+            isLoading={runtime.isQueryLoading}
+            hasErrors={runtime.queryErrors.length > 0}
+            isStreaming={isStreaming}
+            onRetry={runtime.retryQueries}
+          />
+        </SequenceLevel>
       </SequenceLevel>
       {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
     </Box>

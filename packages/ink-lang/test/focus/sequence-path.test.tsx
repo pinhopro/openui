@@ -129,12 +129,13 @@ async function press(rendered: Awaited<ReturnType<typeof renderProgram>>, key: s
   await settle();
 }
 
+// Every path starts with the program's rank: 0 for a standalone renderer.
 describe("sequence paths", () => {
   it("numbers each element by the order its parent renders it", async () => {
     clearSeen();
     const program = 'root = Stack([Probe("a"), Stack([Probe("b"), Probe("c")]), Probe("d")])';
     const rendered = await renderProgram(sequenceLibrary, program);
-    expect(seen).toEqual({ a: [0, 0], b: [0, 1, 0], c: [0, 1, 1], d: [0, 2] });
+    expect(seen).toEqual({ a: [0, 0, 0], b: [0, 0, 1, 0], c: [0, 0, 1, 1], d: [0, 0, 2] });
     rendered.unmount();
   });
 
@@ -142,7 +143,7 @@ describe("sequence paths", () => {
     clearSeen();
     const program = 'root = Stack([Probe("a"), [Probe("b"), Probe("c")], Probe("d")])';
     const rendered = await renderProgram(sequenceLibrary, program);
-    expect(seen).toEqual({ a: [0, 0], b: [0, 1], c: [0, 2], d: [0, 3] });
+    expect(seen).toEqual({ a: [0, 0, 0], b: [0, 0, 1], c: [0, 0, 2], d: [0, 0, 3] });
     rendered.unmount();
   });
 
@@ -150,21 +151,21 @@ describe("sequence paths", () => {
     clearSeen();
     const program = 'root = Stack(["note", 7, Probe("a"), "more", Probe("b")])';
     const rendered = await renderProgram(sequenceLibrary, program);
-    expect(seen).toEqual({ a: [0, 0], b: [0, 1] });
+    expect(seen).toEqual({ a: [0, 0, 0], b: [0, 0, 1] });
     rendered.unmount();
   });
 
   it("gives a child the explicit order its parent passes", async () => {
     clearSeen();
     const rendered = await renderProgram(sequenceLibrary, 'root = Pinned(Probe("pinned"))');
-    expect(seen["pinned"]).toEqual([0, 2]);
+    expect(seen["pinned"]).toEqual([0, 0, 2]);
     rendered.unmount();
   });
 
   it("renders a renderer that is not a plain function as an element", async () => {
     clearSeen();
     const rendered = await renderProgram(sequenceLibrary, 'root = MemoWrap(Probe("wrapped"))');
-    expect(seen["wrapped"]).toEqual([0, 0]);
+    expect(seen["wrapped"]).toEqual([0, 0, 0]);
     rendered.unmount();
   });
 
@@ -178,7 +179,7 @@ describe("sequence paths", () => {
     expect(rendered.frame()).toContain("bumps 2");
     const paths = history["child"] ?? [];
     expect(paths.length).toBeGreaterThan(1);
-    for (const path of paths) expect(path).toEqual([0, 0]);
+    for (const path of paths) expect(path).toEqual([0, 0, 0]);
     rendered.unmount();
   });
 
@@ -192,22 +193,22 @@ describe("sequence paths", () => {
     }
     const program = `root = Stack([Table([Col("Probe", [${probes.join(", ")}]), Col("Size", [${sizes.join(", ")}], "number")])])`;
     const rendered = await renderProgram(sequenceLibrary, program);
-    expect(seen["row1"]).toEqual([0, 0, 0]);
-    expect(seen["row10"]).toEqual([0, 0, 9]);
+    expect(seen["row1"]).toEqual([0, 0, 0, 0]);
+    expect(seen["row10"]).toEqual([0, 0, 0, 9]);
 
     clearSeen();
     await press(rendered, KEYS.TAB);
     await press(rendered, KEYS.TAB);
     await press(rendered, KEYS.ENTER);
     expect(rendered.frame()).toContain("rows 11-11 of 11");
-    expect(seen["row11"]).toEqual([0, 0, 0]);
+    expect(seen["row11"]).toEqual([0, 0, 0, 0]);
 
     clearSeen();
     await press(rendered, KEYS.SHIFT_TAB);
     await press(rendered, KEYS.ENTER);
     expect(rendered.frame()).toContain("rows 1-10 of 11");
-    expect(seen["row1"]).toEqual([0, 0, 0]);
-    expect(seen["row10"]).toEqual([0, 0, 9]);
+    expect(seen["row1"]).toEqual([0, 0, 0, 0]);
+    expect(seen["row10"]).toEqual([0, 0, 0, 9]);
     rendered.unmount();
   });
 
@@ -217,13 +218,13 @@ describe("sequence paths", () => {
       sequenceLibrary,
       'root = Section(Probe("header"), Probe("body"), true)',
     );
-    expect(seen["header"]).toEqual([0, 0]);
-    expect(seen["body"]).toEqual([0, 1]);
+    expect(seen["header"]).toEqual([0, 0, 0]);
+    expect(seen["body"]).toEqual([0, 0, 1]);
 
     clearSeen();
     await rendered.update({ response: 'root = Section(Probe("header"), Probe("body"), false)' });
     expect(seen["header"]).toBeUndefined();
-    expect(seen["body"]).toEqual([0, 0]);
+    expect(seen["body"]).toEqual([0, 0, 0]);
     rendered.unmount();
   });
 });
