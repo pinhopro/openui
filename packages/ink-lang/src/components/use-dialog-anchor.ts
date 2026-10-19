@@ -29,7 +29,9 @@ export interface DialogAnchor {
   /**
    * The sequence path the dialog's content renders under: one level below
    * the anchor stop's, at `AFTER_ANCHOR` (its stops then sort right after
-   * that stop), else its declaration's.
+   * that stop), followed by its declaration's, so dialogs re-anchored to the
+   * same stop keep their declaration order and each one's stops stay
+   * together; else its declaration's.
    */
   path: number[];
   /** The anchor stop's id, for `OverlayAnchorContext`; null on the tree anchor. */
@@ -123,7 +125,10 @@ export function useDialogAnchor(options: DialogAnchorOptions): DialogAnchor {
     anchorRef: anchored.ref,
     placement: ANCHORED_PLACEMENT,
     offset: drag.offset,
-    path: anchored.path === null ? declarationPath : anchored.path.concat(AFTER_ANCHOR),
+    path:
+      anchored.path === null
+        ? declarationPath
+        : anchored.path.concat(AFTER_ANCHOR).concat(declarationPath),
     stopId: anchored.id,
     drop,
     onPlaced,

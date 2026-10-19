@@ -1,6 +1,11 @@
+import { useContext } from "react";
 import { describe, expect, it } from "vitest";
+import { z } from "zod/v4";
 import { inkLibrary } from "../src/default-library";
+import { focusOrder } from "../src/focus/focus-order";
+import { FocusRegistryContext, type FocusRegistry } from "../src/focus/focus-registry";
 import type { InkRendererProps } from "../src/ink-renderer";
+import { createLibrary, defineComponent, type Library } from "../src/library";
 import type { UiEvent } from "../src/ui-events";
 import { inverseSegments, stripAnsi } from "./helpers/ansi";
 import { fillerRows } from "./helpers/filler-rows";
@@ -431,6 +436,62 @@ async function dragCornerTo(
   return { held, dropped: titleCells(rendered, first) };
 }
 
+/** The registry the latest Probe rendered with. */
+const probed: { registry: FocusRegistry | null } = { registry: null };
+
+function ProbeRenderer() {
+  probed.registry = useContext(FocusRegistryContext);
+  return null;
+}
+
+/** Keeps the renderer's focus registry, so a test can read the Tab order. */
+const Probe = defineComponent({
+  name: "Probe",
+  description: "Records the focus registry it renders in",
+  props: z.object({}),
+  component: ProbeRenderer,
+});
+
+const probeLibrary: Library = createLibrary({
+  root: "Stack",
+  components: Object.values(inkLibrary.components).concat([Probe]),
+});
+
+/** Renders `source` (which places a `Probe()`) with the mouse on. */
+async function mountProbed(source: string): Promise<RenderedProgram> {
+  const rendered = await renderProgram(probeLibrary, source, { mouse: true });
+  await settle();
+  return rendered;
+}
+
+/** The names of the stops in Tab order (`focusOrder`). */
+function orderedNames(registry: FocusRegistry | null): string[] {
+  const names: string[] = [];
+  if (registry === null) return names;
+  for (const stop of focusOrder(registry)) names.push(stop.name);
+  return names;
+}
+
+/**
+ * Drags the dialog titled `title` by its title so its top-left corner (the
+ * `╭` left of the title, on the row above it) lands on `target`, and drops it.
+ */
+async function dragTitledCornerTo(
+  rendered: RenderedProgram,
+  title: string,
+  target: Cell,
+): Promise<void> {
+  const frame = plain(rendered);
+  const grab = findCell(frame, title);
+  const border = Array.from(frame.split("\n")[grab.y - 1] ?? "");
+  const cornerX = border.lastIndexOf("╭", grab.x);
+  const to = moved(grab, target.x - cornerX, target.y - (grab.y - 1));
+  await send(rendered, MOUSE.press(grab.x, grab.y));
+  await send(rendered, MOUSE.drag(to.x, to.y));
+  await send(rendered, MOUSE.release(to.x, to.y));
+  expect(findCell(plain(rendered), title)).toEqual(to);
+}
+
 /**
  * Takes the pointer off the dialog and drops focus with Escape, so the
  * dialog holds no priority, then presses Tab `steps` times: the names of
@@ -482,6 +543,34 @@ describe("dialog re-anchoring on drop", () => {
     expect(dropped).toEqual(dropped.map(() => held));
     expect(findCell(plain(rendered), "╭")).toEqual(opener);
     expect(await tabCycle(rendered, events, 5)).toEqual(["A", "Open", "Close", "B", "C"]);
+    rendered.unmount();
+  });
+
+  it("keeps two dialogs re-anchored to one stop in their declaration order, each one's stops together", async () => {
+    const source = [
+      "$one = true",
+      "$two = true",
+      `root = Stack([a, one, two, b, c, ${fillerRows(ROWS)}, probe])`,
+      'a = Button("A", @ToAssistant("A"))',
+      'one = Dialog("info", "First", "One.", "Close1", "Done1", $one)',
+      'two = Dialog("info", "Second", "Two.", "Close2", "Done2", $two, null, null, "right")',
+      'b = Button("B", @ToAssistant("B"))',
+      'c = Button("C", @ToAssistant("C"))',
+      "probe = Probe()",
+    ].join("\n");
+    const closed = await mountProbed(
+      source.replace("$one = true", "$one = false").replace("$two = true", "$two = false"),
+    );
+    const c = findCell(plain(closed), "[ C ]");
+    closed.unmount();
+    const rendered = await mountProbed(source);
+    const registry = probed.registry;
+
+    // Both dropped on C's row: the first on C's cells, the second 40 cells right of it.
+    await dragTitledCornerTo(rendered, "First", c);
+    await dragTitledCornerTo(rendered, "Second", moved(c, 40, 0));
+    // The Tab order: the stops of each dialog after C, in the dialogs' declaration order.
+    expect(orderedNames(registry)).toEqual(["A", "B", "C", "Close1", "Done1", "Close2", "Done2"]);
     rendered.unmount();
   });
 
