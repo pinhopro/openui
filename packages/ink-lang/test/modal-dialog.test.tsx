@@ -252,6 +252,32 @@ describe("ModalDialog", () => {
       return event.name === "Outside";
     });
     expect(onPage).toEqual([]);
+    // The backdrop takes the click, but a cancel is inert while streaming.
+    expect(ofType(events, "cancel")).toEqual([]);
+    expect(stripAnsi(rendered.frame())).toContain(TITLE);
+    rendered.unmount();
+  });
+
+  it("does not cancel on Escape while streaming; once the stream ends Escape cancels once", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(inkLibrary, program(true), {
+      isStreaming: true,
+      onUiEvent: function onUiEvent(event) {
+        events.push(event);
+      },
+    });
+    await settle();
+    rendered.instance.stdin.write(ESCAPE);
+    // Ink holds a lone Escape for 20ms in case a sequence follows.
+    await settle(60);
+    expect(ofType(events, "cancel")).toEqual([]);
+    expect(stripAnsi(rendered.frame())).toContain(TITLE);
+    await rendered.update({ isStreaming: false });
+    await settle();
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    expect(ofType(events, "cancel")).toHaveLength(1);
+    expect(stripAnsi(rendered.frame())).not.toContain(TITLE);
     rendered.unmount();
   });
 

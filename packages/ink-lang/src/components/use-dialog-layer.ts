@@ -1,5 +1,6 @@
 import { useFocusManager } from "ink";
 import { useCallback, useContext, useEffect, useRef } from "react";
+import { useIsStreaming } from "../context";
 import { FocusRegistryContext, type FocusRegistry } from "../focus/focus-registry";
 import { ModalLayerContext } from "../focus/modal-layer";
 import { useUiEvents, type UiEvent } from "../ui-events";
@@ -34,8 +35,9 @@ export interface DialogLayer {
   /**
    * Cancels the dialog: runs the latest `onCancel`, once per open for a
    * dialog that closes on cancel (Escape and a backdrop click read in one
-   * input chunk cancel once). Stable; what the cancel controls, the backdrop
-   * and the layer's Escape all call.
+   * input chunk cancel once); does nothing while the program is streaming.
+   * Stable; what the cancel controls, the backdrop and the layer's Escape all
+   * call.
    */
   cancel: () => void;
 }
@@ -80,8 +82,15 @@ export function useDialogLayer(options: DialogLayerOptions): DialogLayer {
   const managerRef = useRef(manager);
   managerRef.current = manager;
   const cancelled = useRef(false);
+  // The program is inert while streaming: Escape and the backdrop still reach
+  // the layer (Escape is consumed, a click on the backdrop is swallowed), but
+  // the cancel does nothing, as the dialog's own cancel controls do nothing.
+  const isStreaming = useIsStreaming();
+  const isStreamingRef = useRef(isStreaming);
+  isStreamingRef.current = isStreaming;
 
   const cancel = useCallback(function cancel(): void {
+    if (isStreamingRef.current) return;
     if (cancelled.current) return;
     if (latest.current.closesOnCancel) cancelled.current = true;
     latest.current.onCancel();
