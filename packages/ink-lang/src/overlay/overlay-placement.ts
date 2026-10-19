@@ -148,6 +148,26 @@ export function overlayFits(input: PlaceOverlayInput): boolean {
   return input.size.height <= input.bounds.height && fitsEitherSide(input);
 }
 
+/**
+ * How many rows the bounds lack under their last row for the overlay to be
+ * drawn whole at its placement, 0 when it already fits: a `center`, `left` or
+ * `right` overlay lacks the rows by which it is taller than the bounds; a
+ * `top` or `bottom` one that fits on neither side of its anchor lacks the rows
+ * it would reach past the bounds under its anchor (with the rows added, it
+ * goes there); a `cover` one spans the bounds and lacks none.
+ */
+export function rowsMissingBelow(input: PlaceOverlayInput): number {
+  const placement = input.placement;
+  if (placement === "cover") return 0;
+  const bottom = input.bounds.y + input.bounds.height;
+  if (isVertical(placement)) {
+    if (fitsEitherSide(input)) return 0;
+    const below = sidePosition(input, "bottom");
+    return Math.max(0, below.y + input.size.height - bottom);
+  }
+  return Math.max(0, input.size.height - input.bounds.height);
+}
+
 export interface PlaceCompactInput {
   /** The cells of the element the overlay is attached to. */
   anchor: CellRect;

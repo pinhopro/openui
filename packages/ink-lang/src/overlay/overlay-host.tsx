@@ -13,6 +13,7 @@ import { rectIntersection } from "./clip-rect";
 import { OverlayBox } from "./overlay-box";
 import {
   measurePlacement,
+  rowsPastContent,
   samePlacement,
   unmeasuredPlacement,
   type PlacedOverlay,
@@ -84,6 +85,17 @@ function boundsOf(host: DOMElement, boundsBox: DOMElement | null): CellRect {
   return rectIntersection(elementRect(boundsBox), root);
 }
 
+/**
+ * The bounds' cells down to the last row of `content` (the page's content,
+ * without the rows added under it); the whole bounds without a content box.
+ */
+function contentOf(bounds: CellRect, content: DOMElement | null): CellRect {
+  if (content === null) return bounds;
+  const rect = elementRect(content);
+  const bottom = Math.min(bounds.y + bounds.height, rect.y + rect.height);
+  return { x: bounds.x, y: bounds.y, width: bounds.width, height: Math.max(0, bottom - bounds.y) };
+}
+
 export interface OverlayHostProps {
   /**
    * The box overlays must stay inside; default the whole ink root. A
@@ -91,6 +103,19 @@ export interface OverlayHostProps {
    * host's content around it.
    */
   boundsRef?: RefObject<DOMElement | null>;
+  /**
+   * With `boundsRef`: the box of the page's content inside the bounds, above
+   * the rows `onExtraRows` asks for. Default the whole bounds.
+   */
+  contentRef?: RefObject<DOMElement | null>;
+  /**
+   * With `boundsRef`: receives, whenever it changes, how many rows the open
+   * dialogs and modals need under the page's content to be drawn whole
+   * (`rowsPastContent`; 0 when they fit). A standalone `InkRenderer` adds that
+   * many blank rows at the end of its page, inside the bounds, so a dialog in
+   * a program shorter than itself is never cut at the page's last row.
+   */
+  onExtraRows?: (rows: number) => void;
 }
 
 /**
@@ -111,7 +136,7 @@ export interface OverlayHostProps {
  * each form's size and the bounds (`boundsRef`, else the ink root). Only
  * changed placements re-render.
  */
-export function OverlayHost({ boundsRef }: OverlayHostProps) {
+export function OverlayHost({ boundsRef, contentRef, onExtraRows }: OverlayHostProps) {
   const registry = useContext(OverlayRegistryContext);
   const overlays = useOverlayList(registry);
   const hostRef = useRef<DOMElement | null>(null);
@@ -121,8 +146,10 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
     return new Map();
   });
   // What the latest render drew, for measurements that run outside a render.
-  const rendered = useRef({ overlays, placements });
-  rendered.current = { overlays, placements };
+  const rendered = useRef({ overlays, placements, onExtraRows });
+  rendered.current = { overlays, placements, onExtraRows };
+  // The rows last reported to `onExtraRows`.
+  const reportedRows = useRef(0);
 
   /** The box the bounds come from, null for the whole ink root. */
   function currentBoundsBox(): DOMElement | null {
@@ -134,31 +161,46 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
     return boundsOf(host, currentBoundsBox());
   }
 
+  /** Tells `onExtraRows` the rows the overlays need under the content, when they changed. */
+  function reportExtraRows(rows: number): void {
+    const report = rendered.current.onExtraRows;
+    if (report === undefined || boundsRef === undefined || rows === reportedRows.current) return;
+    reportedRows.current = rows;
+    report(rows);
+  }
+
   /** Measures every open overlay against the layout Ink just computed; sets state only on a change. */
   function placeOverlays(): void {
     const host = hostRef.current;
     if (host === null) return;
     const drawn = rendered.current;
     // Every commit of the app lands here: nothing to do while no overlay is open or drawn.
-    if (drawn.overlays.length === 0 && drawn.placements.size === 0) return;
+    if (drawn.overlays.length === 0 && drawn.placements.size === 0) {
+      reportExtraRows(0);
+      return;
+    }
     const open = new Set<string>();
     for (const overlay of drawn.overlays) open.add(overlay.id);
     forgetClosed(wholeRefs.current, open);
     forgetClosed(compactRefs.current, open);
     const bounds = currentBounds(host);
+    const content = contentOf(bounds, contentRef === undefined ? null : contentRef.current);
     const next: Placements = new Map();
+    let extraRows = 0;
     for (const overlay of drawn.overlays) {
-      const placed = measurePlacement({
+      const input = {
         overlay,
         host,
         wholeBox: refFor(wholeRefs.current, overlay.id).current,
         compactBox: refFor(compactRefs.current, overlay.id).current,
         bounds,
         boundsBox: currentBoundsBox(),
-      });
-      next.set(overlay.id, placed);
+      };
+      next.set(overlay.id, measurePlacement(input));
+      extraRows = Math.max(extraRows, rowsPastContent(input, content));
     }
     if (!samePlacements(drawn.placements, next)) setPlacements(next);
+    reportExtraRows(extraRows);
   }
 
   // After every render of the host, and after every layout of the ink root

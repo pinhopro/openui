@@ -331,6 +331,57 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("is drawn whole and focused in a program shorter than itself: the page grows under it", async () => {
+    const source = [
+      "$confirm = false",
+      "root = Stack([outside, text, dialog])",
+      'outside = Button("Outside", @Set($confirm, true))',
+      'text = TextContent("A short answer.")',
+      dialog(""),
+    ].join("\n");
+    const { rendered } = await mount(source);
+    const closed = stripAnsi(rendered.frame());
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    const opened = stripAnsi(rendered.frame());
+    expect(opened).toContain(TITLE);
+    expect(opened).toContain("╰");
+    expect(opened).toContain("[ Cancel ]");
+    expect(opened).toContain("[ Delete contact ]");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    // The page above keeps its rows: only blank rows are added under it.
+    expect(findCell(opened, "[ Outside ]")).toEqual(findCell(closed, "[ Outside ]"));
+    expect(opened.split("\n").length).toBeGreaterThan(closed.split("\n").length);
+    // Closing it gives the rows back.
+    rendered.instance.stdin.write(ESCAPE);
+    await settle(60);
+    const after = stripAnsi(rendered.frame());
+    expect(after).not.toContain(TITLE);
+    expect(after.split("\n")).toHaveLength(closed.split("\n").length);
+    rendered.unmount();
+  });
+
+  it("draws an unbound one whole in a short program, its only button focused, so it can be left", async () => {
+    const events: UiEvent[] = [];
+    const rendered = await renderProgram(
+      inkLibrary,
+      'root = Stack([TextContent("A short answer."), ModalDialog("info", "Saved", "Your changes are safe.", null, "OK")])',
+      {
+        onUiEvent: function onUiEvent(event) {
+          events.push(event);
+        },
+      },
+    );
+    await settle();
+    const frame = stripAnsi(rendered.frame());
+    expect(frame).toContain("[ OK ]");
+    expect(frame).toContain("╰");
+    expect(inverseSegments(rendered.frame())).toEqual(["[ OK ]"]);
+    rendered.unmount();
+  });
+
   it("shows an info dialog without the open binding and with its own actions", async () => {
     const actions: ActionEvent[] = [];
     const rendered = await renderProgram(

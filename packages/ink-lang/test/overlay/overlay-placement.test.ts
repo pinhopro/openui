@@ -5,6 +5,7 @@ import {
   overlayFits,
   placeCompact,
   placeOverlay,
+  rowsMissingBelow,
   type OverlayPlacement,
   type OverlayPosition,
   type OverlaySize,
@@ -195,5 +196,37 @@ describe("compactWidthLimit", () => {
   it("is the bounds' width when neither side holds eight cells", () => {
     const narrow: CellRect = { x: 0, y: 0, width: 16, height: 10 };
     expect(compactWidthLimit({ anchor: anchorAt(5, 2), bounds: narrow })).toBe(16);
+  });
+});
+
+describe("rowsMissingBelow", () => {
+  /** The rows BOUNDS lack for an overlay of `size` at `placement` against `anchor`. */
+  function missing(anchor: CellRect, placement: OverlayPlacement, size: OverlaySize): number {
+    return rowsMissingBelow({ anchor, size, placement, gap: 0, bounds: BOUNDS });
+  }
+
+  it("is 0 for an overlay that fits, on its side or the opposite one", () => {
+    expect(missing(anchorAt(4, 2), "bottom", SIZE)).toBe(0);
+    // No room under the last row, room above it: it flips, nothing is missing.
+    expect(missing(anchorAt(4, 9), "bottom", SIZE)).toBe(0);
+    expect(missing(anchorAt(4, 2), "center", SIZE)).toBe(0);
+  });
+
+  it("is the rows a top or bottom overlay that fits neither side reaches past the bounds under its anchor", () => {
+    // 9 rows fit neither over row 8 nor under it, where they take rows 9..17: 8 past the 10 rows.
+    expect(missing(anchorAt(4, 8), "bottom", { width: 10, height: 9 })).toBe(8);
+    // 7 rows fit neither over row 5 nor under it (rows 6..12): 3 past.
+    expect(missing(anchorAt(4, 5), "top", { width: 10, height: 7 })).toBe(3);
+  });
+
+  it("is the rows a center, left or right overlay is taller than the bounds", () => {
+    const tall: OverlaySize = { width: 10, height: 14 };
+    expect(missing(anchorAt(4, 2), "center", tall)).toBe(4);
+    expect(missing(anchorAt(4, 2), "right", tall)).toBe(4);
+    expect(missing(anchorAt(30, 2), "left", tall)).toBe(4);
+  });
+
+  it("is 0 for a cover overlay, which spans the bounds", () => {
+    expect(missing(anchorAt(4, 2), "cover", { width: 40, height: 30 })).toBe(0);
   });
 });

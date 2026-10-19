@@ -1,6 +1,6 @@
 import type { ActionEvent, OpenUIError, ParseResult } from "@openuidev/lang-core";
 import { Box, Text, type DOMElement } from "ink";
-import { useCallback, useContext, useEffect, useMemo, useRef } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { OpenUIContext } from "./context";
 import {
   createDesignSystem,
@@ -173,6 +173,10 @@ export function InkRenderer(props: InkRendererProps) {
   // The page's own cells bound the overlays it hosts: without a FocusScope they must not cover
   // the host's content around the renderer, which is painted after them.
   const pageRef = useRef<DOMElement | null>(null);
+  // The rows a dialog or modal needs under the page's content (`OverlayHost`'s `onExtraRows`):
+  // blank rows end the page, so one in a program shorter than itself is drawn whole.
+  const contentRef = useRef<DOMElement | null>(null);
+  const [extraRows, setExtraRows] = useState(0);
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
   const dimsPage = (props.dimBehindModal ?? true) && modalLayers.activeLayer !== null;
@@ -185,7 +189,7 @@ export function InkRenderer(props: InkRendererProps) {
       maxWidth={grid.containerMaxWidth > 0 ? grid.containerMaxWidth : undefined}
     >
       {/* The overlay host stays outside it, so the overlays are never dimmed. */}
-      <DimBehind active={dimsPage}>
+      <DimBehind ref={contentRef} active={dimsPage}>
         {/* Every path of this program starts with its rank among the renderers of the scope. */}
         <SequenceLevel order={programRank}>
           {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
@@ -203,8 +207,11 @@ export function InkRenderer(props: InkRendererProps) {
         </SequenceLevel>
         {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
       </DimBehind>
+      {extraRows > 0 ? <Box height={extraRows} flexShrink={0} /> : null}
       {/* Last child, so the overlays paint over the whole page without taking any of its cells. */}
-      {ownsOverlays ? <OverlayHost boundsRef={pageRef} /> : null}
+      {ownsOverlays ? (
+        <OverlayHost boundsRef={pageRef} contentRef={contentRef} onExtraRows={setExtraRows} />
+      ) : null}
     </Box>
   );
   const navigated = ownsNavigation ? (

@@ -300,6 +300,33 @@ describe("Dialog", () => {
     rendered.unmount();
   });
 
+  it("is drawn whole under the last row of a program shorter than itself; closing it gives the rows back", async () => {
+    const { rendered, events } = await mount(
+      [
+        "$note = true",
+        "root = Stack([text, noteDialog])",
+        'text = TextContent("A short answer.")',
+        noteDialog(""),
+      ].join("\n"),
+    );
+    await settle();
+    const opened = stripAnsi(rendered.frame());
+    expect(findCell(opened, "A short answer.")).toEqual({ x: 0, y: 0 });
+    expect(opened).toContain(TITLE);
+    expect(opened).toContain("Keep editing or close this note.");
+    expect(opened).toContain("[ Close ]");
+    const box = dialogBox(opened);
+    expect(box.top.y).toBe(1);
+    expect(box.bottom.y).toBe(opened.split("\n").length - 1);
+    expect(lastFocused(events)).toBe("Close");
+    rendered.instance.stdin.write(KEYS.ENTER);
+    await settle();
+    const closed = stripAnsi(rendered.frame());
+    expect(closed).not.toContain(TITLE);
+    expect(closed.split("\n")).toHaveLength(1);
+    rendered.unmount();
+  });
+
   it("centres itself in the bounds with the center placement", async () => {
     const { rendered } = await mount(program(true, "center"));
     const frame = stripAnsi(rendered.frame());

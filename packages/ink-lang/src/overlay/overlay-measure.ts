@@ -8,6 +8,7 @@ import {
   overlayFits,
   placeCompact,
   placeOverlay,
+  rowsMissingBelow,
   type OverlayPosition,
   type OverlaySize,
 } from "./overlay-placement";
@@ -315,6 +316,29 @@ export function measurePlacement(input: MeasureInput): PlacedOverlay | null {
     compact: forms.compact,
     background: backgroundOf(input.overlay, input.host, input.boundsBox),
   };
+}
+
+/**
+ * How many rows must be added under `content` (the bounds' cells down to the
+ * last row of the page's content, without rows added under it) for a dialog
+ * or a modal to be drawn whole at its placement, 0 when it fits there
+ * (`rowsMissingBelow`) or its whole form was not measured yet at the current
+ * width limit. A tooltip lacks none: it has its compact form.
+ */
+export function rowsPastContent(input: MeasureInput, content: CellRect): number {
+  const overlay = input.overlay;
+  if (overlay.kind === "tooltip") return 0;
+  const anchor = placementAnchor(overlay, content);
+  if (anchor === null) return 0;
+  const size = measuredSize(input.wholeBox, wholeWidthLimit(input.bounds));
+  if (size === null) return 0;
+  return rowsMissingBelow({
+    anchor,
+    size,
+    placement: overlay.placement,
+    gap: overlay.gap,
+    bounds: content,
+  });
 }
 
 function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {

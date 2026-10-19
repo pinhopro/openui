@@ -1,4 +1,5 @@
-import { createElement, type ReactNode } from "react";
+import type { DOMElement } from "ink";
+import { createElement, type ReactNode, type Ref } from "react";
 
 /** SGR "faint" on, and "normal intensity" (which ends it, and bold). */
 const DIM_ON = "\u001b[2m";
@@ -25,6 +26,8 @@ export interface DimBehindProps {
   /** Draw the content faint: a modal is open above it. */
   active: boolean;
   children: ReactNode;
+  /** The box's element (the renderer measures its page's content with it). */
+  ref?: Ref<DOMElement>;
 }
 
 /**
@@ -49,10 +52,10 @@ const STYLE = { flexDirection: "column", flexGrow: 0, flexShrink: 1 } as const;
  * It is always the same raw element, the transform switched on and off, so
  * toggling never remounts the page: its state and focus ids survive a modal.
  */
-export function DimBehind({ active, children }: DimBehindProps) {
+export function DimBehind({ active, children, ref }: DimBehindProps) {
   return createElement(
     "ink-box",
-    { style: STYLE, internal_transform: active ? dimLine : undefined },
+    { ref, style: STYLE, internal_transform: active ? dimLine : undefined },
     children,
   );
 }
