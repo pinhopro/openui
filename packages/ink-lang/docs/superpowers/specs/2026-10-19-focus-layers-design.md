@@ -69,7 +69,7 @@ Groups that are one stop (`OptionCards`, `CheckBoxGroup`, `RadioGroup`, `SwitchG
 
 A host application may provide the portal itself (through `FocusScope`), so an overlay inside a clipped panel is not cut at the panel's edge. Without it the library uses its own root.
 
-The terminal has no transparency: a "transparent" backdrop paints nothing and only captures the mouse. A modal may dim what is behind it from below, through a context that makes base components render dim while a modal is open. That is a visual option, not part of the focus rules.
+The terminal has no transparency: a "transparent" backdrop paints nothing and only captures the mouse. A modal may dim what is behind it from below, through an output transform on the page box (`DimBehind`) that draws the page's text faint while a modal is open. That is a visual option, not part of the focus rules.
 
 ### Tab order with layers
 
