@@ -425,6 +425,19 @@ export { useFocusable } from "./focus/use-focusable";
 export type { Focusable, FocusableOptions } from "./focus/use-focusable";
 export { BridgedContexts, useCapturedContexts } from "./overlay/context-bridge";
 export type { BridgedContextsProps, CapturedContexts } from "./overlay/context-bridge";
+export { OverlayHost } from "./overlay/overlay-host";
+export { placeOverlay } from "./overlay/overlay-placement";
+export type {
+  OverlayPlacement,
+  OverlayPosition,
+  OverlaySize,
+  PlaceOverlayInput,
+} from "./overlay/overlay-placement";
+export { OverlayRegistryContext, createOverlayRegistry } from "./overlay/overlay-registry";
+export type { Overlay, OverlayKind, OverlayRegistry } from "./overlay/overlay-registry";
+export { rootRect } from "./overlay/root-rect";
+export { useOverlay } from "./overlay/use-overlay";
+export type { OverlayHandle, UseOverlayOptions } from "./overlay/use-overlay";
 export { UiEventContext, useUiEvents } from "./ui-events";
 export type { UiEvent, UiEventListener, UiEventType } from "./ui-events";
 export { useInputEvent } from "./use-input-event";

@@ -21,6 +21,8 @@ import { useModalLayers } from "./focus/use-modal-layers";
 import type { Library } from "./library";
 import { resolveMouseOptions, type MouseOptions } from "./mouse/mouse-options";
 import { MouseProvider } from "./mouse/mouse-provider";
+import { OverlayHost } from "./overlay/overlay-host";
+import { createOverlayRegistry, OverlayRegistryContext } from "./overlay/overlay-registry";
 import { QueryStatus } from "./query-status";
 import { RenderNode } from "./render-node";
 import type { ToolProviderInput } from "./runtime/tool-provider";
@@ -153,6 +155,10 @@ export function InkRenderer(props: InkRendererProps) {
   const focusRegistry = inheritedRegistry ?? ownRegistry;
   const ownsNavigation = inheritedRegistry === null;
   const programRank = useProgramRank();
+  // A FocusScope above owns the overlay host too; otherwise the page paints its own overlays.
+  const inheritedOverlays = useContext(OverlayRegistryContext);
+  const ownOverlays = useMemo(createOverlayRegistry, []);
+  const ownsOverlays = inheritedOverlays === null;
   const showPlaceholder = isStreaming && runtime.root === null;
   const showErrors = props.onError === undefined && runtime.errors.length > 0;
 
@@ -178,6 +184,8 @@ export function InkRenderer(props: InkRendererProps) {
         </SequenceLevel>
       </SequenceLevel>
       {showErrors ? <ErrorFooter errors={runtime.errors} /> : null}
+      {/* Last child, so the overlays paint over the whole page without taking any of its cells. */}
+      {ownsOverlays ? <OverlayHost /> : null}
     </Box>
   );
   const tree = ownsNavigation ? (
@@ -197,11 +205,13 @@ export function InkRenderer(props: InkRendererProps) {
             <LayerIdContext.Provider value={null}>
               <UiEventContext.Provider value={emitUiEvent}>
                 <FocusRegistryContext.Provider value={focusRegistry}>
-                  {mouseOptions === null ? (
-                    tree
-                  ) : (
-                    <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
-                  )}
+                  <OverlayRegistryContext.Provider value={inheritedOverlays ?? ownOverlays}>
+                    {mouseOptions === null ? (
+                      tree
+                    ) : (
+                      <MouseProvider options={mouseOptions}>{tree}</MouseProvider>
+                    )}
+                  </OverlayRegistryContext.Provider>
                 </FocusRegistryContext.Provider>
               </UiEventContext.Provider>
             </LayerIdContext.Provider>

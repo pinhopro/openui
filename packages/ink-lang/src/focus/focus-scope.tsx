@@ -1,4 +1,6 @@
 import { useContext, useMemo, useRef, type ReactNode } from "react";
+import { OverlayHost } from "../overlay/overlay-host";
+import { createOverlayRegistry, OverlayRegistryContext } from "../overlay/overlay-registry";
 import { UiEventContext, type UiEvent } from "../ui-events";
 import { defaultCycle, FocusCycleContext, type FocusCycleOrder } from "./focus-cycle";
 import { FocusNavigator } from "./focus-navigator";
@@ -38,6 +40,9 @@ export interface FocusScopeProps {
  * Tab cycle and the same arrow-key map, so the arrows cross from a page into
  * the panel beside it, and while a program's modal is open the host's stops
  * are inert too. `order` decides where the host's stops sit in the cycle.
+ * Its overlay host paints the overlays of every program and of the host's own
+ * components after the scope's children, so a floating box is not cut by a
+ * panel that clips the renderer.
  * Each `InkRenderer` inside takes a program rank in the order the renderers
  * first render, and its stops sort by that rank first, so the stops of one
  * program all come before the next program's. `InkRenderer` creates its own
@@ -48,6 +53,7 @@ export function FocusScope({ children, onUiEvent, order }: FocusScopeProps) {
   const inherited = useContext(FocusRegistryContext);
   const registry = useMemo(createFocusRegistry, []);
   const programRanks = useMemo(createProgramRanks, []);
+  const overlays = useMemo(createOverlayRegistry, []);
   const modalLayers = useModalLayers();
   const listenerRef = useRef(onUiEvent);
   listenerRef.current = onUiEvent;
@@ -73,10 +79,13 @@ export function FocusScope({ children, onUiEvent, order }: FocusScopeProps) {
         <ModalLayerContext.Provider value={modalLayers}>
           <FocusCycleContext.Provider value={cycle}>
             <ProgramRankContext.Provider value={programRanks}>
-              <FocusNavigator>
-                <KeyReporter />
-                {children}
-              </FocusNavigator>
+              <OverlayRegistryContext.Provider value={overlays}>
+                <FocusNavigator>
+                  <KeyReporter />
+                  {children}
+                  <OverlayHost />
+                </FocusNavigator>
+              </OverlayRegistryContext.Provider>
             </ProgramRankContext.Provider>
           </FocusCycleContext.Provider>
         </ModalLayerContext.Provider>
