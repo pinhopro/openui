@@ -62,6 +62,7 @@ function EditableTableRenderer({ props }: ComponentRenderProps<EditableTableProp
           column={column}
           value={row.values[columnIndex]}
           width={widths[columnIndex] ?? 1}
+          order={rowIndex * columns.length + columnIndex}
           onChange={function changeThisCell(value) {
             changeCell(rowIndex, columnIndex, value);
           }}

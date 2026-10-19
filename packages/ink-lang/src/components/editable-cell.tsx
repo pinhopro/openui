@@ -22,16 +22,19 @@ export interface EditableCellProps {
   column: EditableColumn;
   value: unknown;
   width: number;
+  /** The cell's stop order in the table: row by row, then column by column. */
+  order: number;
   onChange: (value: unknown) => void;
 }
 
 /** A select cell: Up and Down (or Enter and Space) move to the previous or next option. */
-function SelectCell({ name, column, value, width, onChange }: EditableCellProps) {
+function SelectCell({ name, column, value, width, order, onChange }: EditableCellProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name,
+    order,
     // Up and Down move through the options while there is one in that direction.
     arrows: function claims(direction) {
       if (direction === "up") return nextOptionValue(column, value, -1) !== undefined;
@@ -63,7 +66,7 @@ function SelectCell({ name, column, value, width, onChange }: EditableCellProps)
 }
 
 /** A text cell: the single-line editor of Input, padded to the column width. */
-function TextCell({ name, column, value, width, onChange }: EditableCellProps) {
+function TextCell({ name, column, value, width, order, onChange }: EditableCellProps) {
   const isStreaming = useIsStreaming();
   const text = cellLabel(column, value);
   const [editor, setEditor] = useState<EditorState>({ value: text, cursor: countGraphemes(text) });
@@ -74,6 +77,7 @@ function TextCell({ name, column, value, width, onChange }: EditableCellProps) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name,
+    order,
     // Left and Right move the cursor while it can move; at the ends they move focus.
     arrows: function claims(direction) {
       if (direction === "left") return editorRef.current.cursor > 0;

@@ -1,5 +1,6 @@
 import { Box, Text, useInput } from "ink";
 import { useIsStreaming } from "../context";
+import { ORDER_LAST } from "../focus/focus-order";
 import { pagerTextStyle } from "../focus/focus-style";
 import { useFocusable } from "../focus/use-focusable";
 import { useTheme } from "../theme";
@@ -9,17 +10,20 @@ import { pageSummary, type PageBounds } from "./table-paging";
 
 interface PagerButtonProps {
   label: string;
+  /** The stop's order in the table: after every cell. */
+  order: number;
   disabled: boolean;
   onPress: () => void;
 }
 
 /** A focusable `[ prev ]` / `[ next ]`; dim and inert at the end of the table. A click presses it. */
-function PagerButton({ label, disabled, onPress }: PagerButtonProps) {
+function PagerButton({ label, order, disabled, onPress }: PagerButtonProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: label,
+    order,
     mouse: {
       onClick: function handleClick() {
         if (disabled || isStreaming) return;
@@ -62,8 +66,18 @@ export function TablePager({ bounds, rowCount, onStep }: TablePagerProps) {
   return (
     <Box flexDirection="row" gap={2}>
       <Text dimColor>{pageSummary(bounds, rowCount)}</Text>
-      <PagerButton label="prev" disabled={bounds.page === 0} onPress={previousPage} />
-      <PagerButton label="next" disabled={bounds.page >= bounds.pageCount - 1} onPress={nextPage} />
+      <PagerButton
+        label="prev"
+        order={ORDER_LAST - 1}
+        disabled={bounds.page === 0}
+        onPress={previousPage}
+      />
+      <PagerButton
+        label="next"
+        order={ORDER_LAST}
+        disabled={bounds.page >= bounds.pageCount - 1}
+        onPress={nextPage}
+      />
     </Box>
   );
 }

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useIsStreaming, useTriggerAction } from "../context";
 import { useDesignSystem } from "../design/design-system-context";
 import { isElementValue } from "../element-node";
+import { SequenceLevel } from "../focus/sequence-level";
 import { useFocusable } from "../focus/use-focusable";
 import { useFormName } from "../form-name-context";
 import { useTheme } from "../theme";
@@ -36,11 +37,13 @@ export function cardBlockItems(items: unknown): ElementNode[] {
 
 interface PressableCardProps {
   item: CardBlockItem;
+  /** The card's position in the block: its stop's order. */
+  index: number;
   action: unknown;
 }
 
 /** A card the user can press: Enter or Space fires the block's action with the card's context. */
-function PressableCard({ item, action }: PressableCardProps) {
+function PressableCard({ item, index, action }: PressableCardProps) {
   const triggerAction = useTriggerAction();
   const formName = useFormName();
   const isStreaming = useIsStreaming();
@@ -52,6 +55,7 @@ function PressableCard({ item, action }: PressableCardProps) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: item.label,
+    order: index,
     mouse: {
       onClick: function handleClick() {
         if (!isStreaming) press();
@@ -75,14 +79,16 @@ function PressableCard({ item, action }: PressableCardProps) {
       borderDimColor={!focusable.isFocused}
       paddingX={1}
     >
-      {item.content}
+      <SequenceLevel order={index}>{item.content}</SequenceLevel>
     </Box>
   );
 }
 
 /**
  * The shared shape of the five card blocks: one dim single-bordered box per
- * item, stacked in a column. With an action every card is a focus stop.
+ * item, stacked in a column. With an action every card is a focus stop, in
+ * declaration order whatever the grid. Each card's content sits one level
+ * below the card's order, so the stops inside a card come right after it.
  */
 export function CardBlock({ action, items }: CardBlockProps) {
   const grid = useDesignSystem().tokens.grid;
@@ -91,12 +97,12 @@ export function CardBlock({ action, items }: CardBlockProps) {
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index] as CardBlockItem;
     if (hasAction) {
-      cards.push(<PressableCard key={index} item={item} action={action} />);
+      cards.push(<PressableCard key={index} item={item} index={index} action={action} />);
       continue;
     }
     cards.push(
       <Box key={index} flexDirection="column" borderStyle="single" borderDimColor paddingX={1}>
-        {item.content}
+        <SequenceLevel order={index}>{item.content}</SequenceLevel>
       </Box>,
     );
   }

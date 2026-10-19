@@ -69,9 +69,9 @@ interface TabStripProps {
 
 /**
  * The focusable line of triggers: the active one bold and underlined, inverted
- * while focused. It owns the focus hook and is rendered before the content so
- * Ink's focus order (effect order) visits the strip before any button inside
- * the active tab. A click selects a trigger; the wheel over the strip steps.
+ * while focused. Its stop takes order 0, the order of the content's first
+ * child, so it comes before any stop inside the active tab. A click selects a
+ * trigger; the wheel over the strip steps.
  */
 function TabStrip({ items, activeIndex, onStep, onSelect }: TabStripProps) {
   const isStreaming = useIsStreaming();

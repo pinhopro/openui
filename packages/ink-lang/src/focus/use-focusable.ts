@@ -8,6 +8,7 @@ import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
 import type { ArrowClaims, ArrowClaimsInput } from "./focus-navigation";
 import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
 import { useLayerIsActive } from "./modal-layer";
+import { useSequencePath } from "./sequence-path";
 
 export interface FocusableOptions {
   /** False takes the component out of the Tab cycle (for example while streaming). */
@@ -28,6 +29,12 @@ export interface FocusableOptions {
   hoverFocus?: boolean;
   /** Take focus when mounted (one stop per app at most). */
   autoFocus?: boolean;
+  /**
+   * Where this stop sits among the stops and children of its element (default
+   * 0). A stop shares its order with the child its component renders at the
+   * same order and comes before everything inside that child.
+   */
+  order?: number;
 }
 
 export interface Focusable {
@@ -45,11 +52,18 @@ export interface Focusable {
 const NO_CLAIMS: ArrowClaims = {};
 const NO_HANDLERS: MouseHandlers = {};
 
+/** The stop's sequence path: its element's path plus its order; null outside the renderer. */
+function stopPath(elementPath: number[], order: number): number[] | null {
+  if (elementPath.length === 0) return null;
+  return elementPath.concat(order);
+}
+
 /**
  * One focus stop. It registers with Ink's focus manager under an id that is
  * unique per mounted instance, with the renderer's focus registry (so the
- * arrow keys can find it on screen) and as a mouse target: a press on its box
- * focuses it, and every mouse, focus and blur event is reported to the host.
+ * arrow keys can find it on screen and the Tab order can sort it by its
+ * sequence path) and as a mouse target: a press on its box focuses it, and
+ * every mouse, focus and blur event is reported to the host.
  */
 export function useFocusable(options: FocusableOptions): Focusable {
   const id = useId();
@@ -68,6 +82,7 @@ export function useFocusable(options: FocusableOptions): Focusable {
   const registry = useContext(FocusRegistryContext);
   const mouse = options.mouse ?? NO_HANDLERS;
   const hoverFocus = options.hoverFocus === true;
+  const path = stopPath(useSequencePath(), options.order ?? 0);
 
   const focusSelf = useCallback(
     function focusSelf() {
@@ -83,11 +98,13 @@ export function useFocusable(options: FocusableOptions): Focusable {
     arrows: options.arrows ?? NO_CLAIMS,
     component,
     name,
+    path,
   });
   entryRef.current.isActive = isActive;
   entryRef.current.arrows = options.arrows ?? NO_CLAIMS;
   entryRef.current.component = component;
   entryRef.current.name = name;
+  entryRef.current.path = path;
 
   useEffect(
     function registerStop() {

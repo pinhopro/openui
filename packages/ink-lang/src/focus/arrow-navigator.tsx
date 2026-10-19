@@ -7,15 +7,26 @@ import {
   nextInDirection,
   type NavigationCandidate,
 } from "./focus-navigation";
-import { focusOrder, nextInOrder } from "./focus-order";
-import { FocusRegistryContext, type FocusEntry } from "./focus-registry";
+import { focusOrder, hostStops, nextInOrder, type CycleStop } from "./focus-order";
+import { FocusRegistryContext, type FocusEntry, type FocusRegistry } from "./focus-registry";
+
+/**
+ * The Tab cycle: the host's stops in registration order, then the program's
+ * stops in document order.
+ */
+function tabCycle(registry: FocusRegistry): CycleStop[] {
+  const cycle: CycleStop[] = [];
+  for (const entry of hostStops(registry)) cycle.push(entry);
+  for (const stop of focusOrder(registry)) cycle.push(stop);
+  return cycle;
+}
 
 /**
  * Owns keyboard focus movement over the registered stops. Tab and Shift+Tab
- * follow the document order of the stops (deterministic, whatever order
- * components mounted in); the arrows move to the nearest stop in their
- * direction whenever the focused component does not use that arrow itself
- * (or has nowhere further to go). Renders nothing.
+ * follow the Tab cycle (deterministic, whatever order components mounted
+ * in); the arrows move to the nearest stop in their direction whenever the
+ * focused component does not use that arrow itself (or has nowhere further
+ * to go). Renders nothing.
  */
 export function ArrowNavigator() {
   const registry = useContext(FocusRegistryContext);
@@ -40,7 +51,7 @@ export function ArrowNavigator() {
   useInput(function handleKey(_input, key) {
     if (registry === null || key.eventType === "release") return;
     if (key.tab) {
-      const next = nextInOrder(focusOrder(registry), manager.activeId, key.shift ? -1 : 1);
+      const next = nextInOrder(tabCycle(registry), manager.activeId, key.shift ? -1 : 1);
       if (next !== null) focusAfterInk(next);
       return;
     }

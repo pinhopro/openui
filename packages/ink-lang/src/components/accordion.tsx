@@ -2,8 +2,10 @@ import type { ElementNode } from "@openuidev/lang-core";
 import { Box, Text, useInput } from "ink";
 import { useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
-import { useIsStreaming, useRenderNode } from "../context";
+import { useIsStreaming } from "../context";
 import { isElementValue } from "../element-node";
+import { SequenceLevel } from "../focus/sequence-level";
+import { createSequencedRenderer } from "../focus/sequenced-render";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { AccordionSchema } from "../schemas/accordion-schema";
@@ -19,21 +21,20 @@ const OPEN_MARK = "▾";
 
 interface SectionHeaderProps {
   trigger: string;
+  /** The section's position: the header's order, which its content takes one level down. */
+  index: number;
   isOpen: boolean;
   onToggle: () => void;
 }
 
-/**
- * The focusable header line. It is its own component, rendered before the
- * content, so Ink's focus order (effect order) visits it before any button
- * inside the open section.
- */
-function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
+/** The focusable header line; it comes before any stop inside its open section. */
+function SectionHeader({ trigger, index, isOpen, onToggle }: SectionHeaderProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: trigger,
+    order: index,
     mouse: {
       onClick: function handleClick() {
         if (!isStreaming) onToggle();
@@ -60,11 +61,17 @@ function SectionHeader({ trigger, isOpen, onToggle }: SectionHeaderProps) {
 
 interface SectionProps {
   item: ElementNode;
+  index: number;
 }
 
-/** One collapsible section; closed until its header is pressed. */
-function AccordionSection({ item }: SectionProps) {
-  const renderNode = useRenderNode();
+/**
+ * One collapsible section; closed until its header is pressed. Its content
+ * sits one level below the header's order, numbered by a renderer of the
+ * section's own: the section re-renders alone when it opens or closes, and
+ * the Accordion's `renderNode` would keep counting from its last render.
+ */
+function AccordionSection({ item, index }: SectionProps) {
+  const renderContent = createSequencedRenderer();
   const [isOpen, setIsOpen] = useState(false);
 
   function toggle(): void {
@@ -79,10 +86,10 @@ function AccordionSection({ item }: SectionProps) {
   );
   return (
     <Box flexDirection="column">
-      <SectionHeader trigger={title} isOpen={isOpen} onToggle={toggle} />
+      <SectionHeader trigger={title} index={index} isOpen={isOpen} onToggle={toggle} />
       {isOpen ? (
         <Box flexDirection="column" paddingLeft={2}>
-          {renderNode(item.props["content"])}
+          <SequenceLevel order={index}>{renderContent(item.props["content"])}</SequenceLevel>
         </Box>
       ) : null}
     </Box>
@@ -95,7 +102,7 @@ function AccordionRenderer({ props }: ComponentRenderProps<AccordionProps>) {
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
     if (!isElementValue(item)) continue;
-    sections.push(<AccordionSection key={index} item={item} />);
+    sections.push(<AccordionSection key={index} item={item} index={index} />);
   }
   if (sections.length === 0) return null;
   return <Box flexDirection="column">{sections}</Box>;

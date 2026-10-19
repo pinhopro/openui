@@ -12,6 +12,11 @@ export interface FocusEntry {
   arrows: ArrowClaimsInput;
   component: string;
   name: string;
+  /**
+   * The stop's sequence path (its element's path plus its own order), which
+   * the Tab order sorts by; null for a stop outside the renderer (a host stop).
+   */
+  path: number[] | null;
 }
 
 export interface FocusRegistry {

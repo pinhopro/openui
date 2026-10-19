@@ -1,4 +1,3 @@
-import type { DOMElement } from "ink";
 import { elementRect, type CellRect } from "./element-rect";
 import { claimsDirection, type ArrowDirection } from "./focus-navigation";
 import type { FocusEntry, FocusRegistry } from "./focus-registry";
@@ -16,11 +15,14 @@ export interface FocusStop {
   id: string;
   component: string;
   name: string;
-  /** Position in the element tree, outermost child index first: the Tab order sorts by it. */
+  /** The stop's sequence path (see `useFocusable`): the Tab order sorts by it. */
   path: number[];
   rect: CellRect;
   arrows: ArrowMap;
 }
+
+/** The largest order: a stop that comes after every other child of its element. */
+export const ORDER_LAST = Number.MAX_SAFE_INTEGER;
 
 const DIRECTIONS: ArrowDirection[] = ["up", "down", "left", "right"];
 
@@ -30,66 +32,77 @@ function arrowMap(entry: FocusEntry): ArrowMap {
   return map;
 }
 
-/** The child indexes from the root down to `element`. */
-function documentPath(element: DOMElement): number[] {
-  const path: number[] = [];
-  let node: DOMElement = element;
-  while (node.parentNode !== undefined) {
-    const parent = node.parentNode;
-    path.push(parent.childNodes.indexOf(node));
-    node = parent;
-  }
-  path.reverse();
-  return path;
-}
-
-function compareDocumentOrder(a: FocusStop, b: FocusStop): number {
-  const length = Math.min(a.path.length, b.path.length);
+/**
+ * Document order of two sequence paths: element by element, then the shorter
+ * one first, so a component's own stop comes before the stops of the child it
+ * renders at the same order.
+ */
+export function compareSequencePath(a: number[], b: number[]): number {
+  const length = Math.min(a.length, b.length);
   for (let depth = 0; depth < length; depth += 1) {
-    const difference = (a.path[depth] as number) - (b.path[depth] as number);
+    const difference = (a[depth] as number) - (b[depth] as number);
     if (difference !== 0) return difference;
   }
-  return a.path.length - b.path.length;
+  return a.length - b.length;
+}
+
+function compareStops(a: FocusStop, b: FocusStop): number {
+  return compareSequencePath(a.path, b.path);
 }
 
 /**
- * The active, mounted focus stops in document order (the order the program
- * lays them out in, outer to inner, first child first): the deterministic
- * Tab order, built from where every stop sits in the element tree rather
- * than from the order components happened to mount in.
+ * The active, mounted stops of the program in document order: the
+ * deterministic Tab order, sorted by sequence path, so it follows the program
+ * tree whatever order the components mounted in and wherever they are laid
+ * out. Stops outside the renderer have no path and are left out (see
+ * `hostStops`).
  */
 export function focusOrder(registry: FocusRegistry): FocusStop[] {
   const stops: FocusStop[] = [];
   for (const entry of registry.entries()) {
     const element = entry.ref.current;
-    if (!entry.isActive || element === null) continue;
+    if (!entry.isActive || element === null || entry.path === null) continue;
     const rect = elementRect(element);
     if (rect.width <= 0 || rect.height <= 0) continue;
     stops.push({
       id: entry.id,
       component: entry.component,
       name: entry.name,
-      path: documentPath(element),
+      path: entry.path,
       rect,
       arrows: arrowMap(entry),
     });
   }
-  stops.sort(compareDocumentOrder);
+  stops.sort(compareStops);
   return stops;
 }
 
-/** The stop after (or before) `activeId` in document order, wrapping around; the first when none is active. */
+/** The active stops outside the renderer (the host's own), in registration order. */
+export function hostStops(registry: FocusRegistry): FocusEntry[] {
+  const stops: FocusEntry[] = [];
+  for (const entry of registry.entries()) {
+    if (entry.isActive && entry.path === null) stops.push(entry);
+  }
+  return stops;
+}
+
+/** A stop in a Tab cycle: a program stop, a host stop or anything else with its focus id. */
+export interface CycleStop {
+  id: string;
+}
+
+/** The stop after (or before) `activeId` in the cycle, wrapping around; the first when none is active. */
 export function nextInOrder(
-  stops: FocusStop[],
+  stops: CycleStop[],
   activeId: string | undefined,
   delta: 1 | -1,
 ): string | null {
   if (stops.length === 0) return null;
   let index = -1;
   for (let position = 0; position < stops.length; position += 1) {
-    if ((stops[position] as FocusStop).id === activeId) index = position;
+    if ((stops[position] as CycleStop).id === activeId) index = position;
   }
-  if (index === -1) return (stops[delta === 1 ? 0 : stops.length - 1] as FocusStop).id;
+  if (index === -1) return (stops[delta === 1 ? 0 : stops.length - 1] as CycleStop).id;
   const next = (index + delta + stops.length) % stops.length;
-  return (stops[next] as FocusStop).id;
+  return (stops[next] as CycleStop).id;
 }

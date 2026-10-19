@@ -21,6 +21,11 @@ interface ListEntryProps {
   marker: string;
 }
 
+interface ActionableEntryProps extends ListEntryProps {
+  /** The item's position in the list: its stop's order. */
+  index: number;
+}
+
 /** The ListItem elements of the block; anything else the model wrote is skipped. */
 function listItems(items: unknown): ElementNode[] {
   const result: ElementNode[] = [];
@@ -32,7 +37,7 @@ function listItems(items: unknown): ElementNode[] {
 }
 
 /** A focusable line that fires the item's action on Enter or Space. */
-function ActionableEntry({ item, marker }: ListEntryProps) {
+function ActionableEntry({ item, marker, index }: ActionableEntryProps) {
   const triggerAction = useTriggerAction();
   const isStreaming = useIsStreaming();
   const theme = useTheme();
@@ -46,6 +51,7 @@ function ActionableEntry({ item, marker }: ListEntryProps) {
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: title,
+    order: index,
     mouse: {
       onClick: function handleClick() {
         if (!isStreaming) press();
@@ -87,7 +93,7 @@ function ListBlockRenderer({ props }: ComponentRenderProps<ListBlockProps>) {
     const hasAction = item.props["action"] !== undefined && item.props["action"] !== null;
     lines.push(
       hasAction ? (
-        <ActionableEntry key={index} item={item} marker={marker} />
+        <ActionableEntry key={index} item={item} marker={marker} index={index} />
       ) : (
         <PlainEntry key={index} item={item} marker={marker} />
       ),

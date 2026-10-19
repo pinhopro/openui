@@ -7,6 +7,7 @@ import type { DesignSystem } from "../design/design-system";
 import { useDesignSystem } from "../design/design-system-context";
 import { layoutBoxProps, transformText } from "../design/layout-props";
 import { ElementPathContext, useElementPath } from "../element-type-context";
+import type { SequencedRenderNode } from "../focus/sequenced-render";
 import { defineComponent, type ComponentRenderProps } from "../library";
 import { useMouse } from "../mouse/use-mouse";
 import { TableSchema } from "../schemas/table-schema";
@@ -145,9 +146,14 @@ interface DataRowProps {
   rowIndex: number;
   rowCount: number;
   parts: TableParts;
-  renderNode: (value: unknown) => ReactNode;
+  renderNode: SequencedRenderNode;
 }
 
+/**
+ * One body row. The cells holding components take the next orders of the
+ * table's `renderNode`, row by row and then column by column, so their stops
+ * follow the reading order of the page (the pager's come after them all).
+ */
 function DataRow({ columns, rowIndex, rowCount, parts, renderNode }: DataRowProps) {
   const row = parts.row(rowIndex, rowCount);
   const cells: ReactNode[] = [];
