@@ -29,6 +29,13 @@ describe("useOpenUI", () => {
   });
 });
 
+describe("public hooks", () => {
+  it("offer no context-wide renderNode: a component draws its children with its own numbered renderNode", async () => {
+    const api: Record<string, unknown> = await import("../src/index");
+    expect(Object.keys(api)).not.toContain("useRenderNode");
+  });
+});
+
 describe("useFormName", () => {
   it("is undefined outside a form and the form name inside", () => {
     function Reader() {

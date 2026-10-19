@@ -28,7 +28,6 @@ export {
   useIsQueryLoading,
   useIsStreaming,
   useOpenUI,
-  useRenderNode,
   useSetFieldValue,
   useTriggerAction,
 } from "./context";

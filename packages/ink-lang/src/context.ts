@@ -23,7 +23,12 @@ export type SetFieldValue = (
 export interface OpenUIContextValue {
   /** The active library (schemas and renderers). */
   library: Library;
-  /** Renders any evaluated value (element, array, primitive) into Ink nodes. */
+  /**
+   * Renders any evaluated value (element, array, primitive) into Ink nodes
+   * (`renderValue`). It does not number the elements it renders (each takes
+   * order 0), so a component draws its children with its own `renderNode`
+   * prop instead, which numbers them in call order (see `SequenceLevel`).
+   */
   renderNode: (value: unknown) => ReactNode;
   triggerAction: TriggerAction;
   /** True while the model is still producing the program. */
@@ -48,11 +53,6 @@ export function useOpenUI(): OpenUIContextValue {
     throw new Error("useOpenUI must be used within an <InkRenderer /> component.");
   }
   return value;
-}
-
-export function useRenderNode(): (value: unknown) => ReactNode {
-  const context = useOpenUI();
-  return context.renderNode;
 }
 
 export function useTriggerAction(): TriggerAction {
