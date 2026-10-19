@@ -178,7 +178,7 @@ export function InkRenderer(props: InkRendererProps) {
     >
       {ownsNavigation ? <ArrowNavigator /> : null}
       {ownsNavigation ? <KeyReporter /> : null}
-      {runtime.root !== null ? <RenderNode node={runtime.root} /> : null}
+      {runtime.root !== null ? <RenderNode node={runtime.root} order={0} /> : null}
       {showPlaceholder ? <Text dimColor>…</Text> : null}
       {isStreaming ? <Text dimColor>streaming…</Text> : null}
       <QueryStatus
