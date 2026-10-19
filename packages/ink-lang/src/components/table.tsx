@@ -46,6 +46,18 @@ interface TableParts {
   cellPath: string[];
 }
 
+/** The cells the frame of a field adds around its text inside this table's cells. */
+function fieldFrameWidth(system: DesignSystem, path: string[]): number {
+  const field = system.style({
+    component: "Input",
+    classes: [],
+    states: [],
+    ancestors: path.concat(["tbody", "tr", "td"]),
+  });
+  const border = field.box.border === undefined || field.box.border === "none" ? 0 : 2;
+  return border + 2 * (field.box.paddingX ?? 0);
+}
+
 function tableParts(system: DesignSystem, path: string[]): TableParts {
   function part(component: string, classes: string[], states: string[], below: string[]) {
     return system.style({ component, classes, states, ancestors: path.concat(below) });
@@ -191,9 +203,14 @@ function DataRow({ columns, rowIndex, rowCount, parts, renderNode }: DataRowProp
  * `Table td.col-2` and the components inside a cell as `Table td Input`.
  */
 function TableRenderer({ props, renderNode }: ComponentRenderProps<TableProps>) {
-  const layout = tableLayout(Array.isArray(props.columns) ? props.columns : []);
+  const system = useDesignSystem();
+  const path = useElementPath();
+  const layout = tableLayout(
+    Array.isArray(props.columns) ? props.columns : [],
+    fieldFrameWidth(system, path),
+  );
   const isStreaming = useIsStreaming();
-  const parts = tableParts(useDesignSystem(), useElementPath());
+  const parts = tableParts(system, path);
   const [page, setPage] = useState(0);
   const boxRef = useRef<DOMElement | null>(null);
   const rowCount = layout.rowCount;

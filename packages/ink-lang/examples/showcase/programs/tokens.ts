@@ -1,8 +1,14 @@
-/** A Theme(...) declared by the program itself: tokens plus a stylesheet of the CSS subset. */
+/**
+ * The tokens of the active theme, drawn by the showcase's own TokenSheet
+ * component, then a Theme(...) declared by the program itself: tokens plus
+ * a stylesheet of the CSS subset.
+ */
 export const tokensProgram = [
-  "root = Stack([header, intro, themed, plain])",
-  'header = CardHeader("Design tokens", "A Theme(...) in the program: design tokens plus a CSS subset")',
-  'intro = TextContent("Everything inside the box below renders with the **Monokai** tokens the program declares: one hex per primitive scale, semantic colors, shape, spacing, grid and typography, plus a few CSS rules. The card after it keeps the page theme.")',
+  "root = Stack([header, intro, sheet, Separator(), programHeader, themed, plain])",
+  'header = CardHeader("Design tokens", "What the active theme sets, and a Theme(...) declared by the program")',
+  'intro = TextContent("Pick another theme in the sidebar: the sheet lists every token group of the active design system, the primitive scales as swatches, and marks the tokens the theme sets itself.")',
+  "sheet = TokenSheet()",
+  'programHeader = InlineHeader("Theme(...) in the program", "the box below carries its own Monokai tokens and stylesheet, whatever the page theme")',
   'themed = Theme({"color.primary": "#a6e22e", "color.error": "#f92672", "color.warning": "#e6db74", "color.info": "#66d9ef", "color.neutral": "#75715e", "color.canvas.surface": "#3e3d32", "color.text.value": "#f8f8f2", "color.text.helper": "#a59f85", "color.text.placeholder": "#75715e", "color.border.default": "#49483e", "color.border.focus": "#a6e22e", "shape.fieldBorder": "round", "shape.cardBorder": "double", "grid.columns": 2, "spacing.lg": 3, "typography.h4.transform": "uppercase"}, "Table { border: solid; border-color: #49483e } Table th { color: #66d9ef } Table tbody tr:odd { background-color: #3e3d32 } Table td.number { color: #ae81ff } Button:hover { background-color: #49483e } FormControl .label { color: #e6db74 } CardHeader .subtitle { font-style: italic }", [sample])',
   'sample = Card([sampleHeader, sampleText, metrics, form, table, actions], "card")',
   'sampleHeader = CardHeader("Monokai", "every color here comes from the tokens; the title is uppercase by typography.h4")',

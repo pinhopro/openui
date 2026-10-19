@@ -41,9 +41,37 @@ describe("tableLayout", () => {
     expect(layout.columns).toHaveLength(1);
   });
 
-  it("ignores element cells when measuring and never goes below one cell", () => {
+  it("gives an element cell the width its text will take, so a field never wraps letter by letter", () => {
     const button = { type: "element", typeName: "Button", props: { label: "Go" }, partial: false };
-    const layout = tableLayout([col("", [button])]);
+    const input = {
+      type: "element",
+      typeName: "Input",
+      props: { name: "q", placeholder: "Type here" },
+      partial: false,
+    };
+    const tag = { type: "element", typeName: "Tag", props: { text: "New" }, partial: false };
+    const unknown = { type: "element", typeName: "Steps", props: { items: [] }, partial: false };
+    expect(tableLayout([col("", [button])]).columns[0]?.width).toBe("[ Go ]".length);
+    expect(tableLayout([col("", [input])]).columns[0]?.width).toBe("  Type here".length);
+    expect(tableLayout([col("", [tag])]).columns[0]?.width).toBe("[New]".length);
+    expect(tableLayout([col("", [unknown])]).columns[0]?.width).toBe(20);
+  });
+
+  it("adds the field frame width the caller measured to field cells only", () => {
+    const input = {
+      type: "element",
+      typeName: "Input",
+      props: { name: "q", placeholder: "Type here" },
+      partial: false,
+    };
+    const button = { type: "element", typeName: "Button", props: { label: "Go" }, partial: false };
+    const layout = tableLayout([col("", [input]), col("", [button])], 4);
+    expect(layout.columns[0]?.width).toBe("  Type here".length + 4);
+    expect(layout.columns[1]?.width).toBe("[ Go ]".length);
+  });
+
+  it("never goes below one cell", () => {
+    const layout = tableLayout([col("", [null])]);
     expect(layout.columns[0]?.width).toBe(1);
   });
 

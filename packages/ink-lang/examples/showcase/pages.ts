@@ -12,7 +12,9 @@ import { layoutProgram } from "./programs/layout";
 import { navigationProgram } from "./programs/navigation";
 import { overviewProgram } from "./programs/overview";
 import { selectionProgram } from "./programs/selection";
+import { stylesProgram } from "./programs/styles";
 import { tokensProgram } from "./programs/tokens";
+import { tokensLibrary } from "./tokens-library";
 
 /** One entry of the showcase sidebar: an OpenUI Lang program the main pane streams in. */
 export interface ShowcasePage {
@@ -84,6 +86,12 @@ export const showcasePages: ShowcasePage[] = [
     id: "tokens",
     title: "Design tokens",
     program: tokensProgram,
+    library: tokensLibrary,
+  },
+  {
+    id: "styles",
+    title: "Stylesheet",
+    program: stylesProgram,
   },
   {
     id: "chat",

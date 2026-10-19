@@ -39,6 +39,20 @@ describe("resolveTokens", () => {
     expect(resolveTokens({}).errors).toEqual([]);
   });
 
+  it("reports the paths the input set, a primitive scale as one entry, derived tokens left out", () => {
+    const resolved = resolveTokens({
+      "color.primary": "#2563eb",
+      "spacing.md": 2,
+      dark: { "color.text.value": "white" },
+    });
+    expect(resolved.assigned).toEqual([
+      "color.primitive.primary",
+      "spacing.md",
+      "color.semantic.text.value",
+    ]);
+    expect(resolved.tokens.color.semantic.border.focus).toBe("#2563eb");
+  });
+
   it("accepts nested objects, dotted paths and CSS variable names", () => {
     const resolved = resolveTokens({
       color: { semantic: { text: { value: "white" } } },

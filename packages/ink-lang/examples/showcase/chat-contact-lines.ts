@@ -1,26 +1,45 @@
 import { countGraphemes } from "../../src/components/text-editing";
 
+export type ContactReceipt = "sent" | "delivered" | "read";
+
 export interface ContactLineInput {
-  initials: string;
   name: string;
   preview: string;
   time: string;
   unread: number;
-  marker: string;
+  pinned: boolean;
+  muted: boolean;
+  /** The receipt of the last message when it was sent by the user; nothing for a received one. */
+  receipt?: ContactReceipt | undefined;
 }
 
-/** The two lines of a contact row, each split into the segments the stylesheet addresses. */
+/**
+ * The two text lines of a contact row (after the avatar block), each split
+ * into the segments the stylesheet addresses. Every segment is padded or cut
+ * so the line is exactly the width asked for.
+ */
 export interface ContactLines {
-  marker: string;
-  initials: string;
+  /** The name padded (or cut) up to the pin and time. */
   name: string;
+  /** `⚲ ` when pinned, else an empty string. */
+  pin: string;
   time: string;
+  /** `✓ `, `✓✓ ` or an empty string, before the preview. */
+  ticks: string;
+  /** The preview padded (or cut) up to the mute mark and badge. */
   preview: string;
+  /** `⊘ ` when muted, else an empty string. */
+  mute: string;
   /** ` 3 ` or an empty string. */
   badge: string;
 }
 
-function cut(text: string, width: number): string {
+const PIN = "⚲ ";
+const MUTE = "⊘ ";
+const MAX_BADGE = 99;
+
+/** `text` cut to `width` user-perceived characters, ending with an ellipsis when something was dropped. */
+export function cutText(text: string, width: number): string {
   const characters = Array.from(text);
   if (characters.length <= width) return text;
   const kept = characters.slice(0, Math.max(0, width - 1));
@@ -32,20 +51,33 @@ function padEnd(text: string, width: number): string {
   return missing > 0 ? text + " ".repeat(missing) : text;
 }
 
-/**
- * Lays a contact row out in `width` cells: marker, two initials, a space,
- * the name padded up to the right-aligned time; under it the preview padded
- * up to the unread badge. Everything is cut so the row never wraps.
- */
+/** The ticks before a preview the user sent: one when sent, two when delivered or read. */
+export function receiptTicks(receipt: ContactReceipt | undefined): string {
+  if (receipt === "sent") return "✓ ";
+  if (receipt === "delivered" || receipt === "read") return "✓✓ ";
+  return "";
+}
+
+/** ` 3 `, ` 99+ ` or an empty string when nothing is unread. */
+export function unreadBadge(unread: number): string {
+  if (unread <= 0) return "";
+  return unread > MAX_BADGE ? ` ${MAX_BADGE}+ ` : ` ${unread} `;
+}
+
 export function contactLines(input: ContactLineInput, width: number): ContactLines {
-  const initials = padEnd(Array.from(input.initials).slice(0, 2).join(""), 2);
-  const lead = countGraphemes(input.marker) + 2 + 1;
+  const pin = input.pinned ? PIN : "";
   const time = input.time;
-  const nameWidth = Math.max(1, width - lead - countGraphemes(time) - 1);
+  const nameWidth = Math.max(1, width - countGraphemes(pin) - countGraphemes(time) - 1);
   const name = padEnd(cut(input.name, nameWidth), nameWidth) + " ";
-  const badge = input.unread > 0 ? ` ${input.unread} ` : "";
-  const previewWidth = Math.max(1, width - lead - countGraphemes(badge) - (badge === "" ? 0 : 1));
-  const preview =
-    padEnd(cut(input.preview, previewWidth), previewWidth) + (badge === "" ? "" : " ");
-  return { marker: input.marker, initials, name, time, preview, badge };
+  const ticks = receiptTicks(input.receipt);
+  const badge = unreadBadge(input.unread);
+  const mute = input.muted ? MUTE : "";
+  const tail = countGraphemes(mute) + countGraphemes(badge);
+  const previewWidth = Math.max(1, width - countGraphemes(ticks) - tail - (tail === 0 ? 0 : 1));
+  const preview = padEnd(cut(input.preview, previewWidth), previewWidth) + (tail === 0 ? "" : " ");
+  return { name, pin, time, ticks, preview, mute, badge };
+}
+
+function cut(text: string, width: number): string {
+  return cutText(text, width);
 }

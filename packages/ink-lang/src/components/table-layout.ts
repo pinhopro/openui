@@ -1,4 +1,5 @@
 import { isElementValue } from "../element-node";
+import { elementWidth, isFieldElement } from "./element-width";
 import { countGraphemes } from "./text-editing";
 
 export type TableAlign = "left" | "right";
@@ -6,7 +7,7 @@ export type TableAlign = "left" | "right";
 export interface TableColumn {
   label: string;
   align: TableAlign;
-  /** Cells of the widest label or text cell, at least one. */
+  /** Cells of the widest label, text cell or estimated element cell, at least one. */
   width: number;
   cells: unknown[];
 }
@@ -31,19 +32,30 @@ function asCells(data: unknown): unknown[] {
   return [data];
 }
 
-function columnWidth(label: string, cells: unknown[]): number {
+/** The cells a cell takes: its text, or the estimate for an element (plus the field frame for a field). */
+function cellWidth(cell: unknown, fieldFrameWidth: number): number {
+  const text = cellText(cell);
+  if (text !== null) return countGraphemes(text);
+  if (!isElementValue(cell)) return 0;
+  const width = elementWidth(cell);
+  return isFieldElement(cell) ? width + fieldFrameWidth : width;
+}
+
+function columnWidth(label: string, cells: unknown[], fieldFrameWidth: number): number {
   let width = Math.max(1, countGraphemes(label));
   for (const cell of cells) {
-    const text = cellText(cell);
-    if (text === null) continue;
-    const cellWidth = countGraphemes(text);
-    if (cellWidth > width) width = cellWidth;
+    const measured = cellWidth(cell, fieldFrameWidth);
+    if (measured > width) width = measured;
   }
   return width;
 }
 
-/** Measures the Col elements of a Table: one entry per column, widths and the row count. */
-export function tableLayout(columns: unknown[]): TableLayout {
+/**
+ * Measures the Col elements of a Table: one entry per column, widths and the
+ * row count. `fieldFrameWidth` is what the border and padding of a field add
+ * around its text under this table, so a field cell gets a column it fits in.
+ */
+export function tableLayout(columns: unknown[], fieldFrameWidth = 0): TableLayout {
   const result: TableColumn[] = [];
   let rowCount = 0;
   for (const column of columns) {
@@ -51,7 +63,7 @@ export function tableLayout(columns: unknown[]): TableLayout {
     const label = cellText(column.props["label"]) ?? "";
     const cells = asCells(column.props["data"]);
     const align: TableAlign = column.props["type"] === "number" ? "right" : "left";
-    result.push({ label, align, width: columnWidth(label, cells), cells });
+    result.push({ label, align, width: columnWidth(label, cells, fieldFrameWidth), cells });
     if (cells.length > rowCount) rowCount = cells.length;
   }
   return { columns: result, rowCount };

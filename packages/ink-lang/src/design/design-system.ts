@@ -22,6 +22,8 @@ export interface DesignSystemInput {
 /** A resolved design system: the tokens, their CSS variables, the cascade and the theme slots. */
 export interface DesignSystem {
   tokens: DesignTokens;
+  /** The token paths the input set itself (see `ResolvedTokens.assigned`). */
+  assigned: string[];
   variables: CssVariables;
   rules: StyleRule[];
   /** Token and stylesheet problems, one line each; the rest still applies. */
@@ -124,7 +126,15 @@ export function createDesignSystem(
     return computeStyle(rules, target, variables);
   }
 
-  return { tokens, variables, rules, errors, theme: themeFromCascade(tokens, style), style };
+  return {
+    tokens,
+    assigned: resolved.assigned,
+    variables,
+    rules,
+    errors,
+    theme: themeFromCascade(tokens, style),
+    style,
+  };
 }
 
 /** The design system of the default tokens and no host stylesheet. */
