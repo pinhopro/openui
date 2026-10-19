@@ -61,7 +61,8 @@
   },
   "dependencies": {
     "@openuidev/lang-core": "workspace:^",
-    "qrcode-generator": "2.0.4"
+    "qrcode-generator": "2.0.4",
+    "string-width": "^8.3.0"
   },
   "peerDependencies": {
     "ink": "^8.0.0",

@@ -33,6 +33,23 @@ describe("wrapWords", () => {
     expect(wrapWords("café café", 4)).toEqual(["café", "café"]);
   });
 
+  it("wraps a text without spaces by cell width: a CJK character takes two cells", () => {
+    expect(wrapWords("日本語のテキスト", 6)).toEqual(["日本語", "のテキ", "スト"]);
+  });
+
+  it("never cuts a wide character in half: an odd width leaves its last cell empty", () => {
+    expect(wrapWords("日本語", 5)).toEqual(["日本", "語"]);
+  });
+
+  it("fits words by their cell width, not their character count", () => {
+    expect(wrapWords("日本 語", 5)).toEqual(["日本", "語"]);
+    expect(wrapWords("😀😀 😀", 5)).toEqual(["😀😀", "😀"]);
+  });
+
+  it("keeps a wide character on a line narrower than itself", () => {
+    expect(wrapWords("日本", 1)).toEqual(["日", "本"]);
+  });
+
   it("is one empty line for an empty text, and wraps at least one character a line", () => {
     expect(wrapWords("", 10)).toEqual([""]);
     expect(wrapWords("ab", 0)).toEqual(["a", "b"]);

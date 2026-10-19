@@ -183,6 +183,22 @@ describe("ModalDialog", () => {
     terminal.unmount();
   });
 
+  it("wraps a body without spaces (CJK text) at cell boundaries instead of truncating it", async () => {
+    const body =
+      "日本語のテキストはスペースがありませんので折り返しが必要ですが文字数で数えると切り捨てられてしまいます";
+    const { rendered } = await mount(
+      [
+        "$confirm = true",
+        `root = Stack([dialog, ${fillerRows(ROWS)}], "column", "none")`,
+        `dialog = ModalDialog("destructive", "${TITLE}", "${body}", "Cancel", "Delete contact", $confirm)`,
+      ].join("\n"),
+    );
+    const inside = boxTexts(stripAnsi(rendered.frame()));
+    expect(inside.join("")).not.toContain("…");
+    expect(inside.join("")).toContain(body);
+    rendered.unmount();
+  });
+
   it("takes no rows of the page while closed, even in a stack with a gap", async () => {
     const without = await renderProgram(
       inkLibrary,
