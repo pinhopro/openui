@@ -18,7 +18,7 @@ describe("Modal", () => {
     rendered.unmount();
   });
 
-  it("opens with the binding and closes from its close button", async () => {
+  it("opens with the binding on its first content stop and closes from its close button, the last stop", async () => {
     const snapshots: Array<Record<string, unknown>> = [];
     const rendered = await renderProgram(inkLibrary, program, {
       onStateUpdate: function onStateUpdate(state) {
@@ -35,7 +35,10 @@ describe("Modal", () => {
     expect(plain).toContain("[ x ]");
     expect(plain).toContain("Are you sure?");
     expect(plain).toContain("[ Yes ]");
-    // Opening moves focus to the dialog's first stop.
+    // Opening moves focus to the dialog's first stop; the close control comes last.
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Yes ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
     expect(inverseSegments(rendered.frame())).toEqual(["[ x ]"]);
     rendered.instance.stdin.write(KEYS.ENTER);
     await settle();

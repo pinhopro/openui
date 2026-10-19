@@ -43,6 +43,19 @@ describe("modal layer", () => {
     rendered.unmount();
   });
 
+  it("opens on the first content stop, then the close control, then wraps", async () => {
+    const rendered = await renderProgram(inkLibrary, program);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Inside ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ x ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Inside ]"]);
+    rendered.unmount();
+  });
+
   it("ignores clicks outside the open modal", async () => {
     const actions: ActionEvent[] = [];
     const rendered = await renderProgram(inkLibrary, program, {

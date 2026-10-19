@@ -3,6 +3,7 @@ import { useContext, useEffect, useId } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useFocusCommands } from "../focus/focus-commands";
+import { ORDER_LAST } from "../focus/focus-order";
 import { LayerIdContext, ModalLayerContext } from "../focus/modal-layer";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
@@ -19,13 +20,14 @@ interface CloseButtonProps {
   onClose: () => void;
 }
 
-/** The focusable `[ x ]` in the title line; Enter, Space or Escape close the modal. */
+/** The focusable `[ x ]` in the title line, the last stop of the modal; Enter, Space or Escape close it. */
 function CloseButton({ onClose }: CloseButtonProps) {
   const isStreaming = useIsStreaming();
   const theme = useTheme();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: "close",
+    order: ORDER_LAST,
     mouse: {
       onClick: function handleClick() {
         if (!isStreaming) onClose();
@@ -74,7 +76,8 @@ function ModalRenderer({ props, renderNode }: ComponentRenderProps<ModalProps>) 
 
   // Focus moves into the dialog once its layer is on top: its stops are
   // active by then (their effects run before this one), so the focus commands
-  // and Ink both see them.
+  // and Ink both see them. When an inner modal closes, this re-runs and
+  // focuses the first stop of this one: acceptable for now.
   const isTopLayer = isOpen && layers.activeLayer === layerId;
   useEffect(
     function focusIntoLayer() {

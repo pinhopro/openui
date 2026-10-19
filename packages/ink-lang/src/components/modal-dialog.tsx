@@ -31,16 +31,18 @@ interface DialogButtonProps {
   label: string;
   classes: string[];
   color: string | undefined;
+  order: number;
   onPress: () => void;
 }
 
 /** One of the dialog's buttons: a focus stop pressed with Enter, Space or a click. */
-function DialogButton({ label, classes, color, onPress }: DialogButtonProps) {
+function DialogButton({ label, classes, color, order, onPress }: DialogButtonProps) {
   const isStreaming = useIsStreaming();
   const focusable = useFocusable({
     isActive: !isStreaming,
     name: label,
     hoverFocus: true,
+    order,
     mouse: {
       onClick: function handleClick() {
         if (!isStreaming) onPress();
@@ -104,7 +106,8 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
 
   // Focus moves into the dialog once its layer is on top: its stops are
   // active by then (their effects run before this one), so the focus commands
-  // and Ink both see them.
+  // and Ink both see them. When an inner modal closes, this re-runs and
+  // focuses the first stop of this one: acceptable for now.
   const isTopLayer = isOpen && layers.activeLayer === layerId;
   useEffect(
     function focusIntoLayer() {
@@ -167,6 +170,7 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
               label={cancelLabel}
               classes={[variant, "cancel"]}
               color={undefined}
+              order={0}
               onPress={cancel}
             />
           )}
@@ -175,6 +179,7 @@ function ModalDialogRenderer({ props }: ComponentRenderProps<ModalDialogProps>) 
               label={confirmLabel}
               classes={[variant, "confirm"]}
               color={color}
+              order={1}
               onPress={confirm}
             />
           )}

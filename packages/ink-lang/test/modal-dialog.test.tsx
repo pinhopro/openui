@@ -53,6 +53,19 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("opens on cancel, then reaches confirm, then wraps back to cancel", async () => {
+    const { rendered } = await mount();
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Delete contact ]"]);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Cancel ]"]);
+    rendered.unmount();
+  });
+
   it("closes on cancel without an action and fires the confirm label as an action", async () => {
     const { rendered, actions, states } = await mount();
     while (!inverseSegments(rendered.frame()).includes("[ Cancel ]")) {
