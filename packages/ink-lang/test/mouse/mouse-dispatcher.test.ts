@@ -257,3 +257,81 @@ describe("createMouseDispatcher capture and double click", () => {
     ]);
   });
 });
+
+/** A target that hears enter and leave for its whole box (`hoverWithin`), at `layer`. */
+function withinTarget(name: string, log: Recorded[], layer: number): MouseTarget {
+  return {
+    ref: { current: null },
+    layer,
+    hoverWithin: true,
+    handlers: {
+      onMouseEnter: function recordEnter(event: MouseEvent) {
+        log.push({ name: "onMouseEnter", target: name, event });
+      },
+      onMouseLeave: function recordLeave(event: MouseEvent) {
+        log.push({ name: "onMouseLeave", target: name, event });
+      },
+    },
+  };
+}
+
+describe("createMouseDispatcher hover within", () => {
+  it("keeps a hover-within box entered while the pointer is over any target inside it", () => {
+    const log: Recorded[] = [];
+    const box = withinTarget("box", log, 1);
+    const inner = makeTarget("inner", log);
+    inner.layer = 1;
+    const dispatcher = createMouseDispatcher();
+    dispatcher.handle(at("move", "none"), [box]);
+    dispatcher.handle(at("move", "none"), [inner, box]);
+    dispatcher.handle(at("move", "none"), [box]);
+    dispatcher.handle(at("move", "none"), []);
+    expect(names(log)).toEqual([
+      "onMouseEnter:box",
+      "onMouseEnter:inner",
+      "onMouseMove:inner",
+      "onMouseLeave:inner",
+      "onMouseLeave:box",
+    ]);
+  });
+
+  it("never makes a hover-within box the innermost target of hover, presses or clicks", () => {
+    const log: Recorded[] = [];
+    const box = withinTarget("box", log, 1);
+    const shield = makeTarget("shield", log);
+    shield.layer = 1;
+    const dispatcher = createMouseDispatcher();
+    dispatcher.handle(at("move", "none"), [box, shield]);
+    dispatcher.handle(at("down", "left"), [box, shield]);
+    dispatcher.handle(at("up", "left"), [box, shield]);
+    expect(names(log)).toEqual([
+      "onMouseEnter:shield",
+      "onMouseEnter:box",
+      "onMouseMove:shield",
+      "onMouseDown:shield",
+      "onMouseUp:shield",
+      "onClick:shield",
+    ]);
+  });
+
+  it("leaves a hover-within box once a higher layer paints over the pointer's cell", () => {
+    const log: Recorded[] = [];
+    const box = withinTarget("box", log, 1);
+    const above: MouseTarget = { ref: { current: null }, handlers: {}, layer: 2 };
+    const dispatcher = createMouseDispatcher();
+    dispatcher.handle(at("move", "none"), [box]);
+    dispatcher.handle(at("move", "none"), [above, box]);
+    expect(names(log)).toEqual(["onMouseEnter:box", "onMouseLeave:box"]);
+  });
+
+  it("forgets a removed hover-within box without firing leave", () => {
+    const log: Recorded[] = [];
+    const box = withinTarget("box", log, 1);
+    const dispatcher = createMouseDispatcher();
+    dispatcher.handle(at("move", "none"), [box]);
+    dispatcher.forget(box);
+    dispatcher.handle(at("move", "none"), []);
+    dispatcher.handle(at("move", "none"), [box]);
+    expect(names(log)).toEqual(["onMouseEnter:box", "onMouseEnter:box"]);
+  });
+});

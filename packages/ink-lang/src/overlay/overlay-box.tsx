@@ -6,6 +6,8 @@ import { OverlayIdContext, OverlayVisibleContext } from "./overlay-content-conte
 import { OverlayFill } from "./overlay-fill";
 import type { FormSpot } from "./overlay-measure";
 import { OverlayMouseShield } from "./overlay-mouse-shield";
+import type { OverlayKind } from "./overlay-registry";
+import { PriorityTracker } from "./priority-tracker";
 
 export interface OverlayBoxProps {
   /**
@@ -16,6 +18,8 @@ export interface OverlayBoxProps {
   spot: FormSpot;
   /** The overlay's id, provided to its content (`useOverlayId`). */
   overlayId: string;
+  /** What the overlay is: a shown `dialog` form tracks the pointer for its priority. */
+  kind: OverlayKind;
   /** The box the host measures. */
   boxRef: RefObject<DOMElement | null>;
   /** The owner's contexts, re-provided around the content. */
@@ -54,9 +58,11 @@ function OverlayContent({ render }: OverlayContentProps) {
  * (below the root) it does neither and its content is inert: told so through
  * `OverlayVisibleContext`, its focus stops leave the Tab cycle and its mouse
  * targets take nothing. The content knows its overlay through
- * `OverlayIdContext`; both are provided below the bridged contexts. The fill
- * and the shield keep their slots, so the content never remounts when the
- * form starts to show. A cover form's box spans the bounds (`spot.width` by
+ * `OverlayIdContext`; both are provided below the bridged contexts. A shown
+ * form of a non-modal dialog also tracks the pointer over its box
+ * (`PriorityTracker`), which gives the dialog Tab and the arrows. The fill,
+ * the shield and the tracker keep their slots, so the content never
+ * remounts when the form starts to show. A cover form's box spans the bounds (`spot.width` by
  * `spot.height`) and its content column grows to fill it, so a backdrop can.
  */
 export function OverlayBox(props: OverlayBoxProps) {
@@ -84,6 +90,9 @@ export function OverlayBox(props: OverlayBoxProps) {
           <OverlayIdContext.Provider value={props.overlayId}>
             <OverlayVisibleContext.Provider value={spot.visible}>
               {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
+              {spot.visible && props.kind === "dialog" ? (
+                <PriorityTracker overlayId={props.overlayId} boxRef={props.boxRef} />
+              ) : null}
               <Box flexDirection="column" flexGrow={spot.cover ? 1 : 0}>
                 <OverlayContent render={props.render} />
               </Box>

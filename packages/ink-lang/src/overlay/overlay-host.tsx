@@ -187,6 +187,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
         <OverlayBox
           spot={placed.whole}
           overlayId={overlay.id}
+          kind={overlay.kind}
           boxRef={refFor(wholeRefs.current, overlay.id)}
           captured={overlay.captured}
           layer={layer}
@@ -198,6 +199,7 @@ export function OverlayHost({ boundsRef }: OverlayHostProps) {
           <OverlayBox
             spot={placed.compact}
             overlayId={overlay.id}
+            kind={overlay.kind}
             boxRef={refFor(compactRefs.current, overlay.id)}
             captured={overlay.captured}
             layer={layer}

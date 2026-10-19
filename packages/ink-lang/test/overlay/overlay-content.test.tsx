@@ -154,7 +154,8 @@ describe("overlay content", () => {
     expect(stripAnsi(rendered.frame())).toContain("[ Inside ]");
 
     expect(await press(rendered, KEYS.TAB)).toEqual(["[ Inside ]"]);
-    expect(await press(rendered, KEYS.TAB)).toEqual(["[ Base ]"]);
+    // Its stop has focus, so its overlay has priority: Tab stays on its only stop.
+    expect(await press(rendered, KEYS.TAB)).toEqual(["[ Inside ]"]);
 
     const stops = focusOrder(probedRegistry());
     expect(stops.map((stop) => stop.name)).toEqual(["Inside", "Base"]);

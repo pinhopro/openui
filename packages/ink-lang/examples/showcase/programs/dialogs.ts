@@ -1,7 +1,7 @@
 /**
  * Every kind of dialog: destructive confirm, info, warning, a form and a
- * choice, each blocking the page behind it, and a note that floats under the
- * openers while the page stays interactive.
+ * choice, each blocking the page behind it, and a note that floats at the
+ * right of the openers while the page stays interactive.
  */
 export const dialogsProgram = [
   "$confirm = false",
@@ -29,5 +29,5 @@ export const dialogsProgram = [
   'contactForm = Form("contact", Buttons([Button("Add contact", @ToAssistant("Add contact " + $name)), Button("Cancel", @Set($form, false), "secondary")]), [FormControl("Name", Input("name", "Full name", "text", {required: true}, $name), "Required"), FormControl("Email", Input("email", "name@company.com", "email", {email: true}), "Work address")])',
   'optionsDialog = Modal("Choose a plan", $options, [planForm], "md")',
   'planForm = Form("planChoice", Buttons([Button("Continue", @ToAssistant("Plan: " + $plan)), Button("Cancel", @Set($options, false), "secondary")]), [FormControl("Plan", RadioGroup("plan", [RadioItem("Free", "Up to 3 members", "free"), RadioItem("Pro", "Unlimited members and SSO", "pro"), RadioItem("Enterprise", "Dedicated support", "enterprise")], "free", null, $plan), "Up and Down move, Space picks")])',
-  'noteDialog = Dialog("info", "Draft saved", "Keep editing or close this note.", "Close", null, $note)',
+  'noteDialog = Dialog("info", "Draft saved", "Keep editing or close this note.", "Close", null, $note, null, null, "right")',
 ].join("\n");

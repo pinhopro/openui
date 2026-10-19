@@ -8,6 +8,7 @@ import type { FocusStop } from "./focus-order";
 import { createFocusRegistry, FocusRegistryContext, type FocusEntry } from "./focus-registry";
 import { KeyReporter } from "./key-reporter";
 import { ModalLayerContext } from "./modal-layer";
+import { OverlayPriorityProvider } from "./overlay-priority-provider";
 import { createProgramRanks, ProgramRankContext } from "./program-rank";
 import { useModalLayers } from "./use-modal-layers";
 
@@ -34,8 +35,8 @@ export interface FocusScopeProps {
 }
 
 /**
- * One focus registry, one modal layer stack and one navigator for a whole
- * app: wrap the app in it and every `useFocusable` inside (the host's own
+ * One focus registry, one modal layer stack, one hovered dialog (the
+ * overlay priority) and one navigator for a whole app: wrap the app in it and every `useFocusable` inside (the host's own
  * sidebar as much as the programs rendered by `InkRenderer`) joins the same
  * Tab cycle and the same arrow-key map, so the arrows cross from a page into
  * the panel beside it, and while a program's modal is open the host's stops
@@ -80,11 +81,13 @@ export function FocusScope({ children, onUiEvent, order }: FocusScopeProps) {
           <FocusCycleContext.Provider value={cycle}>
             <ProgramRankContext.Provider value={programRanks}>
               <OverlayRegistryContext.Provider value={overlays}>
-                <FocusNavigator>
-                  <KeyReporter />
-                  {children}
-                  <OverlayHost />
-                </FocusNavigator>
+                <OverlayPriorityProvider>
+                  <FocusNavigator>
+                    <KeyReporter />
+                    {children}
+                    <OverlayHost />
+                  </FocusNavigator>
+                </OverlayPriorityProvider>
               </OverlayRegistryContext.Provider>
             </ProgramRankContext.Provider>
           </FocusCycleContext.Provider>

@@ -15,6 +15,8 @@ import { ORDER_LAST } from "./focus/focus-order";
 import { createFocusRegistry, FocusRegistryContext } from "./focus/focus-registry";
 import { KeyReporter } from "./focus/key-reporter";
 import { LayerIdContext, ModalLayerContext, NO_MODAL_LAYERS } from "./focus/modal-layer";
+import { NO_OVERLAY_PRIORITY, OverlayPriorityContext } from "./focus/overlay-priority";
+import { OverlayPriorityProvider } from "./focus/overlay-priority-provider";
 import { useProgramRank } from "./focus/program-rank";
 import { SequenceLevel } from "./focus/sequence-level";
 import { useModalLayers } from "./focus/use-modal-layers";
@@ -159,6 +161,8 @@ export function InkRenderer(props: InkRendererProps) {
   const inheritedOverlays = useContext(OverlayRegistryContext);
   const ownOverlays = useMemo(createOverlayRegistry, []);
   const ownsOverlays = inheritedOverlays === null;
+  // A FocusScope above keeps the hovered dialog for its navigator; otherwise the renderer does.
+  const ownsPriority = useContext(OverlayPriorityContext) === NO_OVERLAY_PRIORITY;
   // The page's own cells bound the overlays it hosts: without a FocusScope they must not cover
   // the host's content around the renderer, which is painted after them.
   const pageRef = useRef<DOMElement | null>(null);
@@ -192,13 +196,18 @@ export function InkRenderer(props: InkRendererProps) {
       {ownsOverlays ? <OverlayHost boundsRef={pageRef} /> : null}
     </Box>
   );
-  const tree = ownsNavigation ? (
+  const navigated = ownsNavigation ? (
     <FocusNavigator>
       <KeyReporter />
       {page}
     </FocusNavigator>
   ) : (
     page
+  );
+  const tree = ownsPriority ? (
+    <OverlayPriorityProvider>{navigated}</OverlayPriorityProvider>
+  ) : (
+    navigated
   );
 
   return (

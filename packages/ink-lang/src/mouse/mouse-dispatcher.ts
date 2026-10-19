@@ -8,7 +8,10 @@ import type { MouseHandlers, MouseTarget, MouseWheelEvent } from "./mouse-target
  * in quick succession, contextmenu from a right release, enter and leave from
  * consecutive moves over the innermost box, and wheel ticks coalesced until
  * `flushWheel`. While the left button is held the pressed target captures the
- * moves and the release, like a browser drag.
+ * moves and the release, like a browser drag. A hover-within target
+ * (`MouseTarget.hoverWithin`) is left out of all of that: it gets enter and
+ * leave from consecutive moves over any of its cells on the topmost layer
+ * under the pointer, after the innermost box's enter and leave.
  */
 export interface MouseDispatcher {
   handle: (event: MouseEvent, chain: MouseTarget[]) => void;
@@ -74,9 +77,35 @@ function defaultNow(): number {
   return Date.now();
 }
 
+/** The chain without its hover-within targets: the targets every other event goes to. */
+function plainTargets(chain: MouseTarget[]): MouseTarget[] {
+  const plain: MouseTarget[] = [];
+  for (const target of chain) {
+    if (target.hoverWithin !== true) plain.push(target);
+  }
+  return plain;
+}
+
+/**
+ * The hover-within targets the pointer is inside: those of the chain in its
+ * topmost layer (the chain's first target paints last), so a box covered by
+ * a later overlay is not.
+ */
+function hoverWithinTargets(chain: MouseTarget[]): Set<MouseTarget> {
+  const inside = new Set<MouseTarget>();
+  const top = chain[0];
+  if (top === undefined) return inside;
+  for (const target of chain) {
+    if (target.hoverWithin === true && target.layer === top.layer) inside.add(target);
+  }
+  return inside;
+}
+
 export function createMouseDispatcher(options: MouseDispatcherOptions = {}): MouseDispatcher {
   const now = options.now ?? defaultNow;
   let hovered: MouseTarget | null = null;
+  /** The hover-within targets the pointer is inside since the last move. */
+  let insideWithin = new Set<MouseTarget>();
   /** The innermost target under a left press, which captures moves and the release. */
   let pressed: MouseTarget | null = null;
   /** The chain at that press, so captured events still bubble the same way. */
@@ -84,13 +113,27 @@ export function createMouseDispatcher(options: MouseDispatcherOptions = {}): Mou
   let lastClick: LastClick | null = null;
   let pendingWheel: PendingWheel[] = [];
 
-  function handleMove(event: MouseEvent, chain: MouseTarget[]): void {
+  /** Leave for the hover-within targets the pointer left, then enter for the ones it entered. */
+  function moveWithin(event: MouseEvent, fullChain: MouseTarget[]): void {
+    const before = insideWithin;
+    const inside = hoverWithinTargets(fullChain);
+    insideWithin = inside;
+    for (const target of before) {
+      if (!inside.has(target)) target.handlers.onMouseLeave?.(event);
+    }
+    for (const target of inside) {
+      if (!before.has(target)) target.handlers.onMouseEnter?.(event);
+    }
+  }
+
+  function handleMove(event: MouseEvent, chain: MouseTarget[], fullChain: MouseTarget[]): void {
     const innermost = innermostOf(chain);
     if (innermost !== hovered) {
       if (hovered !== null) hovered.handlers.onMouseLeave?.(event);
       hovered = innermost;
       if (innermost !== null) innermost.handlers.onMouseEnter?.(event);
     }
+    moveWithin(event, fullChain);
     callNearest(pressed === null ? chain : pressedChain, "onMouseMove", event);
   }
 
@@ -155,8 +198,9 @@ export function createMouseDispatcher(options: MouseDispatcherOptions = {}): Mou
     });
   }
 
-  function handle(event: MouseEvent, chain: MouseTarget[]): void {
-    if (event.kind === "move") return handleMove(event, chain);
+  function handle(event: MouseEvent, fullChain: MouseTarget[]): void {
+    const chain = plainTargets(fullChain);
+    if (event.kind === "move") return handleMove(event, chain, fullChain);
     if (event.kind === "down") return handleDown(event, chain);
     if (event.kind === "up") return handleUp(event, chain);
     return handleWheel(event, chain);
@@ -174,6 +218,7 @@ export function createMouseDispatcher(options: MouseDispatcherOptions = {}): Mou
 
   function forget(target: MouseTarget): void {
     if (hovered === target) hovered = null;
+    insideWithin.delete(target);
     if (pressed === target) {
       pressed = null;
       pressedChain = [];

@@ -16,6 +16,14 @@ export interface UseMouseOptions {
    * backdrop under it.
    */
   occluder?: boolean;
+  /**
+   * The box only learns whether the pointer is over it (`MouseTarget.hoverWithin`):
+   * it gets enter and leave for its whole box and nothing else. Like an
+   * occluder it keeps its handlers while a modal layer is open: a modal
+   * above it paints over its cells, which already reads as leaving it, and
+   * a leave it missed would leave it entered for good.
+   */
+  hoverWithin?: boolean;
 }
 
 const NO_OPTIONS: UseMouseOptions = {};
@@ -33,12 +41,14 @@ export function useMouse(
   const registry = useContext(MouseContext);
   // While a modal is open above it, or while it renders in an overlay form drawn only to be
   // measured (hidden below the root), a box takes no events (they fall through to its ancestors).
-  const layerActive = useLayerIsActive() || options.occluder === true;
+  const layerActive =
+    useLayerIsActive() || options.occluder === true || options.hoverWithin === true;
   const visible = useOverlayVisible();
   const layer = useContext(MouseLayerContext);
   const targetRef = useRef<MouseTarget>({ ref, handlers, layer });
   targetRef.current.ref = ref;
   targetRef.current.layer = layer;
+  targetRef.current.hoverWithin = options.hoverWithin === true;
   targetRef.current.handlers = layerActive && visible ? handlers : {};
 
   useEffect(

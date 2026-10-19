@@ -41,4 +41,12 @@ export interface MouseTarget {
   handlers: MouseHandlers;
   /** The stacking layer it paints in: 0 for the page, higher for overlays (they win the hit-test). */
   layer: number;
+  /**
+   * Gets only enter and leave, for its whole box: it is entered while the
+   * pointer is over any of its cells, over a target inside it too, as long as
+   * nothing in a higher layer covers that cell. It never counts as the
+   * innermost target, so every other event (and the innermost hover) goes to
+   * the targets as if it were not there. Absent for a plain target.
+   */
+  hoverWithin?: boolean;
 }
