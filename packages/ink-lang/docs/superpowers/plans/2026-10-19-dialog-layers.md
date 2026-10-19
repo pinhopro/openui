@@ -15,7 +15,7 @@
 - Only `packages/ink-lang` changes. Run `pnpm` with `OPENUI_TELEMETRY_DISABLED=1 DO_NOT_TRACK=1`.
 - Code style: one file per responsibility, named functions, plain interfaces, no method chaining, no conditional or mapped types, no deep generics. Everything written to files in English. No em dash.
 - TDD: every behaviour gets a failing test first. Commit messages carry no Co-Authored-By trailer.
-- The base layout never changes because a modal or dialog is open (the row after a dialog's declaration keeps its y).
+- The base layout never changes because a modal or dialog is open (the row after a dialog's declaration keeps its y), except for one spacer: when the overlay host's bounds are a standalone renderer's page (`boundsRef` given) and a shown `center`/`cover`/dialog form needs rows under the page's content to be drawn whole (an inline program shorter than the dialog), the host reports those rows and the renderer adds that many blank rows at the end of its page, removed when the dialog closes. Every row of the page keeps its place; a `FocusScope`-hosted app (bounds = the ink root) never gets the spacer.
 - Step 1's Tab order (sequence paths) and step 2's overlay machinery are reused, not reworked: a dialog's stops carry the owner's sequence path through the bridge, which is how they sit "at the anchor" in the cycle.
 - `render` functions passed to `useOverlay` call no hooks; components inside the returned JSX may.
 
