@@ -163,6 +163,25 @@ describe("ModalDialog", () => {
     rendered.unmount();
   });
 
+  it("draws the showcase's destructive body on three lines, the third starting at the padding", async () => {
+    const { rendered } = await mount(
+      [
+        "$confirm = true",
+        `root = Stack([dialog, ${fillerRows(ROWS)}], "column", "none")`,
+        `dialog = ModalDialog("destructive", "${TITLE}", "${SHOWCASE_BODY}", "Cancel", "Delete contact", $confirm)`,
+      ].join("\n"),
+    );
+    const inside = boxTexts(stripAnsi(rendered.frame()));
+    expect(inside).toEqual([
+      `⚠ ${TITLE}`,
+      "Carlos Ruiz will no longer appear in your contacts. The",
+      "conversation history and shared groups will be kept. You",
+      "can add him again anytime.",
+      "[ Cancel ] [ Delete contact ]",
+    ]);
+    rendered.unmount();
+  });
+
   it("wraps its body inside a terminal narrower than its 60 cells, losing no word", async () => {
     const terminal = renderTerminal(
       <InkRenderer
