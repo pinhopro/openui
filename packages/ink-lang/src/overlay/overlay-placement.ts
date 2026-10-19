@@ -173,3 +173,34 @@ export function placeCompact(input: PlaceCompactInput): OverlayPosition {
   if (fitsSide(beside, "left", left)) return left;
   return placeOverlay({ ...beside, placement: "bottom", gap: 0 });
 }
+
+export interface CompactWidthLimitInput {
+  /** The cells of the element the overlay is attached to. */
+  anchor: CellRect;
+  /** The rectangle the overlay must stay in. */
+  bounds: CellRect;
+}
+
+/** The fewest cells beside the anchor worth drawing a compact form in. */
+const COMPACT_MIN_WIDTH = 8;
+
+/**
+ * The widest a compact form may be, so it fits beside its anchor on the
+ * anchor's row whenever that is worth it: the larger of the rooms right and
+ * left of the anchor (after the one-cell gap), or the bounds' width when
+ * neither holds `COMPACT_MIN_WIDTH` cells (the form then goes under or over
+ * the anchor). It depends on the anchor and the bounds only, never on the
+ * form's size, so measuring the form at this limit is stable.
+ */
+export function compactWidthLimit(input: CompactWidthLimitInput): number {
+  const beside: PlaceOverlayInput = {
+    anchor: input.anchor,
+    size: { width: 0, height: 0 },
+    placement: "right",
+    gap: COMPACT_GAP,
+    bounds: input.bounds,
+  };
+  const room = Math.max(roomOnSide(beside, "right"), roomOnSide(beside, "left"));
+  if (room >= COMPACT_MIN_WIDTH) return room;
+  return input.bounds.width;
+}

@@ -7,7 +7,11 @@ import type { FormSpot } from "./overlay-measure";
 import { OverlayMouseShield } from "./overlay-mouse-shield";
 
 export interface OverlayBoxProps {
-  /** Where the form is drawn, relative to the host box, and whether it shows. */
+  /**
+   * Where the form is drawn, relative to the host box, the widest it may be
+   * (an absolute box in the host's empty box is otherwise as wide as its
+   * longest line, past the terminal's edge) and whether it shows.
+   */
   spot: FormSpot;
   /** The box the host measures. */
   boxRef: RefObject<DOMElement | null>;
@@ -44,14 +48,26 @@ function OverlayContent({ render }: OverlayContentProps) {
 export function OverlayBox(props: OverlayBoxProps) {
   const spot = props.spot;
   return (
-    <Box ref={props.boxRef} position="absolute" left={spot.x} top={spot.y} flexDirection="column">
+    <Box
+      ref={props.boxRef}
+      position="absolute"
+      left={spot.x}
+      top={spot.y}
+      maxWidth={spot.maxWidth}
+      // A row, so Yoga fits the width to the limit first and then sizes the
+      // height from the wrapped content; a column box would keep the height
+      // of the unwrapped content and cut the wrapped rows.
+      flexDirection="row"
+    >
       {props.opaque && spot.visible ? (
         <OverlayFill width={spot.width} height={spot.height} />
       ) : null}
       <BridgedContexts captured={props.captured}>
         <MouseLayerContext.Provider value={props.layer}>
           {spot.visible ? <OverlayMouseShield boxRef={props.boxRef} /> : null}
-          <OverlayContent render={props.render} />
+          <Box flexDirection="column">
+            <OverlayContent render={props.render} />
+          </Box>
         </MouseLayerContext.Provider>
       </BridgedContexts>
     </Box>

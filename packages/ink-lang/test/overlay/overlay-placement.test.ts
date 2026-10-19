@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CellRect } from "../../src/focus/element-rect";
 import {
+  compactWidthLimit,
   overlayFits,
   placeCompact,
   placeOverlay,
@@ -161,5 +162,22 @@ describe("placeCompact", () => {
       x: 5,
       y: 8,
     });
+  });
+});
+
+describe("compactWidthLimit", () => {
+  it("is the room right of the anchor (after the one-cell gap) when that side is the wider", () => {
+    // Anchor cells 4..9; the right side holds cells 11..39.
+    expect(compactWidthLimit({ anchor: anchorAt(4, 2), bounds: BOUNDS })).toBe(29);
+  });
+
+  it("is the room left of the anchor when that side is the wider", () => {
+    // Anchor cells 30..35; the left side holds cells 0..28.
+    expect(compactWidthLimit({ anchor: anchorAt(30, 2), bounds: BOUNDS })).toBe(29);
+  });
+
+  it("is the bounds' width when neither side holds eight cells", () => {
+    const narrow: CellRect = { x: 0, y: 0, width: 16, height: 10 };
+    expect(compactWidthLimit({ anchor: anchorAt(5, 2), bounds: narrow })).toBe(16);
   });
 });
