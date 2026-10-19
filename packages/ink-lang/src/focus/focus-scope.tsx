@@ -24,7 +24,9 @@ export interface FocusScopeProps {
    * stops in Tab order and the host's own stops in registration order (only
    * the ones that can take focus right now) and returns the ids of the full
    * cycle, first to last. Asked on every Tab, so it may read the latest app
-   * state. Default: `defaultCycle`, the host's stops first, then the program's.
+   * state. A stop it leaves out is unreachable by Tab (the arrows and the
+   * mouse still reach it); an id it returns twice keeps its first place.
+   * Default: `defaultCycle`, the host's stops first, then the program's.
    */
   order?: (program: FocusStop[], host: FocusEntry[]) => string[];
 }

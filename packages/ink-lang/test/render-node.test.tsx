@@ -1,6 +1,21 @@
 import type { OpenUIError } from "@openuidev/lang-core";
-import { afterEach, describe, expect, it } from "vitest";
-import { makeInkTestLibrary, probe, resetInkTestLibrary } from "./helpers/ink-test-library";
+import { Text } from "ink";
+import { useMemo, useRef, useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod/v4";
+import {
+  createLibrary,
+  defineComponent,
+  type ComponentRenderer,
+  type ComponentRenderProps,
+  type Library,
+} from "../src/library";
+import {
+  makeInkTestLibrary,
+  probe,
+  resetInkTestLibrary,
+  StackBox,
+} from "./helpers/ink-test-library";
 import { renderProgram } from "./helpers/render-program";
 
 afterEach(resetInkTestLibrary);
@@ -69,4 +84,52 @@ describe("RenderNode", () => {
     expect(countRenderErrors(reports[reports.length - 1] ?? [])).toBe(1);
     rendered.unmount();
   });
+
+  it("starts a fresh component when a new library maps the same type to another renderer", async () => {
+    function OldButtonRenderer({ props }: ComponentRenderProps<ButtonLabel>) {
+      const [label] = useState("old " + props.label);
+      return <Text>{label}</Text>;
+    }
+    function NewButtonRenderer({ props }: ComponentRenderProps<ButtonLabel>) {
+      const mounted = useRef(true);
+      const [prefix] = useState("new");
+      const label = useMemo(
+        function joinLabel() {
+          return prefix + " " + props.label;
+        },
+        [prefix, props.label],
+      );
+      return <Text>{mounted.current ? label : ""}</Text>;
+    }
+    const errors = vi.spyOn(console, "error").mockImplementation(function silence() {});
+    const reports: OpenUIError[][] = [];
+    const program = 'root = Stack([Button("go")])';
+    const rendered = await renderProgram(buttonLibrary(OldButtonRenderer), program, {
+      onError: function onError(list) {
+        reports.push(list);
+      },
+    });
+    expect(rendered.frame()).toContain("old go");
+    await rendered.update({ library: buttonLibrary(NewButtonRenderer) });
+    expect(rendered.frame()).toContain("new go");
+    expect(errors).not.toHaveBeenCalled();
+    expect(countRenderErrors(reports[reports.length - 1] ?? [])).toBe(0);
+    errors.mockRestore();
+    rendered.unmount();
+  });
 });
+
+interface ButtonLabel {
+  label: string;
+}
+
+/** The test library with its `Button` drawn by `renderer`. */
+function buttonLibrary(renderer: ComponentRenderer<ButtonLabel>): Library {
+  const button = defineComponent({
+    name: "Button",
+    description: "A label",
+    props: z.object({ label: z.string() }),
+    component: renderer,
+  });
+  return createLibrary({ root: "Stack", components: [StackBox, button] });
+}

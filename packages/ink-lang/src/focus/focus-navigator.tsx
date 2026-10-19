@@ -27,6 +27,8 @@ interface FocusTarget {
  * inactive and only the modal's own stops are in the cycle. An id `order`
  * returns that is not among the stops it was given (one kept from an earlier
  * cycle, say) is skipped, so it can neither stall Tab nor reach past a modal.
+ * An id returned twice keeps its first place only, so every stop stays
+ * reachable.
  */
 function tabCycle(registry: FocusRegistry, order: FocusCycleOrder): CycleStop[] {
   const program = focusOrder(registry);
@@ -34,9 +36,12 @@ function tabCycle(registry: FocusRegistry, order: FocusCycleOrder): CycleStop[] 
   const offered = new Set<string>();
   for (const stop of program) offered.add(stop.id);
   for (const entry of host) offered.add(entry.id);
+  const seen = new Set<string>();
   const cycle: CycleStop[] = [];
   for (const id of order(program, host)) {
-    if (offered.has(id)) cycle.push({ id });
+    if (!offered.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    cycle.push({ id });
   }
   return cycle;
 }
@@ -96,16 +101,49 @@ export interface FocusNavigatorProps {
 }
 
 /**
+ * The focused id as the navigator sees it. Ink's `activeId` only changes once
+ * React commits, so several keys in one stdin chunk would all step from the
+ * same stop; `current` follows every focus the navigator sets right away and
+ * goes back to Ink's id whenever a render shows that id changed (a click, a
+ * component focusing itself).
+ */
+interface FocusTracker {
+  /** Ink's `activeId` at the last render. */
+  committed: string | undefined;
+  /** The id focus moves from on the next key. */
+  current: string | undefined;
+}
+
+/** Catches up with a focus change made outside the navigator, seen in a render. */
+function syncTracker(tracker: FocusTracker, activeId: string | undefined): void {
+  if (tracker.committed === activeId) return;
+  tracker.committed = activeId;
+  tracker.current = activeId;
+}
+
+/** A focus target that steps from the tracked id and records every focus it sets. */
+function trackedTarget(tracker: FocusTracker, focusById: (id: string) => void): FocusTarget {
+  return {
+    activeId: tracker.current,
+    focus: function focusTracked(id: string) {
+      tracker.current = id;
+      focusById(id);
+    },
+  };
+}
+
+/**
  * Owns keyboard focus movement over the registered stops. On mount it turns
  * Ink's own focus handling off (and back on when it unmounts), so Ink never
- * moves focus first: Tab and
- * Shift+Tab follow the Tab cycle (deterministic, whatever order components
- * mounted in; the `order` of the `FocusScope` above, or `defaultCycle`
- * without one), Escape drops focus, and the arrows move to the nearest stop
- * in their direction whenever the focused component does not use that arrow
- * itself (or has nowhere further to go). Provides `FocusCommands` to its
- * children. Without a focus registry above it there are no stops to move
- * over, so it leaves Ink's own handling on and does nothing.
+ * moves focus first: Tab and Shift+Tab follow the Tab cycle (deterministic,
+ * whatever order components mounted in; the `order` of the `FocusScope`
+ * above, or `defaultCycle` without one), Escape drops focus, and the arrows
+ * move to the nearest stop in their direction whenever the focused component
+ * does not use that arrow itself (or has nowhere further to go). Each key
+ * steps from the stop the previous key focused, even before React commits.
+ * Provides `FocusCommands` to its children. Without a focus registry above it
+ * there are no stops to move over, so it leaves Ink's own handling on and
+ * does nothing.
  */
 export function FocusNavigator({ children }: FocusNavigatorProps) {
   const registry = useContext(FocusRegistryContext);
@@ -113,6 +151,11 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
   const manager = useFocusManager();
   const managerRef = useRef(manager);
   managerRef.current = manager;
+  const trackerRef = useRef<FocusTracker>({
+    committed: manager.activeId,
+    current: manager.activeId,
+  });
+  syncTracker(trackerRef.current, manager.activeId);
   const disableFocus = manager.disableFocus;
   const enableFocus = manager.enableFocus;
   const focusById = manager.focus;
@@ -139,15 +182,18 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
 
   const commands = useMemo(
     function buildCommands(): FocusCommands {
+      function target(): FocusTarget {
+        return trackedTarget(trackerRef.current, managerRef.current.focus);
+      }
       return {
         focusFirst: function focusFirst() {
-          focusFirstStop(registry, order, managerRef.current);
+          focusFirstStop(registry, order, target());
         },
         focusNext: function focusNext() {
-          stepCycle(registry, order, managerRef.current, 1);
+          stepCycle(registry, order, target(), 1);
         },
         focusPrevious: function focusPrevious() {
-          stepCycle(registry, order, managerRef.current, -1);
+          stepCycle(registry, order, target(), -1);
         },
       };
     },
@@ -156,17 +202,19 @@ export function FocusNavigator({ children }: FocusNavigatorProps) {
 
   useInput(function handleKey(_input, key) {
     if (registry === null || key.eventType === "release") return;
+    const target = trackedTarget(trackerRef.current, manager.focus);
     if (key.tab && isUnmodified(key)) {
-      stepCycle(registry, order, manager, key.shift ? -1 : 1);
+      stepCycle(registry, order, target, key.shift ? -1 : 1);
       return;
     }
     if (key.escape && !key.shift && isUnmodified(key)) {
       // Ink exposes no way to clear the focused id but this; its flag stays off.
       manager.disableFocus();
+      trackerRef.current.current = undefined;
       return;
     }
     const direction = arrowDirection(key);
-    if (direction !== null) moveByArrow(registry, manager, direction);
+    if (direction !== null) moveByArrow(registry, target, direction);
   });
 
   return <FocusCommandsContext.Provider value={commands}>{children}</FocusCommandsContext.Provider>;

@@ -4,6 +4,7 @@ import { useOpenUI } from "./context";
 import { ElementErrorBoundary } from "./element-error-boundary";
 import { ElementPathContext, useElementPath } from "./element-type-context";
 import { SequencePathContext, useSequencePath } from "./focus/sequence-path";
+import { rendererIdentity } from "./renderer-identity";
 import { UnknownComponent } from "./unknown-component";
 
 export interface RenderNodeProps {
@@ -15,6 +16,8 @@ export interface RenderNodeProps {
 /**
  * Looks the element up in the library and renders it inside an error boundary,
  * extending the element path with its type and the sequence path with its order.
+ * The host is keyed by the type and its renderer, so another type or another
+ * renderer for the same type (a new `library`) mounts a fresh component.
  */
 export function RenderNode({ node, order }: RenderNodeProps) {
   const context = useOpenUI();
@@ -27,7 +30,7 @@ export function RenderNode({ node, order }: RenderNodeProps) {
       <ElementPathContext.Provider value={parentPath.concat(node.typeName)}>
         <SequencePathContext.Provider value={parentSequence.concat(order)}>
           <ComponentHost
-            key={node.typeName}
+            key={node.typeName + ":" + rendererIdentity(definition.component)}
             renderer={definition.component}
             props={node.props}
             statementId={node.statementId}

@@ -135,6 +135,27 @@ describe("FocusScope order", () => {
     expect(await visit(instance, KEYS.SHIFT_TAB, 2)).toEqual(["[ Side ]", "[ B ]"]);
     instance.unmount();
   });
+
+  it("keeps the first occurrence of an id the order returns twice", async () => {
+    function withDuplicate(program: FocusStop[], host: FocusEntry[]): string[] {
+      const ids: string[] = [];
+      const first = program[0];
+      if (first !== undefined) ids.push(first.id);
+      for (const entry of host) ids.push(entry.id);
+      for (const stop of program) ids.push(stop.id);
+      return ids;
+    }
+    const instance = render(
+      <FocusScope order={withDuplicate}>
+        <Panel name="Side" />
+        <InkRenderer response={twoButtons} library={inkLibrary} />
+      </FocusScope>,
+    );
+    await settle();
+    expect(await visit(instance, KEYS.TAB, 4)).toEqual(["[ A ]", "[ Side ]", "[ B ]", "[ A ]"]);
+    expect(await visit(instance, KEYS.SHIFT_TAB, 2)).toEqual(["[ B ]", "[ Side ]"]);
+    instance.unmount();
+  });
 });
 
 function twoButtonProgram(first: string, second: string): string {

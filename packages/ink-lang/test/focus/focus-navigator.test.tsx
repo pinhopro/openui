@@ -114,6 +114,26 @@ describe("FocusNavigator", () => {
     rendered.unmount();
   });
 
+  it("moves once per key when several keys arrive in one write, before React commits", async () => {
+    const column = [
+      "root = Stack([one, two, three])",
+      'one = Button("One", @ToAssistant("One"))',
+      'two = Button("Two", @ToAssistant("Two"))',
+      'three = Button("Three", @ToAssistant("Three"))',
+    ].join("\n");
+    const rendered = await renderProgram(inkLibrary, column);
+    rendered.instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ One ]"]);
+    rendered.instance.stdin.write(KEYS.DOWN + KEYS.DOWN);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ Three ]"]);
+    rendered.instance.stdin.write(KEYS.UP + KEYS.UP);
+    await settle();
+    expect(inverseSegments(rendered.frame())).toEqual(["[ One ]"]);
+    rendered.unmount();
+  });
+
   it("clears a focused Combobox's filter on Escape and drops focus", async () => {
     const program = [
       "root = Stack([form])",
@@ -206,6 +226,28 @@ describe("FocusNavigator", () => {
     instance.rerender(<App second />);
     await settle();
     expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Second ]"]);
+    instance.unmount();
+  });
+
+  it("leaves the focus on a stop without autoFocus when an autoFocus stop mounts later", async () => {
+    function App({ second }: SecondPanelProps) {
+      return (
+        <FocusScope>
+          <Panel name="Plain" />
+          {second ? <Panel name="Late" autoFocus /> : null}
+        </FocusScope>
+      );
+    }
+    const instance = render(<App second={false} />);
+    await settle();
+    instance.stdin.write(KEYS.TAB);
+    await settle();
+    expect(inverseSegments(lastFrame(instance.frames))).toEqual(["[ Plain ]"]);
+    instance.rerender(<App second />);
+    await settle();
+    const frame = lastFrame(instance.frames);
+    expect(stripAnsi(frame)).toContain("[ Late ]");
+    expect(inverseSegments(frame)).toEqual(["[ Plain ]"]);
     instance.unmount();
   });
 
