@@ -8,6 +8,7 @@ import {
   OverlayRegistryContext,
   type Overlay,
   type OverlayKind,
+  type OverlayReserve,
   type PlacedFrame,
 } from "./overlay-registry";
 
@@ -71,6 +72,12 @@ export interface UseOverlayOptions {
    * re-anchored to a filled button must not take, or follow, its fill).
    */
   backgroundFromParent?: boolean;
+  /**
+   * Another anchor and placement a standalone page keeps rows under its
+   * content for (`Overlay.reserve`): a re-anchored dialog passes its tree
+   * anchor, so moving it never changes the page; default none.
+   */
+  reserve?: OverlayReserve;
 }
 
 export interface OverlayHandle {
@@ -82,10 +89,10 @@ const NO_OFFSET = Object.freeze({ x: 0, y: 0 });
 /**
  * Floats `render()` over the program, placed against `anchorRef`, while
  * `isOpen`: the overlay joins the nearest overlay registry on top of the
- * overlays of its layer (`layer`), and its content is rendered by the registry's host with the contexts
- * this component renders in. It is re-sent to the host after every render of
- * this component, so the content and the bridged contexts stay current.
- * Outside any registry it does nothing.
+ * overlays of its layer (`layer`), and its content is rendered by the
+ * registry's host with the contexts this component renders in. It is re-sent
+ * to the host after every render of this component, so the content and the
+ * bridged contexts stay current. Outside any registry it does nothing.
  */
 export function useOverlay(options: UseOverlayOptions): OverlayHandle {
   const ownId = useId();
@@ -108,6 +115,7 @@ export function useOverlay(options: UseOverlayOptions): OverlayHandle {
     offset: options.offset ?? NO_OFFSET,
     onPlaced: options.onPlaced ?? null,
     backgroundFromParent: options.backgroundFromParent ?? false,
+    reserve: options.reserve ?? null,
     layer: options.layer === undefined ? ownerLayer : options.layer,
   };
 

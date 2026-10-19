@@ -271,6 +271,8 @@ export function DialogRenderer({ props, modal, placement, component }: DialogRen
     onPlaced: anchor.onPlaced,
     // Against a stop, the page's background, never the stop's own (state-dependent) fill.
     backgroundFromParent: anchor.stopId !== null,
+    // A short page keeps the rows its declaration needs: a drop never changes the page.
+    reserve: { anchorRef, placement: modal ? "center" : placement },
   });
 
   // The overlays are placed in the bounds or against the line this box marks

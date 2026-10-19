@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { CellRect } from "../../src/focus/element-rect";
 import {
+  alwaysClamped,
   clampIntoBounds,
   compactWidthLimit,
+  movedPosition,
   overlayFits,
   placeCompact,
   placeOverlay,
@@ -29,6 +31,43 @@ function place(
 ): OverlayPosition {
   return placeOverlay({ anchor, size, placement, gap, bounds: BOUNDS });
 }
+
+describe("placeOverlay at an anchor's top-left", () => {
+  it("never flips or shifts it, whatever room the bounds leave", () => {
+    expect(place(anchorAt(4, 2), "anchor", 0)).toEqual({ x: 4, y: 2 });
+    // On the last row and past the right edge: still the anchor's top-left.
+    expect(place(anchorAt(36, 9), "anchor", 0)).toEqual({ x: 36, y: 9 });
+    expect(place(anchorAt(36, 9), "anchor", 2)).toEqual({ x: 36, y: 9 });
+  });
+});
+
+describe("movedPosition", () => {
+  const placed: OverlayPosition = { x: 34, y: 8 };
+
+  it("leaves an unmoved form where it was placed, past the bounds too", () => {
+    const input = { placed, offset: { x: 0, y: 0 }, size: SIZE, bounds: BOUNDS };
+    expect(movedPosition({ ...input, alwaysClamped: false })).toEqual(placed);
+  });
+
+  it("clamps an unmoved form placed at its anchor's top-left", () => {
+    const input = { placed, offset: { x: 0, y: 0 }, size: SIZE, bounds: BOUNDS };
+    expect(movedPosition({ ...input, alwaysClamped: true })).toEqual({ x: 30, y: 7 });
+  });
+
+  it("moves a form by its offset, then clamps it", () => {
+    const input = { placed: { x: 4, y: 2 }, size: SIZE, bounds: BOUNDS, alwaysClamped: false };
+    expect(movedPosition({ ...input, offset: { x: 3, y: 1 } })).toEqual({ x: 7, y: 3 });
+    expect(movedPosition({ ...input, offset: { x: 50, y: -9 } })).toEqual({ x: 30, y: 0 });
+  });
+});
+
+describe("alwaysClamped", () => {
+  it("is true for the anchor placement only", () => {
+    expect(alwaysClamped("anchor")).toBe(true);
+    expect(alwaysClamped("bottom")).toBe(false);
+    expect(alwaysClamped("center")).toBe(false);
+  });
+});
 
 describe("placeOverlay", () => {
   it("places a bottom overlay under its anchor, at the anchor's column", () => {
@@ -225,6 +264,12 @@ describe("rowsMissingBelow", () => {
     expect(missing(anchorAt(4, 2), "center", tall)).toBe(4);
     expect(missing(anchorAt(4, 2), "right", tall)).toBe(4);
     expect(missing(anchorAt(30, 2), "left", tall)).toBe(4);
+  });
+
+  it("is the rows an anchor overlay is taller than the bounds, wherever its anchor is", () => {
+    // On the last row, 3 rows reach past the bounds, but the clamp draws them inside: none missing.
+    expect(missing(anchorAt(4, 9), "anchor", SIZE)).toBe(0);
+    expect(missing(anchorAt(4, 9), "anchor", { width: 10, height: 14 })).toBe(4);
   });
 
   it("is 0 for a cover overlay, which spans the bounds", () => {

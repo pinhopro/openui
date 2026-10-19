@@ -53,10 +53,12 @@ export interface DragState {
   onPlaced: (rect: CellRect | null, frame: PlacedFrame | null) => void;
   /**
    * The overlay is placed at `origin` from its next render on (its owner
-   * gave it another anchor): the offset becomes the one that keeps the form
-   * drawn where it is. Does nothing while no placement was reported yet.
+   * gave it another anchor), clamped into the bounds with no offset too when
+   * `alwaysClamped` (`PlacedFrame.alwaysClamped`): the offset becomes the
+   * one that keeps the form drawn where it is. Does nothing while no
+   * placement was reported yet.
    */
-  setOrigin: (origin: DragOffset) => void;
+  setOrigin: (origin: DragOffset, alwaysClamped: boolean) => void;
   /** Drops the offset: the form shows where it is placed. */
   resetOffset: () => void;
 }
@@ -238,12 +240,13 @@ export function useDrag(options: UseDragOptions): DragState {
     if (rect !== null) shown.current = { rect, frame };
   }
 
-  function setOrigin(origin: DragOffset): void {
+  function setOrigin(origin: DragOffset, clamped: boolean): void {
     const placed = shown.current;
     if (placed === null || placed.frame === null) return;
     const topLeft = drawnTopLeft(rebase(), placed);
     // Until the host reports the new placement, moves are measured from the new origin.
-    shown.current = { rect: placed.rect, frame: { origin, bounds: placed.frame.bounds } };
+    const frame = { origin, bounds: placed.frame.bounds, alwaysClamped: clamped };
+    shown.current = { rect: placed.rect, frame };
     apply({ x: topLeft.x - origin.x, y: topLeft.y - origin.y });
   }
 

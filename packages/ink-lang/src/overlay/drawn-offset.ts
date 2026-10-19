@@ -1,5 +1,5 @@
 import type { CellRect } from "../focus/element-rect";
-import { clampIntoBounds } from "./overlay-placement";
+import { movedPosition } from "./overlay-placement";
 import type { PlacedFrame } from "./overlay-registry";
 
 /** An overlay's offset: cells to the right (`x`) and down (`y`). */
@@ -19,17 +19,21 @@ export interface ShownPlacement {
 /**
  * The offset that draws the form exactly where `offset` draws it, with no
  * excess: the part of the offset the host's clamp into the bounds cuts off
- * (`clampIntoBounds`) is dropped, so the next move in the other direction
+ * (`movedPosition`) is dropped, so the next move in the other direction
  * moves the form at once. `offset` itself when nothing is known of the
- * placement, and for no offset (the host never clamps that one).
+ * placement, and for no offset unless the form is clamped with none too
+ * (`PlacedFrame.alwaysClamped`).
  */
 export function drawnOffset(offset: OffsetCells, shown: ShownPlacement | null): OffsetCells {
   if (shown === null || shown.frame === null) return offset;
-  if (offset.x === 0 && offset.y === 0) return offset;
   const origin = shown.frame.origin;
-  const size = { width: shown.rect.width, height: shown.rect.height };
-  const moved = { x: origin.x + offset.x, y: origin.y + offset.y };
-  const drawn = clampIntoBounds(moved, size, shown.frame.bounds);
+  const drawn = movedPosition({
+    placed: origin,
+    offset,
+    size: { width: shown.rect.width, height: shown.rect.height },
+    bounds: shown.frame.bounds,
+    alwaysClamped: shown.frame.alwaysClamped,
+  });
   return { x: drawn.x - origin.x, y: drawn.y - origin.y };
 }
 
@@ -57,6 +61,7 @@ export function sameReference(a: ShownPlacement | null, b: ShownPlacement | null
   if (a === null || b === null) return a === b;
   if (a.rect.width !== b.rect.width || a.rect.height !== b.rect.height) return false;
   if (a.frame === null || b.frame === null) return a.frame === b.frame;
+  if (a.frame.alwaysClamped !== b.frame.alwaysClamped) return false;
   const origin = a.frame.origin;
   const sameOrigin = origin.x === b.frame.origin.x && origin.y === b.frame.origin.y;
   return sameOrigin && sameRect(a.frame.bounds, b.frame.bounds);

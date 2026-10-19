@@ -153,13 +153,21 @@ describe("overlay onPlaced", () => {
     expect(placedReports).toEqual([clamped]);
     // Under the anchor, before the offset; the bounds are the root: 40 columns, 9 rows.
     expect(placedFrames).toEqual([
-      { origin: { x: 0, y: 1 }, bounds: { x: 0, y: 0, width: COLUMNS, height: 9 } },
+      {
+        origin: { x: 0, y: 1 },
+        bounds: { x: 0, y: 0, width: COLUMNS, height: 9 },
+        alwaysClamped: false,
+      },
     ]);
 
     terminal.rerender(<App open={false} report={true} offset={{ x: 100, y: 0 }} />);
     await settle();
     expect(placedFrames).toEqual([
-      { origin: { x: 0, y: 1 }, bounds: { x: 0, y: 0, width: COLUMNS, height: 9 } },
+      {
+        origin: { x: 0, y: 1 },
+        bounds: { x: 0, y: 0, width: COLUMNS, height: 9 },
+        alwaysClamped: false,
+      },
       null,
     ]);
     terminal.unmount();

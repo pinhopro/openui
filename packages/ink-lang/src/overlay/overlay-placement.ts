@@ -2,9 +2,12 @@ import type { CellRect } from "../focus/element-rect";
 
 /**
  * Where an overlay goes relative to its anchor; `center` centres it in the
- * bounds; `cover` spans the bounds (a backdrop), at their top-left.
+ * bounds; `cover` spans the bounds (a backdrop), at their top-left; `anchor`
+ * puts its top-left on the anchor's top-left, never flipped or shifted (a
+ * re-anchored dialog: its offset from that cell is what places it, and the
+ * moved form is always clamped into the bounds, `movedPosition`).
  */
-export type OverlayPlacement = "top" | "bottom" | "left" | "right" | "center" | "cover";
+export type OverlayPlacement = "top" | "bottom" | "left" | "right" | "center" | "cover" | "anchor";
 
 export interface OverlaySize {
   width: number;
@@ -46,6 +49,7 @@ function sidePosition(input: PlaceOverlayInput, placement: OverlayPlacement): Ov
   if (placement === "top") return { x: anchor.x, y: anchor.y - size.height - input.gap };
   if (placement === "right") return { x: anchor.x + anchor.width + input.gap, y: anchor.y };
   if (placement === "left") return { x: anchor.x - size.width - input.gap, y: anchor.y };
+  if (placement === "anchor") return { x: anchor.x, y: anchor.y };
   if (placement === "cover") return { x: bounds.x, y: bounds.y };
   return {
     x: bounds.x + Math.floor((bounds.width - size.width) / 2),
@@ -121,6 +125,42 @@ export function clampIntoBounds(
 }
 
 /**
+ * True for a placement whose form is clamped into the bounds even when it is
+ * not moved: `anchor`, whose reference (the anchor's top-left) is never
+ * shifted into them. A form placed on a side of its anchor, in the bounds or
+ * over them is clamped only once an offset moves it.
+ */
+export function alwaysClamped(placement: OverlayPlacement): boolean {
+  return placement === "anchor";
+}
+
+export interface MovedPositionInput {
+  /** Where the form was placed (`placeOverlay`), before the offset. */
+  placed: OverlayPosition;
+  /** Cells it is moved by: `x` to the right, `y` down. */
+  offset: OverlayPosition;
+  /** The form's size. */
+  size: OverlaySize;
+  /** The rectangle it must stay in. */
+  bounds: CellRect;
+  /** It is clamped with no offset too (`alwaysClamped`). */
+  alwaysClamped: boolean;
+}
+
+/**
+ * Where a placed form is drawn: moved by its offset, then clamped into the
+ * bounds (`clampIntoBounds`), so a dragged form never leaves them. A form
+ * with no offset stays where it was placed, which may leave rows past the
+ * bounds on purpose (`placeOverlay`), unless it is `alwaysClamped`.
+ */
+export function movedPosition(input: MovedPositionInput): OverlayPosition {
+  const offset = input.offset;
+  if (offset.x === 0 && offset.y === 0 && !input.alwaysClamped) return input.placed;
+  const moved = { x: input.placed.x + offset.x, y: input.placed.y + offset.y };
+  return clampIntoBounds(moved, input.size, input.bounds);
+}
+
+/**
  * The top-left cell of an overlay: on the asked side of its anchor, flipped to
  * the opposite side when it does not fit there and the opposite side does,
  * then shifted (never shrunk) so it lies inside the bounds. A top or bottom
@@ -129,10 +169,14 @@ export function clampIntoBounds(
  * no rows outside its root. A left or right one that fits neither side is
  * shifted inside the bounds anyway, since a row longer than the terminal would
  * wrap, so in a narrow terminal it may cover its trigger. A cover overlay
- * spans the bounds: it sits at their top-left, never shifted.
+ * spans the bounds: it sits at their top-left, never shifted. An `anchor`
+ * one sits on its anchor's top-left, never flipped or shifted, whatever the
+ * bounds: it is a fixed reference its offset is added to (`movedPosition`
+ * then clamps it).
  */
 export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
   if (input.placement === "cover") return sidePosition(input, "cover");
+  if (input.placement === "anchor") return sidePosition(input, "anchor");
   const side = chooseSide(input);
   const position = sidePosition(input, side);
   const bounds = input.bounds;
@@ -154,8 +198,9 @@ function fitsEitherSide(input: PlaceOverlayInput): boolean {
  * True when the overlay can be shown whole at its placement without covering
  * its anchor: a top or bottom one fits on one side of its anchor or the other,
  * a left or right one is no taller than the bounds and fits beside its anchor
- * on one side or the other, a center or cover one always fits. An owner with
- * a compact form shows that one instead when this is false.
+ * on one side or the other, an `anchor` one is no taller than the bounds, a
+ * center or cover one always fits. An owner with a compact form shows that
+ * one instead when this is false.
  */
 export function overlayFits(input: PlaceOverlayInput): boolean {
   const placement = input.placement;
@@ -166,8 +211,9 @@ export function overlayFits(input: PlaceOverlayInput): boolean {
 
 /**
  * How many rows the bounds lack under their last row for the overlay to be
- * drawn whole at its placement, 0 when it already fits: a `center`, `left` or
- * `right` overlay lacks the rows by which it is taller than the bounds; a
+ * drawn whole at its placement, 0 when it already fits: a `center`, `left`,
+ * `right` or `anchor` overlay lacks the rows by which it is taller than the
+ * bounds (an `anchor` one is clamped into them wherever its anchor is); a
  * `top` or `bottom` one that fits on neither side of its anchor lacks the rows
  * it would reach past the bounds under its anchor (with the rows added, it
  * goes there); a `cover` one spans the bounds and lacks none.

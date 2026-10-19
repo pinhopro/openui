@@ -451,14 +451,17 @@ export {
 export { OverlayHost } from "./overlay/overlay-host";
 export type { OverlayHostProps } from "./overlay/overlay-host";
 export {
+  alwaysClamped,
   clampIntoBounds,
   compactWidthLimit,
+  movedPosition,
   overlayFits,
   placeCompact,
   placeOverlay,
 } from "./overlay/overlay-placement";
 export type {
   CompactWidthLimitInput,
+  MovedPositionInput,
   OverlayPlacement,
   OverlayPosition,
   OverlaySize,
@@ -470,6 +473,7 @@ export type {
   Overlay,
   OverlayKind,
   OverlayRegistry,
+  OverlayReserve,
   PlacedFrame,
 } from "./overlay/overlay-registry";
 export { rootRect } from "./overlay/root-rect";

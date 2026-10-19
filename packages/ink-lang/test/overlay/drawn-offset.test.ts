@@ -9,7 +9,21 @@ import {
 /** A 10 by 4 form placed at (20, 5) in 40 by 12 bounds. */
 const SHOWN: ShownPlacement = {
   rect: { x: 20, y: 5, width: 10, height: 4 },
-  frame: { origin: { x: 20, y: 5 }, bounds: { x: 0, y: 0, width: 40, height: 12 } },
+  frame: {
+    origin: { x: 20, y: 5 },
+    bounds: { x: 0, y: 0, width: 40, height: 12 },
+    alwaysClamped: false,
+  },
+};
+
+/** A 10 by 4 form placed at an anchor's top-left (36, 10), past the bounds' corner. */
+const AT_ANCHOR: ShownPlacement = {
+  rect: { x: 30, y: 8, width: 10, height: 4 },
+  frame: {
+    origin: { x: 36, y: 10 },
+    bounds: { x: 0, y: 0, width: 40, height: 12 },
+    alwaysClamped: true,
+  },
 };
 
 describe("drawnOffset", () => {
@@ -34,6 +48,11 @@ describe("drawnOffset", () => {
     });
     expect(drawnOffset({ x: 0, y: 0 }, SHOWN)).toEqual({ x: 0, y: 0 });
   });
+
+  it("drops the excess of no offset for a form clamped with none too", () => {
+    // Drawn at (30, 8): the clamp moved it 6 cells left and 2 rows up.
+    expect(drawnOffset({ x: 0, y: 0 }, AT_ANCHOR)).toEqual({ x: -6, y: -2 });
+  });
 });
 
 describe("drawnTopLeft", () => {
@@ -55,6 +74,8 @@ describe("sameReference", () => {
     expect(sameReference(SHOWN, narrower)).toBe(false);
     const wrapped = { ...SHOWN, rect: { ...SHOWN.rect, width: 8, height: 5 } };
     expect(sameReference(SHOWN, wrapped)).toBe(false);
+    const anchored = { ...SHOWN, frame: { ...frame, alwaysClamped: true } };
+    expect(sameReference(SHOWN, anchored)).toBe(false);
   });
 
   it("is true for two unknown placements only", () => {

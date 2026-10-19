@@ -3,16 +3,21 @@ import { anchorBehind } from "../focus/anchor-behind";
 import { focusOrder } from "../focus/focus-order";
 import type { FocusEntry, FocusRegistry } from "../focus/focus-registry";
 import { placedOrigin } from "../overlay/overlay-measure";
-import type { OverlayPlacement, OverlayPosition } from "../overlay/overlay-placement";
+import {
+  alwaysClamped,
+  type OverlayPlacement,
+  type OverlayPosition,
+} from "../overlay/overlay-placement";
 import type { DroppedForm } from "../overlay/use-drag";
 
 /**
- * How a dialog re-anchored to a stop is placed against it: right under it,
- * with no gap. Its offset then keeps it where it was dropped, so the
- * placement only matters as the reference the offset is measured from (a
- * `center` placement would ignore the stop altogether).
+ * How a dialog re-anchored to a stop is placed against it: from the stop's
+ * top-left cell, never flipped or shifted (`anchor`), so its offset from that
+ * cell is what places it, and the same offset puts it in the same place
+ * against the stop after a resize or a change of the content around the
+ * stop; only the clamp into the bounds can move it (`movedPosition`).
  */
-export const ANCHORED_PLACEMENT: OverlayPlacement = "bottom";
+export const ANCHORED_PLACEMENT: OverlayPlacement = "anchor";
 
 /**
  * The stop `id` while it can still anchor a dialog: registered and mounted
@@ -43,6 +48,8 @@ export interface Reanchor {
   stopId: string | null;
   /** Where its form is placed against that anchor, before its offset. */
   origin: OverlayPosition;
+  /** Its form is clamped into the bounds with no offset too (`alwaysClamped`). */
+  alwaysClamped: boolean;
 }
 
 /**
@@ -56,13 +63,18 @@ export function reanchorOnDrop(input: ReanchorInput): Reanchor | null {
   const rect = input.dropped.rect;
   const stopId = anchorBehind({ x: rect.x, y: rect.y }, focusOrder(input.registry));
   const stop = liveAnchor(input.registry, stopId);
+  const placement = stop === null ? input.placement : ANCHORED_PLACEMENT;
   const origin = placedOrigin({
     anchor: stop === null ? input.declaration : stop.ref.current,
-    placement: stop === null ? input.placement : ANCHORED_PLACEMENT,
+    placement,
     gap: 0,
     size: { width: rect.width, height: rect.height },
     bounds: input.dropped.bounds,
   });
   if (origin === null) return null;
-  return { stopId: stop === null ? null : stop.id, origin };
+  return {
+    stopId: stop === null ? null : stop.id,
+    origin,
+    alwaysClamped: alwaysClamped(placement),
+  };
 }

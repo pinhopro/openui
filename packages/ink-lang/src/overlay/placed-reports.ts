@@ -1,6 +1,7 @@
 import type { DOMElement } from "ink";
 import { elementRect, type CellRect } from "../focus/element-rect";
 import type { FormSpot, PlacedOverlay } from "./overlay-measure";
+import { alwaysClamped, type OverlayPlacement } from "./overlay-placement";
 import type { Overlay, PlacedFrame } from "./overlay-registry";
 
 type PlacedListener = (rect: CellRect | null, frame: PlacedFrame | null) => void;
@@ -37,11 +38,22 @@ export function shownRect(placed: PlacedOverlay | null, host: DOMElement): CellR
   return { x: origin.x + form.x, y: origin.y + form.y, width: form.width, height: form.height };
 }
 
-/** How the shown form of `placed` was placed in `bounds`; null when nothing (or a cover form) shows. */
-function shownFrame(placed: PlacedOverlay | null, bounds: CellRect): PlacedFrame | null {
+/**
+ * How the shown form of `placed` was placed in `bounds`, at the overlay's
+ * `placement`; null when nothing (or a cover form) shows.
+ */
+function shownFrame(
+  placed: PlacedOverlay | null,
+  bounds: CellRect,
+  placement: OverlayPlacement,
+): PlacedFrame | null {
   const form = shownForm(placed);
   if (form === null || form.origin === null) return null;
-  return { origin: { x: form.origin.x, y: form.origin.y }, bounds };
+  return {
+    origin: { x: form.origin.x, y: form.origin.y },
+    bounds,
+    alwaysClamped: alwaysClamped(placement),
+  };
 }
 
 function sameRect(a: CellRect | null, b: CellRect | null): boolean {
@@ -51,6 +63,7 @@ function sameRect(a: CellRect | null, b: CellRect | null): boolean {
 
 function sameFrame(a: PlacedFrame | null, b: PlacedFrame | null): boolean {
   if (a === null || b === null) return a === b;
+  if (a.alwaysClamped !== b.alwaysClamped) return false;
   return a.origin.x === b.origin.x && a.origin.y === b.origin.y && sameRect(a.bounds, b.bounds);
 }
 
@@ -83,7 +96,7 @@ export function reportPlaced(input: ReportPlacedInput): void {
     open.add(overlay.id);
     const placed = input.placements.get(overlay.id) ?? null;
     const rect = shownRect(placed, input.host);
-    const frame = shownFrame(placed, input.bounds);
+    const frame = shownFrame(placed, input.bounds, overlay.placement);
     const previous = reported.get(overlay.id) ?? NOTHING_TOLD;
     const onPlaced = overlay.onPlaced;
     // An overlay nobody listens to was told nothing: a listener added later hears its cells.

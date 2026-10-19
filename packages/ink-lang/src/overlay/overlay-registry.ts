@@ -15,11 +15,19 @@ export type OverlayKind = "tooltip" | "dialog" | "modal" | "backdrop";
  * How a shown form was placed, in the ink root's cells: where it went before
  * the overlay's offset moved it (`origin`, its top-left) and the bounds the
  * moved form was clamped into. With the form's size, an owner can tell where
- * any offset draws it (`clampIntoBounds(origin + offset, size, bounds)`).
+ * any offset draws it (`movedPosition`).
  */
 export interface PlacedFrame {
   origin: { x: number; y: number };
   bounds: CellRect;
+  /** The form is clamped into the bounds with no offset too (`alwaysClamped`). */
+  alwaysClamped: boolean;
+}
+
+/** An anchor and a placement a page keeps rows for (`Overlay.reserve`). */
+export interface OverlayReserve {
+  anchorRef: RefObject<DOMElement | null>;
+  placement: OverlayPlacement;
 }
 
 /** One open overlay, as `useOverlay` registers it. */
@@ -64,6 +72,13 @@ export interface Overlay {
    * itself by state (a focus stop). False takes the anchor's own fill too.
    */
   backgroundFromParent: boolean;
+  /**
+   * The rows a standalone page adds under its content for the overlay
+   * (`rowsPastContent`) are the most it needs at its own anchor and
+   * placement or at these: a re-anchored dialog keeps the rows of its tree
+   * anchor, so moving it never changes the page. Null: its own only.
+   */
+  reserve: OverlayReserve | null;
   /**
    * The modal layer the overlay belongs to (a modal's id for its own backdrop
    * and box, the layer its owner renders in otherwise; null for the page).

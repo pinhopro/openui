@@ -2,10 +2,13 @@ import { render as inkRender } from "ink";
 import { EventEmitter } from "node:events";
 import type { ReactNode } from "react";
 
-/** A terminal's output stream of a given width that keeps every frame Ink writes. */
+/** The terminal's height until a test resizes it. */
+const DEFAULT_ROWS = 40;
+
+/** A terminal's output stream of a given size that keeps every frame Ink writes. */
 class TerminalStdout extends EventEmitter {
   columns: number;
-  rows = 40;
+  rows = DEFAULT_ROWS;
   frames: string[] = [];
 
   constructor(columns: number) {
@@ -49,8 +52,11 @@ export interface RenderedTerminal {
   /** Every frame written so far, oldest first. */
   frames: string[];
   lastFrame: () => string;
-  /** Changes the terminal's width and tells Ink, as a real terminal resize does. */
-  resize: (columns: number) => void;
+  /**
+   * Changes the terminal's width, and its height when `rows` is given, and
+   * tells Ink, as a real terminal resize does.
+   */
+  resize: (columns: number, rows?: number) => void;
   rerender: (tree: ReactNode) => void;
   unmount: () => void;
 }
@@ -80,8 +86,9 @@ export function renderTerminal(tree: ReactNode, columns = 100): RenderedTerminal
     return stdout.frames[stdout.frames.length - 1] ?? "";
   }
 
-  function resize(nextColumns: number): void {
+  function resize(nextColumns: number, nextRows?: number): void {
     stdout.columns = nextColumns;
+    if (nextRows !== undefined) stdout.rows = nextRows;
     stdout.emit("resize");
   }
 

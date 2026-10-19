@@ -1,11 +1,14 @@
+import { Box, useWindowSize } from "ink";
 import { useContext } from "react";
 import { describe, expect, it } from "vitest";
 import { z } from "zod/v4";
 import { inkLibrary } from "../../src/default-library";
 import { focusOrder, type FocusStop } from "../../src/focus/focus-order";
 import { FocusRegistryContext, type FocusRegistry } from "../../src/focus/focus-registry";
+import { FocusScope } from "../../src/focus/focus-scope";
 import { InkRenderer } from "../../src/ink-renderer";
 import { createLibrary, defineComponent, type Library } from "../../src/library";
+import { MouseProvider } from "../../src/mouse/mouse-provider";
 import type { UiEvent } from "../../src/ui-events";
 import { stripAnsi } from "../helpers/ansi";
 import { fillerRows } from "../helpers/filler-rows";
@@ -70,8 +73,8 @@ async function send(terminal: RenderedTerminal, data: string): Promise<void> {
   await settle();
 }
 
-async function resize(terminal: RenderedTerminal, columns: number): Promise<void> {
-  terminal.resize(columns);
+async function resize(terminal: RenderedTerminal, columns: number, rows?: number): Promise<void> {
+  terminal.resize(columns, rows);
   await settle();
 }
 
@@ -293,6 +296,169 @@ describe("overlays across a terminal resize", () => {
       `drag ${title.x - 5},${title.y + 1}`,
       `dragend ${title.x - 5},${title.y + 1}`,
     ]);
+    terminal.unmount();
+  });
+});
+
+/** 83 cells: one row at 100 columns, three at 40, so a narrower terminal adds rows under K. */
+const TAIL = "Tail text that is long enough to wrap onto several rows in a narrow terminal width.";
+
+/** Cells right of K's top-left where the dialog is dropped, on K's row: it re-anchors to K. */
+const RIGHT_OF_K = 10;
+
+/**
+ * Button S, the note Dialog declared under it, eight text rows, button K,
+ * then `below` (references to rows defined in the program) and a tail that
+ * wraps when narrow.
+ */
+function stopProgram(below: string[]): string {
+  const above: string[] = [];
+  for (let index = 0; index < 8; index += 1) above.push(`TextContent("above ${index}")`);
+  const children = ["s", "noteDialog"].concat(above, ["k"], below, ["tail"]);
+  return [
+    "$note = true",
+    `root = Stack([${children.join(", ")}], "column", "none")`,
+    's = Button("S", @ToAssistant("S"))',
+    `noteDialog = Dialog("info", "${NOTE_TITLE}", "Keep editing.", "Close", null, $note)`,
+    'k = Button("K", @ToAssistant("K"))',
+    `tail = TextContent("${TAIL}")`,
+  ].join("\n");
+}
+
+/** `count` one-row texts for `stopProgram`'s `below`. */
+function textRows(count: number): string[] {
+  const rows: string[] = [];
+  for (let index = 0; index < count; index += 1) rows.push(`TextContent("below ${index}")`);
+  return rows;
+}
+
+/** The height of the box whose top-left corner is the first `╭` of the frame. */
+function boxHeight(frame: string): number {
+  return findCell(frame, "╰").y - findCell(frame, "╭").y + 1;
+}
+
+/** The note dialog's height, in rows, as `stopProgram` draws it. */
+async function noteHeight(): Promise<number> {
+  const { terminal } = await mount(stopProgram([]), 100);
+  const height = boxHeight(plain(terminal));
+  terminal.unmount();
+  return height;
+}
+
+/** Where the dialog's corner is, relative to K's top-left. */
+function cornerFromK(frame: string): Cell {
+  const k = findCell(frame, "[ K ]");
+  const corner = findCell(frame, "╭");
+  return { x: corner.x - k.x, y: corner.y - k.y };
+}
+
+/** Drags the note dialog onto K's row, `RIGHT_OF_K` cells right of K: it re-anchors to K. */
+async function dropRightOfK(terminal: RenderedTerminal): Promise<void> {
+  const k = findCell(plain(terminal), "[ K ]");
+  await dragCornerTo(terminal, NOTE_TITLE, moved(k, RIGHT_OF_K, 0));
+  expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+}
+
+interface FullScreenProps {
+  source: string;
+}
+
+/**
+ * The program in a scope as tall as the terminal, as a full-screen app hosts
+ * it: the overlays' bounds are the terminal's rows.
+ */
+function FullScreen({ source }: FullScreenProps) {
+  const rows = useWindowSize().rows;
+  return (
+    <MouseProvider options={{ motion: true }}>
+      <FocusScope>
+        <Box flexDirection="column" height={rows}>
+          <InkRenderer response={source} library={probeLibrary} isStreaming={false} />
+        </Box>
+      </FocusScope>
+    </MouseProvider>
+  );
+}
+
+describe("a re-anchored dialog across a resize", () => {
+  it("keeps its offset from its stop when a narrower terminal makes room under the stop", async () => {
+    // One row short of room under K at 100 columns; the tail wraps at 40 and makes room.
+    const source = stopProgram(textRows((await noteHeight()) - 2));
+    const { terminal } = await mount(source, 100);
+    await dropRightOfK(terminal);
+
+    await resize(terminal, 40);
+    expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+    await resize(terminal, 100);
+    expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+    terminal.unmount();
+  });
+
+  it("keeps its offset from its stop when a wider terminal takes rows from under the stop", async () => {
+    const source = stopProgram(textRows((await noteHeight()) - 2));
+    const { terminal } = await mount(source, 40);
+    await dropRightOfK(terminal);
+
+    await resize(terminal, 100);
+    expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+    await resize(terminal, 40);
+    expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+    terminal.unmount();
+  });
+
+  it("stays put against its stop when content under the stop grows: an accordion opens", async () => {
+    // One row short of room under K until the section opens.
+    const below = ["more"].concat(textRows((await noteHeight()) - 3));
+    const source = [
+      stopProgram(below),
+      'more = Accordion([AccordionItem("more", "More", [TextContent("first"), TextContent("second")])])',
+    ].join("\n");
+    const { terminal } = await mount(source, 100);
+    await dropRightOfK(terminal);
+
+    const header = findCell(plain(terminal), "▸ More");
+    await send(terminal, MOUSE.click(header.x + 2, header.y));
+    const opened = plain(terminal);
+    expect(opened).toContain("second");
+    expect(cornerFromK(opened)).toEqual({ x: RIGHT_OF_K, y: 0 });
+    terminal.unmount();
+  });
+
+  it("keeps its offset from its stop across a change of rows only, clamped while they are too few", async () => {
+    const terminal = renderTerminal(<FullScreen source={stopProgram(textRows(2))} />, 100);
+    await resize(terminal, 100, 30);
+    await dropRightOfK(terminal);
+    const height = boxHeight(plain(terminal));
+    const k = findCell(plain(terminal), "[ K ]");
+
+    // Too few rows under K for the dialog: it ends at the last row, never flipped over K.
+    const rows = k.y + height - 2;
+    await resize(terminal, 100, rows);
+    expect(findCell(plain(terminal), "╭")).toEqual({ x: k.x + RIGHT_OF_K, y: rows - height });
+    await resize(terminal, 100, 30);
+    expect(cornerFromK(plain(terminal))).toEqual({ x: RIGHT_OF_K, y: 0 });
+    terminal.unmount();
+  });
+
+  it("adds no rows to a short standalone page when dropped onto its last stop", async () => {
+    const source = [
+      "$note = true",
+      'root = Stack([a, open, noteDialog, b], "column", "none")',
+      'a = Button("A", @ToAssistant("A"))',
+      'open = Button("Open", @Set($note, true))',
+      `noteDialog = Dialog("info", "${NOTE_TITLE}", "Keep editing or close this note.", "Close", null, $note)`,
+      'b = Button("B", @ToAssistant("B"))',
+    ].join("\n");
+    // B is under the open dialog: where it is comes from the page with the dialog closed.
+    const b = findCell(await closedFrame(source, 100), "[ B ]");
+    const { terminal } = await mount(source, 100);
+    const before = plain(terminal);
+
+    // Dropped with its top-left on B's cells: re-anchored to B, the page's last stop.
+    await dragCornerTo(terminal, NOTE_TITLE, moved(b, 2, 0));
+    const after = plain(terminal);
+    expect(findCell(after, "╭")).toEqual(moved(b, 2, 0));
+    expect(after.split("\n").length).toBe(before.split("\n").length);
     terminal.unmount();
   });
 });

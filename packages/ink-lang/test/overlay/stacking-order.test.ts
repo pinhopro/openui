@@ -20,6 +20,7 @@ function overlay(id: string, layer: string | null): Overlay {
     offset: { x: 0, y: 0 },
     onPlaced: null,
     backgroundFromParent: false,
+    reserve: null,
     layer,
   };
 }

@@ -4,8 +4,9 @@ import { anchorBackground } from "./anchor-background";
 import { clippedBy, rectsIntersect } from "./clip-rect";
 import { declarationLine, marksDeclaration } from "./declaration-line";
 import {
-  clampIntoBounds,
+  alwaysClamped,
   compactWidthLimit,
+  movedPosition,
   overlayFits,
   placeCompact,
   placeOverlay,
@@ -184,26 +185,18 @@ function hiddenSpot(input: SpotInput): FormSpot {
 }
 
 /**
- * Where a form placed at `placed` (cells of the root) is shown: moved by the
- * overlay's offset, then clamped into the bounds (`clampIntoBounds`), so a
- * dragged form never leaves them. Without an offset it stays where it was
- * placed, which may leave rows past the bounds on purpose (`placeOverlay`).
+ * A form shown at `placed` (cells of the root), moved by the overlay's offset
+ * and clamped into the bounds (`movedPosition`).
  */
-function movedPosition(
-  overlay: Overlay,
-  placed: OverlayPosition,
-  input: SpotInput,
-): OverlayPosition {
-  const offset = overlay.offset;
-  if (offset.x === 0 && offset.y === 0) return placed;
-  const moved = { x: placed.x + offset.x, y: placed.y + offset.y };
-  return clampIntoBounds(moved, input.size, input.bounds);
-}
-
-/** A form shown at `placed` (cells of the root), moved by the overlay's offset (`movedPosition`). */
 function shownSpot(overlay: Overlay, placed: OverlayPosition, input: SpotInput): FormSpot {
   const origin = hostOrigin(input.host);
-  const position = movedPosition(overlay, placed, input);
+  const position = movedPosition({
+    placed,
+    offset: overlay.offset,
+    size: input.size,
+    bounds: input.bounds,
+    alwaysClamped: alwaysClamped(overlay.placement),
+  });
   return {
     x: position.x - origin.x,
     y: position.y - origin.y,
@@ -399,27 +392,60 @@ export function placedOrigin(input: PlacedOriginInput): OverlayPosition | null {
   });
 }
 
+interface RowsAgainstInput {
+  anchor: DOMElement | null;
+  placement: OverlayPlacement;
+  gap: number;
+  size: OverlaySize;
+  content: CellRect;
+}
+
+/** The rows a form of `size` lacks under `content` at `placement` against `anchor` (`rowsMissingBelow`). */
+function rowsAgainst(input: RowsAgainstInput): number {
+  const anchor = inBounds(input.placement) ? input.content : anchorCells(input.anchor);
+  if (anchor === null) return 0;
+  return rowsMissingBelow({
+    anchor,
+    size: input.size,
+    placement: input.placement,
+    gap: input.gap,
+    bounds: input.content,
+  });
+}
+
 /**
  * How many rows must be added under `content` (the bounds' cells down to the
  * last row of the page's content, without rows added under it) for a dialog
  * or a modal to be drawn whole at its placement, 0 when it fits there
  * (`rowsMissingBelow`) or its whole form was not measured yet at the current
- * width limit. A tooltip lacks none: it has its compact form.
+ * width limit. A re-anchored dialog (an `anchor` placement) lacks only the
+ * rows by which it is taller than the content, as it is clamped into the
+ * bounds wherever its stop is; with a `reserve` (its tree anchor), the rows
+ * that one needs are kept too, so a drop never changes the page. A tooltip
+ * lacks none: it has its compact form.
  */
 export function rowsPastContent(input: MeasureInput, content: CellRect): number {
   const overlay = input.overlay;
   if (overlay.kind === "tooltip") return 0;
-  const anchor = placementAnchor(overlay, content);
-  if (anchor === null) return 0;
   const size = measuredSize(input.wholeBox, wholeWidthLimit(input.bounds));
   if (size === null) return 0;
-  return rowsMissingBelow({
-    anchor,
-    size,
+  const own = rowsAgainst({
+    anchor: overlay.anchorRef.current,
     placement: overlay.placement,
     gap: overlay.gap,
-    bounds: content,
+    size,
+    content,
   });
+  const reserve = overlay.reserve;
+  if (reserve === null) return own;
+  const reserved = rowsAgainst({
+    anchor: reserve.anchorRef.current,
+    placement: reserve.placement,
+    gap: overlay.gap,
+    size,
+    content,
+  });
+  return Math.max(own, reserved);
 }
 
 function sameSpot(a: FormSpot | null, b: FormSpot | null): boolean {

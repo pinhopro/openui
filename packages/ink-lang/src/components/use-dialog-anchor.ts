@@ -55,10 +55,11 @@ const AFTER_ANCHOR = -1;
  * Where a dialog is anchored. It starts at its tree anchor (its declaration,
  * at its own placement, its stops in the Tab cycle where it is declared). On
  * each drop it re-anchors to the stop behind its top-left cell
- * (`reanchorOnDrop`): it is then placed under that stop
+ * (`reanchorOnDrop`): it is then placed from that stop's top-left cell
  * (`ANCHORED_PLACEMENT`), its offset rebased so it does not move, and its
  * stops sort right after that stop; the anchor is kept as the stop's id, so
- * a resize moves the dialog with its stop. Never during a drag. Once that
+ * a resize moves the dialog with its stop, at the same offset from it
+ * (clamped into the bounds). Never during a drag. Once that
  * stop is gone (unregistered or unmounted, noticed when the dialog renders
  * or when the host can no longer place it) the dialog falls back to its tree
  * anchor with no offset. The anchor is kept while the dialog is closed, as
@@ -97,7 +98,7 @@ export function useDialogAnchor(options: DialogAnchorOptions): DialogAnchor {
     });
     if (next === null) return;
     setStopId(next.stopId);
-    dragRef.current.setOrigin(next.origin);
+    dragRef.current.setOrigin(next.origin, next.alwaysClamped);
   }
 
   function onPlaced(rect: CellRect | null, frame: PlacedFrame | null): void {
