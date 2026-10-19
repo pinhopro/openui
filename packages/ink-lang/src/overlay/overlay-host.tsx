@@ -1,17 +1,34 @@
 import { Box, measureElement, type DOMElement } from "ink";
-import { useContext, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { elementRect, type CellRect } from "../focus/element-rect";
 import { MouseLayerContext } from "../mouse/mouse-layer";
 import { BridgedContexts } from "./context-bridge";
+import { OverlayFill } from "./overlay-fill";
 import { placeOverlay, type OverlayPosition } from "./overlay-placement";
 import { OverlayRegistryContext, type Overlay, type OverlayRegistry } from "./overlay-registry";
 import { rootRect } from "./root-rect";
+import { useResizeCount } from "./use-resize-count";
+
+/** Where an overlay is drawn, relative to the host box, and the size it was measured at. */
+interface PlacedOverlay {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 /**
- * Where each overlay is drawn, relative to the host box, by id: a position, or
- * null when its anchor is missing or empty (nothing is drawn).
+ * Each overlay's placement by id, or null when its anchor is missing or empty
+ * (nothing is drawn).
  */
-type Placements = Map<string, OverlayPosition | null>;
+type Placements = Map<string, PlacedOverlay | null>;
 
 const NO_OVERLAYS: Overlay[] = [];
 
@@ -46,20 +63,23 @@ function hostOrigin(host: DOMElement | null): OverlayPosition {
   return { x: rect.x, y: rect.y };
 }
 
-/** Where an overlay sits before it was ever measured: at its anchor, so the first frame is close. */
-function firstPosition(overlay: Overlay, host: DOMElement | null): OverlayPosition | null {
+/**
+ * Where an overlay sits before it was ever measured: at its anchor, so the
+ * first frame is close; its size is not known yet.
+ */
+function firstPlacement(overlay: Overlay, host: DOMElement | null): PlacedOverlay | null {
   const anchor = anchorRect(overlay);
   if (anchor === null) return null;
   const origin = hostOrigin(host);
-  return { x: anchor.x - origin.x, y: anchor.y - origin.y };
+  return { x: anchor.x - origin.x, y: anchor.y - origin.y, width: 0, height: 0 };
 }
 
-/** The placed position of one overlay relative to the host, or null when it draws nothing. */
+/** The placement of one overlay relative to the host, or null when it draws nothing. */
 function measurePlacement(
   overlay: Overlay,
   box: DOMElement | undefined,
   host: DOMElement,
-): OverlayPosition | null {
+): PlacedOverlay | null {
   const anchor = anchorRect(overlay);
   if (anchor === null) return null;
   const size = box === undefined ? { width: 0, height: 0 } : measureElement(box);
@@ -74,22 +94,36 @@ function measurePlacement(
   return {
     x: placed.x - origin.x + overlay.offset.x,
     y: placed.y - origin.y + overlay.offset.y,
+    width: size.width,
+    height: size.height,
   };
 }
 
-function samePosition(a: OverlayPosition | null, b: OverlayPosition | null): boolean {
+function samePlacement(a: PlacedOverlay | null, b: PlacedOverlay | null): boolean {
   if (a === null || b === null) return a === b;
-  return a.x === b.x && a.y === b.y;
+  return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
 }
 
-/** True when both maps hold the same ids with the same positions. */
+/** True when both maps hold the same ids with the same placements. */
 function samePlacements(previous: Placements, next: Placements): boolean {
   if (previous.size !== next.size) return false;
-  for (const [id, position] of next) {
+  for (const [id, placed] of next) {
     if (!previous.has(id)) return false;
-    if (!samePosition(previous.get(id) ?? null, position)) return false;
+    if (!samePlacement(previous.get(id) ?? null, placed)) return false;
   }
   return true;
+}
+
+interface OverlayContentProps {
+  render: () => ReactNode;
+}
+
+/**
+ * One overlay's content, in a component of its own: hooks called by a
+ * `render` that breaks the no-hooks rule stay out of the host's hook order.
+ */
+function OverlayContent({ render }: OverlayContentProps) {
+  return render();
 }
 
 /**
@@ -97,15 +131,18 @@ function samePlacements(previous: Placements, next: Placements): boolean {
  * before it, in stacking order: an absolutely positioned box at the top-left
  * of its container holding one absolutely positioned box per overlay, so the
  * container's layout does not change and later overlays overwrite earlier
- * cells. Each overlay's content is rendered with the contexts of the
- * component that opened it and in its own mouse layer (stacking index plus
- * one), so it wins the mouse hit-test over what it covers. Positions are measured after every render (the
- * anchor's cells, the overlay's size, the ink root as the bounds) and only
- * changed positions re-render.
+ * cells. Each overlay is opaque (blank cells under its content, once its size
+ * is measured) and its content is rendered with the contexts of the component
+ * that opened it and in its own mouse layer (stacking index plus one), so it
+ * wins the mouse hit-test over what it covers. Placements are measured after
+ * every render and every terminal resize (the anchor's cells, the overlay's
+ * size, the ink root as the bounds) and only changed placements re-render.
  */
 export function OverlayHost() {
   const registry = useContext(OverlayRegistryContext);
   const overlays = useOverlayList(registry);
+  // Read so a resize re-renders the host and the layout effect measures again.
+  useResizeCount();
   const hostRef = useRef<DOMElement | null>(null);
   const boxesRef = useRef(new Map<string, DOMElement>());
   const [placements, setPlacements] = useState<Placements>(function noPlacements() {
@@ -132,21 +169,22 @@ export function OverlayHost() {
   const boxes = [];
   for (let index = 0; index < overlays.length; index += 1) {
     const overlay = overlays[index] as Overlay;
-    const placed = placements.get(overlay.id);
-    const position = placed === undefined ? firstPosition(overlay, hostRef.current) : placed;
-    if (position === null) continue;
+    const measured = placements.get(overlay.id);
+    const placed = measured === undefined ? firstPlacement(overlay, hostRef.current) : measured;
+    if (placed === null) continue;
     boxes.push(
       <Box
         key={overlay.id}
         ref={boxRef(overlay.id)}
         position="absolute"
-        left={position.x}
-        top={position.y}
+        left={placed.x}
+        top={placed.y}
         flexDirection="column"
       >
+        <OverlayFill width={placed.width} height={placed.height} />
         <BridgedContexts captured={overlay.captured}>
           <MouseLayerContext.Provider value={index + 1}>
-            {overlay.render()}
+            <OverlayContent render={overlay.render} />
           </MouseLayerContext.Provider>
         </BridgedContexts>
       </Box>,

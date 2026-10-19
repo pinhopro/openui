@@ -1,11 +1,12 @@
 import { Box, Text, useFocusManager, type DOMElement } from "ink";
-import { useContext, useEffect, useState, type ReactNode } from "react";
+import { useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { z } from "zod/v4";
 import { useIsStreaming } from "../context";
 import { useComponentStyle } from "../design/design-system-context";
 import { FocusRegistryContext } from "../focus/focus-registry";
 import { useFocusable } from "../focus/use-focusable";
 import { defineComponent, type ComponentRenderProps } from "../library";
+import { useOverlay } from "../overlay/use-overlay";
 import { TooltipSchema } from "../schemas/tooltip-schema";
 import { boxProps, textProps } from "../theme-styles";
 import { displayText } from "./pad";
@@ -27,9 +28,11 @@ function isInside(element: DOMElement | null, ancestor: DOMElement | null): bool
  * A trigger with an explanation that shows while the trigger has focus or
  * the pointer is over it. A trigger that is a focus stop itself (a button)
  * keeps the Tab order as it is; a trigger that is not (an icon) makes the
- * tooltip the stop, so the keyboard can still reveal it. The bubble sits
- * above, below, left or right of the trigger; `.bubble` and the variant
- * class (`Tooltip.light .bubble`) address it in the stylesheet.
+ * tooltip the stop, so the keyboard can still reveal it. The bubble is a
+ * small bordered box floating over the program above, below, left or right
+ * of the trigger (flipped when that side has no room), so opening it never
+ * moves the layout; `.bubble` and the variant class (`Tooltip.light .bubble`)
+ * address it in the stylesheet.
  */
 function TooltipRenderer({ props, renderNode }: ComponentRenderProps<TooltipProps>) {
   const isStreaming = useIsStreaming();
@@ -40,6 +43,7 @@ function TooltipRenderer({ props, renderNode }: ComponentRenderProps<TooltipProp
   const manager = useFocusManager();
   const [hasStopInside, setHasStopInside] = useState(false);
   const focusable = useFocusable({ isActive: !isStreaming && !hasStopInside, name: text });
+  const triggerRef = useRef<DOMElement | null>(null);
 
   // The trigger registers before this effect runs (children first), so the
   // registry already says whether a stop of its own sits inside the box.
@@ -59,39 +63,38 @@ function TooltipRenderer({ props, renderNode }: ComponentRenderProps<TooltipProp
     activeEntry !== null && isInside(activeEntry.ref.current, focusable.ref.current);
   const isOpen = focusable.isFocused || focusWithin || focusable.isHovered;
 
-  // Keyed, so the trigger keeps its React identity (and its focus) when the
-  // bubble is laid out before it.
-  const trigger = <Box key="trigger">{renderNode(props.trigger)}</Box>;
-  if (!isOpen || text === "") return <Box ref={focusable.ref}>{trigger}</Box>;
-
+  // Everything the bubble needs is read here: `renderBubble` calls no hooks.
   const box = boxProps(bubble.box);
-  const isVertical = placement === "top" || placement === "bottom";
-  // Above or below, the bubble is a small bordered box; beside the trigger it
-  // stays on the trigger's line as an arrowed label, so the row keeps one height.
-  const bubbleNode: ReactNode = isVertical ? (
-    <Box
-      key="bubble"
-      borderStyle={box.borderStyle ?? "round"}
-      borderColor={box.borderColor}
-      borderDimColor={box.borderDimColor ?? variant === "dark"}
-      backgroundColor={box.backgroundColor}
-      paddingX={box.paddingX ?? 1}
-    >
-      <Text {...textProps(bubble.text)}>{text}</Text>
-    </Box>
-  ) : (
-    <Box key="bubble" backgroundColor={box.backgroundColor}>
-      <Text {...textProps(bubble.text)} dimColor={bubble.text.dim ?? variant === "dark"}>
-        {placement === "right" ? "◂ " + text : text + " ▸"}
-      </Text>
-    </Box>
-  );
-  const first = placement === "top" || placement === "left" ? bubbleNode : trigger;
-  const second = placement === "top" || placement === "left" ? trigger : bubbleNode;
+  const textStyle = textProps(bubble.text);
+  function renderBubble(): ReactNode {
+    return (
+      <Box
+        borderStyle={box.borderStyle ?? "round"}
+        borderColor={box.borderColor}
+        borderDimColor={box.borderDimColor ?? variant === "dark"}
+        backgroundColor={box.backgroundColor}
+        paddingX={box.paddingX ?? 1}
+      >
+        <Text {...textStyle}>{text}</Text>
+      </Box>
+    );
+  }
+  // Placed against the trigger's own cells: the outer box may be stretched
+  // across its container, the inner one is as wide as the trigger.
+  useOverlay({
+    kind: "tooltip",
+    anchorRef: triggerRef,
+    placement,
+    gap: placement === "left" || placement === "right" ? 1 : 0,
+    isOpen: isOpen && text !== "",
+    render: renderBubble,
+  });
+
   return (
-    <Box ref={focusable.ref} flexDirection={isVertical ? "column" : "row"} gap={isVertical ? 0 : 1}>
-      {first}
-      {second}
+    <Box ref={focusable.ref}>
+      <Box key="trigger" ref={triggerRef}>
+        {renderNode(props.trigger)}
+      </Box>
     </Box>
   );
 }

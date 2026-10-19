@@ -69,8 +69,21 @@ describe("placeOverlay", () => {
     expect(place(anchorAt(34, 2), "bottom", 0)).toEqual({ x: 30, y: 3 });
   });
 
-  it("keeps the side when neither side fits, shifted inside the bounds", () => {
-    expect(place(anchorAt(4, 1), "bottom", 0, { width: 10, height: 9 })).toEqual({ x: 4, y: 1 });
+  it("keeps a vertical side with more room when neither side fits, cut at the edge, never over its anchor", () => {
+    // 8 rows below, 1 above: stays below, its last row past the bounds.
+    expect(place(anchorAt(4, 1), "bottom", 0, { width: 10, height: 9 })).toEqual({ x: 4, y: 2 });
+    // 2 rows above, 2 below: a tie keeps the asked side.
+    const short: CellRect = { x: 0, y: 0, width: 40, height: 5 };
+    const tie = { anchor: anchorAt(4, 2), size: SIZE, gap: 0, bounds: short };
+    expect(placeOverlay({ ...tie, placement: "bottom" })).toEqual({ x: 4, y: 3 });
+    expect(placeOverlay({ ...tie, placement: "top" })).toEqual({ x: 4, y: -1 });
+    // 1 row above, 3 below, 4 rows high: a top overlay goes below.
+    const low = { anchor: anchorAt(4, 1), size: { width: 10, height: 4 }, gap: 0, bounds: short };
+    expect(placeOverlay({ ...low, placement: "top" })).toEqual({ x: 4, y: 2 });
+  });
+
+  it("shifts a side overlay that fits neither side inside the bounds, since a row cannot be cut", () => {
+    expect(place(anchorAt(17, 2), "right", 0, { width: 20, height: 3 })).toEqual({ x: 20, y: 2 });
   });
 
   it("centres a center overlay in the bounds", () => {

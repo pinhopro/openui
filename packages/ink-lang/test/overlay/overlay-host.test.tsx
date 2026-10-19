@@ -1,6 +1,6 @@
 import { Box, Text, type DOMElement } from "ink";
 import { render } from "ink-testing-library";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { z } from "zod/v4";
 import { inkLibrary } from "../../src/default-library";
@@ -24,12 +24,27 @@ interface FloaterProps {
   hide?: boolean;
   placement?: string;
   detach?: boolean;
+  hooked?: boolean;
+  padded?: boolean;
+}
+
+/** Overlay content that breaks the rule that `render` calls no hooks: it calls one. */
+function HookedOverlay(): ReactNode {
+  const renders = useRef(0);
+  renders.current += 1;
+  return (
+    <Box borderStyle="single">
+      <Text>OVERLAY hooked</Text>
+    </Box>
+  );
 }
 
 /**
  * An anchor box with its label and, while not hidden, an overlay below it: a
  * bordered box (3 rows) reading "OVERLAY <label>". `detach` keeps the overlay
- * open but leaves its anchor ref unattached (a null anchor).
+ * open but leaves its anchor ref unattached (a null anchor). `hooked` renders
+ * `HookedOverlay` instead; `padded` gives the bordered box a padding of one
+ * cell on every side (5 rows), cells the content itself never writes.
  */
 function FloaterRenderer({ props }: ComponentRenderProps<FloaterProps>) {
   const anchorRef = useRef<DOMElement | null>(null);
@@ -40,14 +55,16 @@ function FloaterRenderer({ props }: ComponentRenderProps<FloaterProps>) {
     placement: (props.placement ?? "bottom") as OverlayPlacement,
     gap: 0,
     isOpen: props.hide !== true,
-    render: function renderOverlay() {
-      return (
-        <Box borderStyle="single">
-          <Text>{`OVERLAY ${label}`}</Text>
-        </Box>
-      );
-    },
+    render: props.hooked === true ? HookedOverlay : renderOverlay,
   });
+  const padding = props.padded === true ? 1 : 0;
+  function renderOverlay(): ReactNode {
+    return (
+      <Box borderStyle="single" padding={padding}>
+        <Text>{`OVERLAY ${label}`}</Text>
+      </Box>
+    );
+  }
   if (props.detach === true) {
     return (
       <Box>
@@ -70,6 +87,8 @@ const Floater = defineComponent({
     hide: z.boolean().optional(),
     placement: z.string().optional(),
     detach: z.boolean().optional(),
+    hooked: z.boolean().optional(),
+    padded: z.boolean().optional(),
   }),
   component: FloaterRenderer,
 });
@@ -180,6 +199,54 @@ describe("overlay host", () => {
     const closed = stripAnsi(rendered.frame());
     expect(closed).not.toContain("OVERLAY");
     expect(findCell(closed, "row after").y).toBe(findCell(closed, "moved").y + 1);
+    rendered.unmount();
+  });
+
+  it("is opaque: the cells its content leaves empty hide what is under them", async () => {
+    const closed = await plainFrame(floaterProgram('Floater("anchor", true)'));
+    const frame = await plainFrame(
+      floaterProgram('Floater("anchor", false, "bottom", false, false, true)'),
+    );
+    const anchor = findCell(closed, "anchor");
+    const lines = frame.split("\n");
+    // Rows anchor+1 .. anchor+5: top border, padding, text, padding, bottom border; the
+    // rows under them ("row after", "filler one" .. "filler four") show nothing through.
+    expect(lines[anchor.y + 1]).toBe(`┌${"─".repeat(16)}┐`);
+    expect(lines[anchor.y + 2]).toBe(`│${" ".repeat(16)}│`);
+    expect(lines[anchor.y + 3]).toBe("│ OVERLAY anchor │");
+    expect(lines[anchor.y + 4]).toBe(`│${" ".repeat(16)}│`);
+    expect(lines[anchor.y + 5]).toBe(`└${"─".repeat(16)}┘`);
+  });
+
+  it("renders each overlay's content in its own component, so a hook in it cannot break the host", async () => {
+    const open = floaterProgram('Floater("anchor", false, "bottom", false, true)');
+    const rendered = await renderProgram(overlayLibrary, open);
+    expect(stripAnsi(rendered.frame())).toContain("OVERLAY hooked");
+    await rendered.update({
+      response: floaterProgram('Floater("anchor", true, "bottom", false, true)'),
+    });
+    expect(stripAnsi(rendered.frame())).not.toContain("OVERLAY hooked");
+    await rendered.update({ response: open });
+    expect(stripAnsi(rendered.frame())).toContain("OVERLAY hooked");
+    rendered.unmount();
+  });
+
+  it("re-places an overlay when the terminal is resized", async () => {
+    const row = 'Stack([TextContent("a lead-in of words"), Floater("anchor")], "row", "none")';
+    const rendered = await renderProgram(
+      overlayLibrary,
+      `root = Stack([${row}, ${FILLER}], "column", "none")`,
+    );
+    let frame = stripAnsi(rendered.frame());
+    const anchor = findCell(frame, "anchor");
+    expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: anchor.x + 1, y: anchor.y + 2 });
+    // At 30 columns the 16-cell overlay no longer fits from the anchor's column: it is shifted left.
+    Object.defineProperty(rendered.instance.stdout, "columns", { value: 30, configurable: true });
+    rendered.instance.stdout.emit("resize");
+    await settle();
+    frame = stripAnsi(rendered.frame());
+    expect(findCell(frame, "anchor").x).toBe(anchor.x);
+    expect(findCell(frame, "OVERLAY anchor")).toEqual({ x: 30 - 16 + 1, y: anchor.y + 2 });
     rendered.unmount();
   });
 

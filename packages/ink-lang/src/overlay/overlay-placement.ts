@@ -63,6 +63,37 @@ function fitsSide(
   return true;
 }
 
+/** The cells between the anchor (plus the gap) and the edge of the bounds on one side. */
+function roomOnSide(input: PlaceOverlayInput, placement: OverlayPlacement): number {
+  const anchor = input.anchor;
+  const bounds = input.bounds;
+  if (placement === "bottom")
+    return bounds.y + bounds.height - (anchor.y + anchor.height + input.gap);
+  if (placement === "top") return anchor.y - input.gap - bounds.y;
+  if (placement === "right") return bounds.x + bounds.width - (anchor.x + anchor.width + input.gap);
+  if (placement === "left") return anchor.x - input.gap - bounds.x;
+  return 0;
+}
+
+/**
+ * The side the overlay goes on: the asked one when it fits, else the opposite
+ * one when that fits. When neither fits, a top or bottom overlay takes the
+ * side with more room (the asked one on a tie); a left or right one keeps the
+ * asked side.
+ */
+function chooseSide(input: PlaceOverlayInput): OverlayPlacement {
+  const asked = input.placement;
+  if (fitsSide(input, asked, sidePosition(input, asked))) return asked;
+  const opposite = oppositeOf(asked);
+  if (fitsSide(input, opposite, sidePosition(input, opposite))) return opposite;
+  if (!isVertical(asked)) return asked;
+  return roomOnSide(input, opposite) > roomOnSide(input, asked) ? opposite : asked;
+}
+
+function isVertical(placement: OverlayPlacement): boolean {
+  return placement === "top" || placement === "bottom";
+}
+
 /** Moves `start` so a box of `length` cells lies in [min, min + room); at `min` when it is longer. */
 function shiftInto(start: number, length: number, min: number, room: number): number {
   const max = min + room - length;
@@ -72,18 +103,18 @@ function shiftInto(start: number, length: number, min: number, room: number): nu
 /**
  * The top-left cell of an overlay: on the asked side of its anchor, flipped to
  * the opposite side when it does not fit there and the opposite side does,
- * then shifted (never shrunk) so it lies inside the bounds.
+ * then shifted (never shrunk) so it lies inside the bounds. A top or bottom
+ * overlay that fits neither side is never shifted over its anchor: it stays on
+ * the side with more room and the rows past the bounds are cut, as Ink draws
+ * no rows outside its root. A left or right one is shifted inside the bounds
+ * anyway, since a row longer than the terminal would wrap.
  */
 export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
-  let position = sidePosition(input, input.placement);
-  if (!fitsSide(input, input.placement, position)) {
-    const opposite = oppositeOf(input.placement);
-    const flipped = sidePosition(input, opposite);
-    if (fitsSide(input, opposite, flipped)) position = flipped;
-  }
+  const side = chooseSide(input);
+  const position = sidePosition(input, side);
   const bounds = input.bounds;
-  return {
-    x: shiftInto(position.x, input.size.width, bounds.x, bounds.width),
-    y: shiftInto(position.y, input.size.height, bounds.y, bounds.height),
-  };
+  const x = shiftInto(position.x, input.size.width, bounds.x, bounds.width);
+  const fits = fitsSide(input, side, position);
+  if (isVertical(side) && !fits) return { x, y: position.y };
+  return { x, y: shiftInto(position.y, input.size.height, bounds.y, bounds.height) };
 }
