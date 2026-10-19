@@ -9,7 +9,8 @@ import type { MouseButton, WheelDirection } from "./mouse/mouse-sequence";
  * and `dragend` report a dialog moved by its title bar (a press, each move
  * that moved it, the release, at the pointer's cell) or by Ctrl+arrows (all
  * three for each key that moves it, at the dialog's top-left cell before
- * and after).
+ * and after); each also carries where the dialog's box is drawn (`left`,
+ * `top`).
  */
 export type UiEventType =
   | "focus"
@@ -41,9 +42,18 @@ export interface UiEvent {
   component: string;
   /** What identifies the instance: a field name, a label, a trigger text; may be empty. */
   name: string;
-  /** Mouse events: the 0-based cell. */
+  /**
+   * Mouse events: the 0-based cell. Drag events: the pointer's cell, or for
+   * a keyboard move the box's top-left cell.
+   */
   x?: number;
   y?: number;
+  /**
+   * Drag events: the 0-based top-left cell the dragged box is drawn at,
+   * clamped into the screen.
+   */
+  left?: number;
+  top?: number;
   button?: MouseButton;
   shift?: boolean;
   alt?: boolean;

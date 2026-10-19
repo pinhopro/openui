@@ -328,15 +328,17 @@ describe("ShowcaseApp dialog drag", () => {
       />,
     );
     await settle(40);
-    // Shift+Tab from the sidebar wraps to the page's last stop, the note's opener, and scrolls it into view.
+    // Shift+Tab from the sidebar wraps to the page's last stop, the note's opener, and scrolls
+    // it into view.
     instance.stdin.write(KEYS.SHIFT_TAB);
     await settle(40);
     const opener = findCell(lastFrame(instance.frames), "[ Show a note ]");
     instance.stdin.write(KEYS.ENTER);
     await settle(40);
     const before = lastFrame(instance.frames);
-    // The note floats on the row after the openers, under the pane's last visible row. Its
-    // title row is the one over its body ("Draft saved" is in the event log too).
+    // The note is declared after the openers, so it floats below them. The title is grabbed
+    // through the body's cell: "Draft saved" also shows in the event log, so the title row is
+    // found as the row right above the body text.
     const body = findCell(before, NOTE_BODY);
     const grab = { x: body.x + 4, y: body.y - 1 };
     expect(before.split("\n")[grab.y]).toContain(NOTE_TITLE);

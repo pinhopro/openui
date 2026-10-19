@@ -391,9 +391,8 @@ export type { OptionGroup, OptionGroupOptions } from "./components/use-option-gr
 export { variantColor } from "./components/variant-color";
 export { ElementPathContext, useElementPath, useElementType } from "./element-type-context";
 export { anchorBehind } from "./focus/anchor-behind";
-export type { CellPoint } from "./focus/anchor-behind";
 export { elementRect } from "./focus/element-rect";
-export type { CellRect as ElementRect } from "./focus/element-rect";
+export type { CellPoint, CellRect as ElementRect } from "./focus/element-rect";
 export { FocusCommandsContext, useFocusCommands } from "./focus/focus-commands";
 export type { FocusCommands } from "./focus/focus-commands";
 export { FocusCycleContext, defaultCycle } from "./focus/focus-cycle";

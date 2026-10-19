@@ -139,16 +139,33 @@ describe("dialog drag by the title bar", () => {
     expect(findCell(after, MODAL_TITLE)).toEqual(moved(title, 4, 2));
     expect(findCell(after, "╭")).toEqual(moved(corner, 4, 2));
     expect(inverseSegments(rendered.frame())).not.toContain(MODAL_TITLE);
+    // Each event carries the pointer's cell (x, y) and the box's drawn top-left (left, top).
+    const named = { component: "ModalDialog", name: MODAL_TITLE };
     expect(dragEvents(events)).toEqual([
-      { type: "dragstart", component: "ModalDialog", name: MODAL_TITLE, x: title.x, y: title.y },
-      { type: "drag", component: "ModalDialog", name: MODAL_TITLE, x: title.x + 2, y: title.y + 1 },
-      { type: "drag", component: "ModalDialog", name: MODAL_TITLE, x: title.x + 4, y: title.y + 2 },
+      { type: "dragstart", ...named, x: title.x, y: title.y, left: corner.x, top: corner.y },
       {
-        type: "dragend",
-        component: "ModalDialog",
-        name: MODAL_TITLE,
+        type: "drag",
+        ...named,
+        x: title.x + 2,
+        y: title.y + 1,
+        left: corner.x + 2,
+        top: corner.y + 1,
+      },
+      {
+        type: "drag",
+        ...named,
         x: title.x + 4,
         y: title.y + 2,
+        left: corner.x + 4,
+        top: corner.y + 2,
+      },
+      {
+        type: "dragend",
+        ...named,
+        x: title.x + 4,
+        y: title.y + 2,
+        left: corner.x + 4,
+        top: corner.y + 2,
       },
     ]);
     // The page keeps its layout; the rows the dialog left show the page again.
@@ -174,8 +191,17 @@ describe("dialog drag by the title bar", () => {
     const ended = dragEvents(events).filter(function isEnd(event) {
       return event.type === "dragend";
     });
+    // The pointer's cell past the edge, and the clamped box's top-left.
     expect(ended).toEqual([
-      { type: "dragend", component: "ModalDialog", name: MODAL_TITLE, x: COLUMNS + 20, y: title.y },
+      {
+        type: "dragend",
+        component: "ModalDialog",
+        name: MODAL_TITLE,
+        x: COLUMNS + 20,
+        y: title.y,
+        left: corner.x,
+        top: corner.y,
+      },
     ]);
     rendered.unmount();
   });
@@ -245,6 +271,7 @@ describe("dialog drag by the title bar", () => {
   it("forgets a drag its dialog closed in the middle of: reopened, it is not dragging", async () => {
     const { rendered, events } = await mount(modalDialogProgram(true), true);
     const title = findCell(plain(rendered), MODAL_TITLE);
+    const corner = findCell(plain(rendered), "╭");
     await send(rendered, MOUSE.press(title.x, title.y));
     // Escape cancels the modal while the button is still held; its release is never seen.
     rendered.instance.stdin.write(ESCAPE);
@@ -257,9 +284,10 @@ describe("dialog drag by the title bar", () => {
     await send(rendered, MOUSE.move(title.x + 3, title.y + 1));
     expect(findCell(plain(rendered), MODAL_TITLE)).toEqual(title);
     // The drag ended when the dialog closed, where the pointer was last.
+    const named = { component: "ModalDialog", name: MODAL_TITLE };
     expect(dragEvents(events)).toEqual([
-      { type: "dragstart", component: "ModalDialog", name: MODAL_TITLE, x: title.x, y: title.y },
-      { type: "dragend", component: "ModalDialog", name: MODAL_TITLE, x: title.x, y: title.y },
+      { type: "dragstart", ...named, x: title.x, y: title.y, left: corner.x, top: corner.y },
+      { type: "dragend", ...named, x: title.x, y: title.y, left: corner.x, top: corner.y },
     ]);
     rendered.unmount();
   });
@@ -342,10 +370,14 @@ describe("dialog moves with Ctrl+arrows", () => {
     // No excess was kept: one Ctrl+Right moves it one cell, reported from the corner.
     await send(rendered, KEYS.CTRL_RIGHT);
     expect(findCell(plain(rendered), "╭")).toEqual(moved(corner, 1, 0));
+    // A keyboard move reports the box's top-left as both its cell and its top-left.
+    const named = { component: "Dialog", name: NOTE_TITLE };
+    const from = { x: corner.x, y: corner.y, left: corner.x, top: corner.y };
+    const to = { x: corner.x + 1, y: corner.y, left: corner.x + 1, top: corner.y };
     expect(dragEvents(events)).toEqual([
-      { type: "dragstart", component: "Dialog", name: NOTE_TITLE, x: corner.x, y: corner.y },
-      { type: "drag", component: "Dialog", name: NOTE_TITLE, x: corner.x + 1, y: corner.y },
-      { type: "dragend", component: "Dialog", name: NOTE_TITLE, x: corner.x + 1, y: corner.y },
+      { type: "dragstart", ...named, ...from },
+      { type: "drag", ...named, ...to },
+      { type: "dragend", ...named, ...to },
     ]);
     rendered.unmount();
   });

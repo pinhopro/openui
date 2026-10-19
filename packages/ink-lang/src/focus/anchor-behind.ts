@@ -1,10 +1,5 @@
+import type { CellPoint } from "./element-rect";
 import type { FocusStop } from "./focus-order";
-
-/** A cell of the ink root: `x` from the left, `y` from the top. */
-export interface CellPoint {
-  x: number;
-  y: number;
-}
 
 /** True when the cell lies inside the stop's rectangle. */
 function contains(stop: FocusStop, cell: CellPoint): boolean {
@@ -13,7 +8,10 @@ function contains(stop: FocusStop, cell: CellPoint): boolean {
   return cell.y >= rect.y && cell.y < rect.y + rect.height;
 }
 
-/** True when the stop's top-left comes before the cell in reading order: a row above, or left on the same row. */
+/**
+ * True when the stop's top-left comes before the cell in reading order: a
+ * row above, or left on the same row.
+ */
 function startsBefore(stop: FocusStop, cell: CellPoint): boolean {
   if (stop.rect.y !== cell.y) return stop.rect.y < cell.y;
   return stop.rect.x < cell.x;

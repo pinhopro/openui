@@ -1,5 +1,5 @@
 import { measureElement, type DOMElement } from "ink";
-import { elementRect, type CellRect } from "../focus/element-rect";
+import { elementRect, type CellPoint, type CellRect } from "../focus/element-rect";
 import { anchorBackground } from "./anchor-background";
 import { clippedBy, rectsIntersect } from "./clip-rect";
 import { declarationLine, marksDeclaration } from "./declaration-line";
@@ -12,7 +12,6 @@ import {
   placeOverlay,
   rowsMissingBelow,
   type OverlayPlacement,
-  type OverlayPosition,
   type OverlaySize,
 } from "./overlay-placement";
 import type { Overlay } from "./overlay-registry";
@@ -50,7 +49,7 @@ export interface FormSpot {
    * A shown form's top-left as placed, before the overlay's offset moved it,
    * in the ink root's cells; null for a hidden or cover form.
    */
-  origin: OverlayPosition | null;
+  origin: CellPoint | null;
 }
 
 /** How one open overlay is drawn. */
@@ -100,7 +99,8 @@ function coveredCells(rect: CellRect): CellRect {
  * clipped out of sight (scrolled out of a pane that hides its overflow). An
  * anchor that only marks a declaration (an absolute box taking no cells, see
  * `marksDeclaration`) stands for the line where it was declared
- * (`declarationLine`), seen when that line's row or column is.
+ * (`declarationLine`), which lies between two rows (or columns): it is seen
+ * while the row (column) on either side of it is (`coveredCells`).
  */
 function anchorRect(overlay: Overlay): CellRect | null {
   return anchorCells(overlay.anchorRef.current);
@@ -141,7 +141,7 @@ function placementAnchor(overlay: Overlay, bounds: CellRect): CellRect | null {
 }
 
 /** The host box's own cells; positions are relative to them. */
-function hostOrigin(host: DOMElement): OverlayPosition {
+function hostOrigin(host: DOMElement): CellPoint {
   const rect = elementRect(host);
   return { x: rect.x, y: rect.y };
 }
@@ -188,7 +188,7 @@ function hiddenSpot(input: SpotInput): FormSpot {
  * A form shown at `placed` (cells of the root), moved by the overlay's offset
  * and clamped into the bounds (`movedPosition`).
  */
-function shownSpot(overlay: Overlay, placed: OverlayPosition, input: SpotInput): FormSpot {
+function shownSpot(overlay: Overlay, placed: CellPoint, input: SpotInput): FormSpot {
   const origin = hostOrigin(input.host);
   const position = movedPosition({
     placed,
@@ -380,7 +380,7 @@ export interface PlacedOriginInput {
  * Null when nothing would be drawn (the anchor is missing, empty or clipped
  * out); a `center` or `cover` placement goes in the bounds whatever the anchor.
  */
-export function placedOrigin(input: PlacedOriginInput): OverlayPosition | null {
+export function placedOrigin(input: PlacedOriginInput): CellPoint | null {
   const anchor = inBounds(input.placement) ? input.bounds : anchorCells(input.anchor);
   if (anchor === null) return null;
   return placeOverlay({
@@ -400,7 +400,10 @@ interface RowsAgainstInput {
   content: CellRect;
 }
 
-/** The rows a form of `size` lacks under `content` at `placement` against `anchor` (`rowsMissingBelow`). */
+/**
+ * The rows a form of `size` lacks under `content` at `placement` against
+ * `anchor` (`rowsMissingBelow`); 0 when the anchor is missing or clipped out.
+ */
 function rowsAgainst(input: RowsAgainstInput): number {
   const anchor = inBounds(input.placement) ? input.content : anchorCells(input.anchor);
   if (anchor === null) return 0;

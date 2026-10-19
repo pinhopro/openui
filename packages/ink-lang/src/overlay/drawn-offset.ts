@@ -1,12 +1,6 @@
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 import { movedPosition } from "./overlay-placement";
 import type { PlacedFrame } from "./overlay-registry";
-
-/** An overlay's offset: cells to the right (`x`) and down (`y`). */
-export interface OffsetCells {
-  x: number;
-  y: number;
-}
 
 /** A shown form as its owner last heard of it (`onPlaced`). */
 export interface ShownPlacement {
@@ -24,7 +18,7 @@ export interface ShownPlacement {
  * placement, and for no offset unless the form is clamped with none too
  * (`PlacedFrame.alwaysClamped`).
  */
-export function drawnOffset(offset: OffsetCells, shown: ShownPlacement | null): OffsetCells {
+export function drawnOffset(offset: CellPoint, shown: ShownPlacement | null): CellPoint {
   if (shown === null || shown.frame === null) return offset;
   const origin = shown.frame.origin;
   const drawn = movedPosition({
@@ -41,7 +35,7 @@ export function drawnOffset(offset: OffsetCells, shown: ShownPlacement | null): 
  * The top-left cell the form is drawn at with `offset` (an offset with no
  * excess, `drawnOffset`); the offset itself when the placement is unknown.
  */
-export function drawnTopLeft(offset: OffsetCells, shown: ShownPlacement | null): OffsetCells {
+export function drawnTopLeft(offset: CellPoint, shown: ShownPlacement | null): CellPoint {
   if (shown === null || shown.frame === null) return offset;
   return { x: shown.frame.origin.x + offset.x, y: shown.frame.origin.y + offset.y };
 }

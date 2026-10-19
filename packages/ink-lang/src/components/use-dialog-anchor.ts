@@ -1,11 +1,11 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useRef, useState, type RefObject } from "react";
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 import { FocusRegistryContext } from "../focus/focus-registry";
 import { useSequencePath } from "../focus/sequence-path";
 import type { OverlayPlacement } from "../overlay/overlay-placement";
 import type { PlacedFrame } from "../overlay/overlay-registry";
-import type { DragOffset, DragState, DroppedForm } from "../overlay/use-drag";
+import type { DragState, DroppedForm } from "../overlay/use-drag";
 import { ANCHORED_PLACEMENT, liveAnchor, reanchorOnDrop } from "./dialog-anchor";
 
 export interface DialogAnchorOptions {
@@ -25,7 +25,7 @@ export interface DialogAnchor {
   /** The overlay's placement against `anchorRef`. */
   placement: OverlayPlacement;
   /** The overlay's offset. */
-  offset: DragOffset;
+  offset: CellPoint;
   /**
    * The sequence path the dialog's content renders under: one level below
    * the anchor stop's, at `AFTER_ANCHOR` (its stops then sort right after
@@ -42,7 +42,7 @@ export interface DialogAnchor {
   onPlaced: (rect: CellRect | null, frame: PlacedFrame | null) => void;
 }
 
-const NO_OFFSET: DragOffset = Object.freeze({ x: 0, y: 0 });
+const NO_OFFSET: CellPoint = Object.freeze({ x: 0, y: 0 });
 
 /**
  * The level a re-anchored dialog's content renders at under its anchor

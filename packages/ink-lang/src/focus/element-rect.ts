@@ -8,7 +8,12 @@ export interface CellRect {
   height: number;
 }
 
-interface Offset {
+/**
+ * A terminal cell, 0-based (`x` from the left, `y` from the top), or a
+ * distance in cells (`x` to the right, `y` down): an overlay's position or
+ * offset, a dialog's top-left.
+ */
+export interface CellPoint {
   x: number;
   y: number;
 }
@@ -23,8 +28,8 @@ function contentOffset(value: unknown): number {
  * containers) move the element on screen: Ink's layout metrics leave those
  * out, the terminal cells do not.
  */
-function scrolledOffset(element: DOMElement): Offset {
-  const offset: Offset = { x: 0, y: 0 };
+function scrolledOffset(element: DOMElement): CellPoint {
+  const offset: CellPoint = { x: 0, y: 0 };
   let current: DOMElement | undefined = element.parentNode;
   while (current !== undefined) {
     offset.x += contentOffset(current.style.contentOffsetX);

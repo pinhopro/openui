@@ -209,7 +209,8 @@ describe("overlays across a terminal resize", () => {
     // Its own registry: the closed renders below probe theirs too.
     const registry = probed.registry;
 
-    // Placed under B (no gap) and moved by (+4, +2): re-anchored to B, the last stop before that cell.
+    // Dropped 4 cells right of and 3 rows below B's top-left: re-anchored to B, the last stop
+    // before that cell, at that offset from B.
     await dragCornerTo(terminal, NOTE_TITLE, moved(narrowB, 4, 3));
     expect(findCell(plain(terminal), "╭")).toEqual(moved(narrowB, 4, 3));
     let stops = stopsByName(registry);

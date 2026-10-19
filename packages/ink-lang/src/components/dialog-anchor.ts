@@ -1,13 +1,10 @@
 import type { DOMElement } from "ink";
 import { anchorBehind } from "../focus/anchor-behind";
+import type { CellPoint } from "../focus/element-rect";
 import { focusOrder } from "../focus/focus-order";
 import type { FocusEntry, FocusRegistry } from "../focus/focus-registry";
 import { placedOrigin } from "../overlay/overlay-measure";
-import {
-  alwaysClamped,
-  type OverlayPlacement,
-  type OverlayPosition,
-} from "../overlay/overlay-placement";
+import { alwaysClamped, type OverlayPlacement } from "../overlay/overlay-placement";
 import type { DroppedForm } from "../overlay/use-drag";
 
 /**
@@ -47,7 +44,7 @@ export interface Reanchor {
   /** The stop it is anchored to; null for its tree anchor (its declaration). */
   stopId: string | null;
   /** Where its form is placed against that anchor, before its offset. */
-  origin: OverlayPosition;
+  origin: CellPoint;
   /** Its form is clamped into the bounds with no offset too (`alwaysClamped`). */
   alwaysClamped: boolean;
 }

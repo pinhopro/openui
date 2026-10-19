@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 import type { MouseEvent } from "../mouse/mouse-sequence";
 import type { MouseHandlers } from "../mouse/mouse-target";
-import { useUiEvents, type UiEventType } from "../ui-events";
+import { useUiEvents, type UiEvent, type UiEventType } from "../ui-events";
 import { drawnOffset, drawnTopLeft, sameReference, type ShownPlacement } from "./drawn-offset";
 import type { PlacedFrame } from "./overlay-registry";
 
-/** Cells an overlay is moved from where it is placed: `x` to the right, `y` down. */
-export interface DragOffset {
-  x: number;
-  y: number;
-}
+/** Cells an overlay is moved from where it is placed (`CellPoint`): `x` to the right, `y` down. */
+export type DragOffset = CellPoint;
 
 export interface UseDragOptions {
   /**
@@ -42,7 +39,7 @@ export interface DroppedForm {
 
 export interface DragState {
   /** The offset to pass to the overlay's `useOverlay`. */
-  offset: DragOffset;
+  offset: CellPoint;
   /** True from a left press on the handle until its release. */
   isDragging: boolean;
   /** Moves the overlay by whole cells and drops it at once (a keyboard move). */
@@ -58,7 +55,7 @@ export interface DragState {
    * one that keeps the form drawn where it is. Does nothing while no
    * placement was reported yet.
    */
-  setOrigin: (origin: DragOffset, alwaysClamped: boolean) => void;
+  setOrigin: (origin: CellPoint, alwaysClamped: boolean) => void;
   /** Drops the offset: the form shows where it is placed. */
   resetOffset: () => void;
 }
@@ -67,7 +64,7 @@ export interface DragState {
 interface Press {
   x: number;
   y: number;
-  offsetAtPress: DragOffset;
+  offsetAtPress: CellPoint;
   /** The pointer's cell at the last event of the drag. */
   lastX: number;
   lastY: number;
@@ -78,7 +75,7 @@ interface Press {
 const NO_OFFSET: DragOffset = Object.freeze({ x: 0, y: 0 });
 const NO_HANDLERS: MouseHandlers = Object.freeze({});
 
-function sameOffset(a: DragOffset, b: DragOffset): boolean {
+function sameOffset(a: CellPoint, b: CellPoint): boolean {
   return a.x === b.x && a.y === b.y;
 }
 
@@ -109,29 +106,46 @@ function sameOffset(a: DragOffset, b: DragOffset): boolean {
  */
 export function useDrag(options: UseDragOptions): DragState {
   const emit = useUiEvents();
-  const [offset, setOffset] = useState<DragOffset>(NO_OFFSET);
+  const [offset, setOffset] = useState<CellPoint>(NO_OFFSET);
   const [isDragging, setDragging] = useState(false);
   // Handlers can run several times between renders (moves in one stdin chunk): they read refs.
-  const offsetRef = useRef<DragOffset>(NO_OFFSET);
+  const offsetRef = useRef<CellPoint>(NO_OFFSET);
   const press = useRef<Press | null>(null);
   const shown = useRef<ShownPlacement | null>(null);
   const enabled = options.enabled;
   const latest = useRef(options);
   latest.current = options;
 
-  function report(type: UiEventType, x: number, y: number): void {
-    const current = latest.current;
-    emit({ type, component: current.component, name: current.name, x, y });
+  /**
+   * The top-left cell the box is drawn at with `offset`, its excess past the
+   * bounds dropped (`drawnOffset`); null while no placement was reported.
+   */
+  function boxTopLeft(offset: CellPoint): CellPoint | null {
+    const placed = shown.current;
+    if (placed === null || placed.frame === null) return null;
+    return drawnTopLeft(drawnOffset(offset, placed), placed);
   }
 
-  function apply(next: DragOffset): void {
+  /** Reports a drag event at the cell `x`, `y`, with the box drawn at `offset` (`left`, `top`). */
+  function report(type: UiEventType, x: number, y: number, offset: CellPoint): void {
+    const current = latest.current;
+    const event: UiEvent = { type, component: current.component, name: current.name, x, y };
+    const box = boxTopLeft(offset);
+    if (box !== null) {
+      event.left = box.x;
+      event.top = box.y;
+    }
+    emit(event);
+  }
+
+  function apply(next: CellPoint): void {
     if (sameOffset(next, offsetRef.current)) return;
     offsetRef.current = next;
     setOffset(next);
   }
 
   /** Drops any excess the clamp cut off; returns the offset as drawn. */
-  function rebase(): DragOffset {
+  function rebase(): CellPoint {
     const exact = drawnOffset(offsetRef.current, shown.current);
     apply(exact);
     return exact;
@@ -145,8 +159,7 @@ export function useDrag(options: UseDragOptions): DragState {
       if (enabled || started === null) return;
       press.current = null;
       setDragging(false);
-      rebase();
-      report("dragend", started.lastX, started.lastY);
+      report("dragend", started.lastX, started.lastY, rebase());
     },
     // Only a change of `enabled` can end a drag here; the helpers read refs.
     [enabled],
@@ -164,23 +177,24 @@ export function useDrag(options: UseDragOptions): DragState {
   function drop(event: MouseEvent): void {
     press.current = null;
     setDragging(false);
-    rebase();
-    report("dragend", event.x, event.y);
+    report("dragend", event.x, event.y, rebase());
     latest.current.onDrop(droppedForm());
   }
 
   function handleMouseDown(event: MouseEvent): void {
-    if (event.button !== "left") return;
+    // Handlers of an earlier render can still be registered right after the drag was disabled.
+    if (event.button !== "left" || !latest.current.enabled) return;
+    const offsetAtPress = rebase();
     press.current = {
       x: event.x,
       y: event.y,
-      offsetAtPress: rebase(),
+      offsetAtPress,
       lastX: event.x,
       lastY: event.y,
       shown: shown.current,
     };
     setDragging(true);
-    report("dragstart", event.x, event.y);
+    report("dragstart", event.x, event.y, offsetAtPress);
   }
 
   /**
@@ -212,7 +226,7 @@ export function useDrag(options: UseDragOptions): DragState {
     };
     if (sameOffset(next, offsetRef.current)) return;
     apply(next);
-    report("drag", event.x, event.y);
+    report("drag", event.x, event.y, next);
   }
 
   function handleMouseUp(event: MouseEvent): void {
@@ -228,10 +242,10 @@ export function useDrag(options: UseDragOptions): DragState {
     if (sameOffset(target, current)) return;
     const from = drawnTopLeft(current, shown.current);
     const to = drawnTopLeft(target, shown.current);
-    report("dragstart", from.x, from.y);
+    report("dragstart", from.x, from.y, current);
     apply(target);
-    report("drag", to.x, to.y);
-    report("dragend", to.x, to.y);
+    report("drag", to.x, to.y, target);
+    report("dragend", to.x, to.y, target);
     latest.current.onDrop(droppedForm());
   }
 
@@ -240,7 +254,7 @@ export function useDrag(options: UseDragOptions): DragState {
     if (rect !== null) shown.current = { rect, frame };
   }
 
-  function setOrigin(origin: DragOffset, clamped: boolean): void {
+  function setOrigin(origin: CellPoint, clamped: boolean): void {
     const placed = shown.current;
     if (placed === null || placed.frame === null) return;
     const topLeft = drawnTopLeft(rebase(), placed);

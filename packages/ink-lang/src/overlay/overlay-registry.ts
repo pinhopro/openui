@@ -1,6 +1,6 @@
 import type { DOMElement } from "ink";
 import { createContext, type ReactNode, type RefObject } from "react";
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 import type { CapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
 
@@ -18,7 +18,7 @@ export type OverlayKind = "tooltip" | "dialog" | "modal" | "backdrop";
  * any offset draws it (`movedPosition`).
  */
 export interface PlacedFrame {
-  origin: { x: number; y: number };
+  origin: CellPoint;
   bounds: CellRect;
   /** The form is clamped into the bounds with no offset too (`alwaysClamped`). */
   alwaysClamped: boolean;
@@ -57,7 +57,7 @@ export interface Overlay {
    * displacement), which is then clamped into the bounds (`clampIntoBounds`);
    * a cover form ignores it.
    */
-  offset: { x: number; y: number };
+  offset: CellPoint;
   /**
    * Told the cells the shown form takes, in the ink root's cells (the compact
    * form's while it shows, else the whole one's), and how it was placed

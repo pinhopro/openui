@@ -1,6 +1,6 @@
 import type { DOMElement } from "ink";
 import { useContext, useEffect, useId, useRef, type ReactNode, type RefObject } from "react";
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 import { LayerIdContext } from "../focus/modal-layer";
 import { useCapturedContexts } from "./context-bridge";
 import type { OverlayPlacement } from "./overlay-placement";
@@ -54,7 +54,7 @@ export interface UseOverlayOptions {
    * clamped into the bounds (`clampIntoBounds`), so it never leaves them; a
    * `cover` overlay ignores it. A new offset is drawn on the next render.
    */
-  offset?: { x: number; y: number };
+  offset?: CellPoint;
   /**
    * Called by the host, outside render, whenever the cells the shown form
    * takes or how it was placed change: those cells in the ink root's

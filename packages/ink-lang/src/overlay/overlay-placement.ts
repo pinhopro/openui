@@ -1,4 +1,4 @@
-import type { CellRect } from "../focus/element-rect";
+import type { CellPoint, CellRect } from "../focus/element-rect";
 
 /**
  * Where an overlay goes relative to its anchor; `center` centres it in the
@@ -14,10 +14,8 @@ export interface OverlaySize {
   height: number;
 }
 
-export interface OverlayPosition {
-  x: number;
-  y: number;
-}
+/** An overlay's top-left cell (`CellPoint`). */
+export type OverlayPosition = CellPoint;
 
 export interface PlaceOverlayInput {
   /** The cells of the element the overlay is attached to. */
@@ -41,7 +39,7 @@ function oppositeOf(placement: OverlayPlacement): OverlayPlacement {
 }
 
 /** The top-left cell of the overlay on one side of its anchor, before any flip or shift. */
-function sidePosition(input: PlaceOverlayInput, placement: OverlayPlacement): OverlayPosition {
+function sidePosition(input: PlaceOverlayInput, placement: OverlayPlacement): CellPoint {
   const anchor = input.anchor;
   const size = input.size;
   const bounds = input.bounds;
@@ -61,7 +59,7 @@ function sidePosition(input: PlaceOverlayInput, placement: OverlayPlacement): Ov
 function fitsSide(
   input: PlaceOverlayInput,
   placement: OverlayPlacement,
-  position: OverlayPosition,
+  position: CellPoint,
 ): boolean {
   const bounds = input.bounds;
   if (placement === "bottom") return position.y + input.size.height <= bounds.y + bounds.height;
@@ -102,7 +100,10 @@ function isVertical(placement: OverlayPlacement): boolean {
   return placement === "top" || placement === "bottom";
 }
 
-/** Moves `start` so a box of `length` cells lies in [min, min + room); at `min` when it is longer. */
+/**
+ * Moves `start` so a box of `length` cells lies in [min, min + room); at
+ * `min` when it is longer.
+ */
 function shiftInto(start: number, length: number, min: number, room: number): number {
   const max = min + room - length;
   return Math.max(min, Math.min(start, max));
@@ -114,10 +115,10 @@ function shiftInto(start: number, length: number, min: number, room: number): nu
  * is larger than them. A dragged overlay is kept on the screen with it.
  */
 export function clampIntoBounds(
-  position: OverlayPosition,
+  position: CellPoint,
   size: OverlaySize,
   bounds: CellRect,
-): OverlayPosition {
+): CellPoint {
   return {
     x: shiftInto(position.x, size.width, bounds.x, bounds.width),
     y: shiftInto(position.y, size.height, bounds.y, bounds.height),
@@ -136,9 +137,9 @@ export function alwaysClamped(placement: OverlayPlacement): boolean {
 
 export interface MovedPositionInput {
   /** Where the form was placed (`placeOverlay`), before the offset. */
-  placed: OverlayPosition;
+  placed: CellPoint;
   /** Cells it is moved by: `x` to the right, `y` down. */
-  offset: OverlayPosition;
+  offset: CellPoint;
   /** The form's size. */
   size: OverlaySize;
   /** The rectangle it must stay in. */
@@ -153,7 +154,7 @@ export interface MovedPositionInput {
  * with no offset stays where it was placed, which may leave rows past the
  * bounds on purpose (`placeOverlay`), unless it is `alwaysClamped`.
  */
-export function movedPosition(input: MovedPositionInput): OverlayPosition {
+export function movedPosition(input: MovedPositionInput): CellPoint {
   const offset = input.offset;
   if (offset.x === 0 && offset.y === 0 && !input.alwaysClamped) return input.placed;
   const moved = { x: input.placed.x + offset.x, y: input.placed.y + offset.y };
@@ -174,7 +175,7 @@ export function movedPosition(input: MovedPositionInput): OverlayPosition {
  * bounds: it is a fixed reference its offset is added to (`movedPosition`
  * then clamps it).
  */
-export function placeOverlay(input: PlaceOverlayInput): OverlayPosition {
+export function placeOverlay(input: PlaceOverlayInput): CellPoint {
   if (input.placement === "cover") return sidePosition(input, "cover");
   if (input.placement === "anchor") return sidePosition(input, "anchor");
   const side = chooseSide(input);
@@ -247,7 +248,7 @@ const COMPACT_GAP = 1;
  * row one cell to its right, else one cell to its left, else under it (over
  * it when there is no row under it), shifted inside the bounds.
  */
-export function placeCompact(input: PlaceCompactInput): OverlayPosition {
+export function placeCompact(input: PlaceCompactInput): CellPoint {
   const beside: PlaceOverlayInput = {
     anchor: input.anchor,
     size: input.size,
