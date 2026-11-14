@@ -475,6 +475,9 @@ importers:
         specifier: ^8.3.0
         version: 8.3.0
     devDependencies:
+      '@openuidev/react-ui':
+        specifier: workspace:^
+        version: link:../react-ui
       '@types/node':
         specifier: 'catalog:'
         version: 22.20.1

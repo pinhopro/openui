@@ -70,6 +70,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@openuidev/react-ui": "workspace:^",
     "@types/node": "catalog:",
     "@types/react": "^19.3.0",
     "ink": "^8.0.0",

@@ -15,7 +15,7 @@ import {
   buildRuntimeFunctions,
   createEvaluationContext,
 } from "../../src/runtime/evaluation-context";
-import { buildMutationNodes, buildQueryNodes } from "../../src/runtime/query-nodes";
+import { buildMutationNodes } from "../../src/runtime/query-nodes";
 
 export interface RuntimeFixture {
   library: Library;
@@ -42,7 +42,7 @@ export function makeRuntimeFixture(
   const functions = buildRuntimeFunctions(schema, library);
   const evaluationContext = createEvaluationContext(store, queryManager, functions, schema.actions);
   queryManager.registerMutations(buildMutationNodes(result, evaluationContext));
-  queryManager.evaluateQueries(buildQueryNodes(result, evaluationContext, store.getSnapshot()));
+  queryManager.evaluateStatements(result.queryStatements, evaluationContext);
   const evaluated = evaluateResult(result, evaluationContext, library, store);
   return { library, result, store, queryManager, evaluationContext, root: evaluated.root };
 }

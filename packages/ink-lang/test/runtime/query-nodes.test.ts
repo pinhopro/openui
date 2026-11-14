@@ -4,9 +4,11 @@ import {
   buildRuntimeFunctions,
   createEvaluationContext,
 } from "../../src/runtime/evaluation-context";
-import { buildMutationNodes, buildQueryNodes } from "../../src/runtime/query-nodes";
+import { buildMutationNodes } from "../../src/runtime/query-nodes";
 import { makeTestLibrary } from "../helpers/test-library";
 
+// Queries are evaluated by the query manager itself since OpenUI 1.1
+// (`evaluateStatements`); see test/query-chain.test.tsx. Only mutations are built here.
 const program = [
   '$status = "open"',
   "root = Stack([filter, count])",
@@ -26,29 +28,6 @@ function parse() {
   const context = createEvaluationContext(store, createQueryManager(null), functions, undefined);
   return { result, store, context };
 }
-
-describe("buildQueryNodes", () => {
-  it("evaluates tool name, args, defaults, refresh and deps against the store", () => {
-    const { result, store, context } = parse();
-    const nodes = buildQueryNodes(result, context, store.getSnapshot());
-    expect(nodes).toEqual([
-      {
-        statementId: "tickets",
-        toolName: "listTickets",
-        args: { status: "open" },
-        defaults: { rows: [] },
-        refreshInterval: 30,
-        deps: { $status: "open" },
-        complete: true,
-      },
-    ]);
-  });
-
-  it("returns no nodes for a missing result", () => {
-    const { store, context } = parse();
-    expect(buildQueryNodes(null, context, store.getSnapshot())).toEqual([]);
-  });
-});
 
 describe("buildMutationNodes", () => {
   it("evaluates the tool name of every mutation statement", () => {

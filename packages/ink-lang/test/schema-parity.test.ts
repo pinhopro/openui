@@ -1,19 +1,13 @@
-import { readFileSync } from "node:fs";
-import path from "node:path";
+import { openuiLibrary } from "@openuidev/react-ui/genui-lib";
 import { describe, expect, it } from "vitest";
 import { inkLibrary } from "../src/default-library";
 
-/** The React default library as `openui generate` wrote it: signatures plus JSON Schema. */
+/** The React default library's spec: signatures plus JSON Schema, from the same lang-core. */
 interface LibrarySpecFile {
   root: string;
   components: Record<string, { signature: string; description: string }>;
   schema: { $defs: Record<string, Record<string, unknown>> };
 }
-
-const SPEC_PATH = path.resolve(
-  process.env["OPENUI_LIBRARY_SPEC"] ??
-    path.join(__dirname, "../../../docs/generated/playground-library.spec.json"),
-);
 
 const SHARED = [
   "Stack",
@@ -101,8 +95,8 @@ const SHARED = [
 ];
 
 function loadSpec(): LibrarySpecFile {
-  const raw = readFileSync(SPEC_PATH, "utf8");
-  return JSON.parse(raw) as LibrarySpecFile;
+  // Through JSON so the comparison sees what a prompt consumer sees, not live Zod objects.
+  return JSON.parse(JSON.stringify(openuiLibrary.toSpec())) as LibrarySpecFile;
 }
 
 const COMBOBOX_REF = "#/$defs/Combobox";

@@ -17,7 +17,7 @@ import { evaluateResult } from "./runtime/evaluate-result";
 import { buildRuntimeFunctions, createEvaluationContext } from "./runtime/evaluation-context";
 import { getFieldValue, getFormPayload, setFieldValue } from "./runtime/field-state";
 import { parseResponse } from "./runtime/parse-response";
-import { buildMutationNodes, buildQueryNodes } from "./runtime/query-nodes";
+import { buildMutationNodes } from "./runtime/query-nodes";
 import type { ActionRuntime } from "./runtime/run-action-plan";
 import { createStableToolProvider, type ToolProviderInput } from "./runtime/tool-provider";
 import { triggerAction as runTriggerAction, type LegacyAction } from "./runtime/trigger-action";
@@ -205,14 +205,18 @@ export function useOpenUIRuntime(options: OpenUIRuntimeOptions): OpenUIRuntime {
     [store, queryManager, functions, schema.actions],
   );
 
-  // Queries and mutations wait for the stream to end.
+  // Queries and mutations wait for the stream to end. The manager evaluates the
+  // statements itself (OpenUI 1.1): a query that reads another's result waits for
+  // it and runs again when it changes, and the context reads the store and the
+  // results live. An empty list clears removed queries and their errors.
+  // storeSnapshot: a state value the queries read changed.
+  const queryStatements = parseResult?.queryStatements;
   useEffect(
     function submitQueries() {
       if (isStreaming) return;
-      const nodes = buildQueryNodes(parseResult, evaluationContext, storeSnapshot);
-      queryManager.evaluateQueries(nodes);
+      queryManager.evaluateStatements(queryStatements ?? [], evaluationContext);
     },
-    [isStreaming, parseResult, evaluationContext, queryManager, storeSnapshot],
+    [isStreaming, queryStatements, evaluationContext, queryManager, storeSnapshot],
   );
   useEffect(
     function submitMutations() {
