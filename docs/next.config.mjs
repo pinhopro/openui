@@ -12,7 +12,20 @@ const proxiedDemos = {
   "f1-dashboard": "https://openui-f1-dashboard.vercel.app",
   "trip-planner": "https://openui-trip-planner.vercel.app",
   "intelligent-ui": "https://open-intelligent-ui.vercel.app",
+  "sales-dashboard": "https://openui-sales-dashboard.vercel.app",
 };
+
+// The demo gateway (a private app) serves every hosted demo under /demo, with login and daily
+// limits. Set DEMO_GATEWAY_ORIGIN to send /demo/* there. /chat, /compare and /openui-vs-json live
+// only on the gateway, so they always redirect.
+const demoGatewayOrigin = process.env.DEMO_GATEWAY_ORIGIN?.replace(/\/+$/, "");
+
+const demoGatewayRedirects = [
+  { source: "/chat", destination: "/demo/chat", permanent: false },
+  { source: "/chat/:path*", destination: "/demo/chat/:path*", permanent: false },
+  { source: "/compare", destination: "/demo/compare", permanent: false },
+  { source: "/openui-vs-json", destination: "/demo/openui-vs-json", permanent: false },
+];
 
 /** @type {import('next').NextConfig} */
 const config = {
@@ -44,10 +57,22 @@ const config = {
           },
         ],
       },
+      // Keep build chunks crawlable (Google needs them to render pages) but out of the index.
+      {
+        source: "/_next/static/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
     ];
   },
   async redirects() {
     return [
+      ...demoGatewayRedirects,
+      // The GitHub dashboards demo was removed; its links open the Sales Dashboard demo.
+      {
+        source: "/demo/github/:path*",
+        destination: "/demo/sales-dashboard",
+        permanent: true,
+      },
       {
         source: "/favicon.svg",
         destination: "/shiro-logo.svg",
@@ -101,7 +126,7 @@ const config = {
       // while the marketing restructure settles — make it permanent once the
       // home page has actually absorbed the cloud sections.
       {
-        source: "/cloud",
+        source: "/cloud/:page(app)?",
         destination: "/",
         permanent: false,
       },
@@ -116,8 +141,8 @@ const config = {
         permanent: false,
       },
       {
-        source: "/components/blocks/accordian",
-        destination: "/components/blocks/accordion",
+        source: "/components/:path*",
+        destination: "/docs",
         permanent: true,
       },
       {
@@ -244,6 +269,48 @@ const config = {
       {
         source: "/docs/openui-lang/examples/app-frameworks/react-native",
         destination: "/docs/openui-lang",
+        permanent: true,
+      },
+      {
+        source: "/docs/openui-lang/src/library.ts",
+        destination: "/docs/openui-lang/defining-components",
+        permanent: true,
+      },
+      // Pre-reorganisation flat example URLs.
+      ...Object.entries({
+        "shadcn-chat": "/docs/openui-lang/examples/design-systems/shadcn",
+        "react-email": "/docs/openui-lang/examples/miscellaneous/react-email",
+        "react-native": "/docs/openui-lang",
+        dashboard: "/cookbooks/conversational-analytics",
+        "langgraph-chat": "/docs/build-agents/frameworks/langgraph",
+        "langchain-chat": "/docs/build-agents/frameworks/langgraph",
+        "vercel-ai-chat": "/docs/build-agents/frameworks/vercel-ai-sdk",
+        "harnesses/pi-agent-harness": "/docs/build-agents/frameworks/pi",
+        "harnesses/vercel-eve": "/docs/build-agents/frameworks/vercel-eve",
+      }).map(([example, destination]) => ({
+        source: `/docs/openui-lang/examples/${example}`,
+        destination,
+        permanent: true,
+      })),
+      // The old /docs/chat section was replaced by the Agent Interface docs.
+      ...Object.entries({
+        "quick-start": "/docs/agent/getting-started/quickstart",
+        installation: "/docs/agent/getting-started/quickstart",
+        nextjs: "/docs/agent/reference/self-hosting",
+        connecting: "/docs/agent/reference/adapters-and-formats",
+        genui: "/docs/agent/core-concepts/generative-ui",
+        artifacts: "/docs/agent/core-concepts/artifacts",
+        welcome: "/docs/agent/customize/welcome-and-starters",
+        theming: "/docs/agent/reference/agentinterface-props#theme",
+        persistence: "/docs/build-agents/conversation-history",
+      }).map(([page, destination]) => ({
+        source: `/docs/chat/${page}`,
+        destination,
+        permanent: true,
+      })),
+      {
+        source: "/docs/chat/:path*",
+        destination: "/docs/build-agents/chat-ui",
         permanent: true,
       },
       {
@@ -384,11 +451,7 @@ const config = {
     ];
   },
   async rewrites() {
-    return [
-      ...Object.entries(proxiedDemos).flatMap(([path, origin]) => [
-        { source: `/demo/${path}`, destination: `${origin}/demo/${path}` },
-        { source: `/demo/${path}/:rest*`, destination: `${origin}/demo/${path}/:rest*` },
-      ]),
+    const docsRewrites = [
       {
         source: "/docs/:path*.mdx",
         destination: "/llms.mdx/docs/:path*",
@@ -402,6 +465,25 @@ const config = {
         destination: "/llms.mdx/docs/demos",
       },
     ];
+
+    if (!demoGatewayOrigin) {
+      return [
+        ...Object.entries(proxiedDemos).flatMap(([path, origin]) => [
+          { source: `/demo/${path}`, destination: `${origin}/demo/${path}` },
+          { source: `/demo/${path}/:rest*`, destination: `${origin}/demo/${path}/:rest*` },
+        ]),
+        ...docsRewrites,
+      ];
+    }
+
+    // beforeFiles, so the gateway also wins over the docs app's own /demo/github page.
+    return {
+      beforeFiles: [
+        { source: "/demo", destination: `${demoGatewayOrigin}/demo` },
+        { source: "/demo/:path*", destination: `${demoGatewayOrigin}/demo/:path*` },
+      ],
+      afterFiles: docsRewrites,
+    };
   },
 };
 

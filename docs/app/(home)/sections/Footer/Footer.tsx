@@ -22,7 +22,7 @@ interface SocialLink {
 const SOCIAL_LINKS: SocialLink[] = [
   {
     label: "Twitter",
-    href: "https://x.com/thesysdev",
+    href: "https://x.com/openuidev",
     viewBox: "0 0 24 24",
     path: svgPaths.pa1e7100,
     wrapperClassName: styles.socialIconTwitter,
@@ -44,7 +44,7 @@ const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     label: "LinkedIn",
-    href: "https://www.linkedin.com/company/thesysdev/",
+    href: "https://www.linkedin.com/showcase/openui-com/",
     viewBox: "0 0 19 19",
     path: svgPaths.p26fc3100,
     wrapperClassName: styles.socialIconLinkedIn,
@@ -137,6 +137,7 @@ const FOOTER_GROUPS: { title: string; links: FooterLink[] }[] = [
       { title: "OpenUI", ...SITE_NAV_LINKS.openui },
       { title: "Gateway", ...SITE_NAV_LINKS.gateway },
       { title: "Observability", ...SITE_NAV_LINKS.observability },
+      { title: "Dashboards", ...SITE_NAV_LINKS.dashboards },
       { title: "Pricing", ...SITE_NAV_LINKS.pricing },
     ],
   },
@@ -154,10 +155,11 @@ const FOOTER_GROUPS: { title: string; links: FooterLink[] }[] = [
     title: "Explore",
     links: [
       { title: "All Demos", ...SITE_NAV_LINKS.demos },
+      { title: "Sales Dashboard", ...SITE_NAV_LINKS.salesDashboard },
       { title: "Open Intelligent UI", ...SITE_NAV_LINKS.openIntelligentUi },
       { title: "F1 Dashboard", ...SITE_NAV_LINKS.f1Dashboard },
       { title: "Trip Planner", ...SITE_NAV_LINKS.tripPlanner },
-      { title: "AI Dashboards", ...SITE_NAV_LINKS.aiDashboards },
+      { title: "The HN Times", ...SITE_NAV_LINKS.hnTimes },
     ],
   },
   {
