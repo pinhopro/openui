@@ -18,5 +18,5 @@ export const feedbackProgram = [
   'health = Query("health", {}, {status: "unknown"})',
   'healthCard = Card([CardHeader("Flaky query", "fails once, then press retry"), TextContent("Health: " + health.status)], "sunk")',
   'createTicket = Mutation("create_ticket", {title: "Showcase ticket"})',
-  'ticketCard = Card([CardHeader("Mutation", "runs when the button is pressed"), TextContent("Ticket: " + createTicket.id), Buttons([Button("Create a ticket", @Run(createTicket))])], "sunk")',
+  'ticketCard = Card([CardHeader("Mutation", "runs when the button is pressed"), TextContent(createTicket.status == "success" ? "Ticket: " + createTicket.data.id : "Ticket: none yet (" + createTicket.status + ")"), Buttons([Button("Create a ticket", @Run(createTicket))])], "sunk")',
 ].join("\n");
